@@ -10,19 +10,28 @@ import java.time.LocalDateTime;
 @Data
 public class Member {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long memberId;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private java.util.UUID memberId;
     
+    @Column(name = "registered_branch_id")
     private Long branchId; // Multi-branch data isolation
     
+    @Column(name = "full_name")
     private String fullName;
     
     @Column(unique = true)
     private String nic;
     
     private String address;
+    
+    @Column(name = "contact_number")
     private String contactNumber;
+    
+    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
+    
+    @Column(name = "digital_signature_url")
+    private String digitalSignatureUrl;
     
     private String status; // ACTIVE, INACTIVE
     

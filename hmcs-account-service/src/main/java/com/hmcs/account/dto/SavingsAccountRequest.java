@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 
 @Data
 public class SavingsAccountRequest {
-    private Long memberId;
-    private String accountType;
+    private java.util.UUID memberId;
+    private String accountType; // REGULAR, CHILD, SENIOR
     private BigDecimal initialDeposit;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, java.util.UUID> {
     
     // IMPORTANT: Branch Isolation Query
     List<Member> findByBranchId(Long branchId);
