@@ -15,6 +15,34 @@ export default function Members() {
     dateOfBirth: ''
   });
   const [submitError, setSubmitError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredMembers = members.filter(member => 
+    member.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    member.nic.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleExport = () => {
+    if (filteredMembers.length === 0) return;
+    
+    const headers = ['Member ID', 'Full Name', 'NIC', 'Contact Number', 'Address', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredMembers.map(m => 
+        `"${m.memberId}","${m.fullName}","${m.nic}","${m.contactNumber}","${m.address}","${m.status}"`
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'members_export.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
     fetchMembers();
@@ -54,7 +82,10 @@ export default function Members() {
             <p className="text-sm text-slate-500">Manage branch members and open accounts.</p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+            <button 
+              onClick={handleExport}
+              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+            >
               <FileDown size={18} />
               Export
             </button>
@@ -75,11 +106,13 @@ export default function Members() {
             <input 
               type="text" 
               placeholder="Search by name or NIC..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
             />
           </div>
           <div className="text-sm text-slate-500 font-medium">
-            Total: {members.length} members
+            Total: {filteredMembers.length} members
           </div>
         </div>
 
@@ -104,14 +137,14 @@ export default function Members() {
                       Loading members...
                     </td>
                   </tr>
-                ) : members.length === 0 ? (
+                ) : filteredMembers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                      No members found in this branch.
+                      No members found matching your search.
                     </td>
                   </tr>
                 ) : (
-                  members.map((member) => (
+                  filteredMembers.map((member) => (
                     <tr key={member.memberId} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4 font-medium text-slate-900">
                         #{member.memberId ? member.memberId.toString().substring(0, 8) : 'NEW'}
