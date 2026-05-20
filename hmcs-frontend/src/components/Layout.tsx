@@ -56,12 +56,8 @@ export default function Layout({ children }: LayoutProps) {
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
             <NavItem to="/members" icon={Users} label="Users & Members" />
             
-            {!isSystemAdmin && (
-              <>
-                <NavItem to="/accounts" icon={CreditCard} label="Accounts" />
-                <NavItem to="/loans" icon={FileText} label="Loans" />
-              </>
-            )}
+            <NavItem to="/accounts" icon={CreditCard} label="Accounts" />
+            <NavItem to="/loans" icon={FileText} label="Loans" />
             {isSystemAdmin && (
               <NavItem to="/settings" icon={Settings} label="Global Settings" />
             )}
