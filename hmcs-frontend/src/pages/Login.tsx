@@ -17,8 +17,21 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await AuthService.login(username, password);
-      navigate('/dashboard');
+      const response = await AuthService.login(username, password);
+      
+      // Redirect based on user role
+      const role = response.role;
+      if (role === 'ROLE_SYSTEM_ADMIN') {
+        navigate('/dashboard');
+      } else if (role === 'ROLE_GENERAL_MANAGER') {
+        navigate('/manager/dashboard');
+      } else if (role === 'ROLE_BRANCH_MANAGER') {
+        navigate('/branch/dashboard');
+      } else if (role === 'ROLE_TELLER') {
+        navigate('/teller/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(
         err.response?.data?.message || 'Login failed. Please check your credentials.'
