@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users, CreditCard, FileText, Clock, Database, Building, Settings, Save } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import Layout from '../components/Layout';
