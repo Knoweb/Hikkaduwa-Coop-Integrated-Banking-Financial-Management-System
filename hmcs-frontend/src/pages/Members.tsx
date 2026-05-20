@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, UserPlus, FileDown, MoreVertical } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, UserPlus, FileDown, MoreVertical } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 
