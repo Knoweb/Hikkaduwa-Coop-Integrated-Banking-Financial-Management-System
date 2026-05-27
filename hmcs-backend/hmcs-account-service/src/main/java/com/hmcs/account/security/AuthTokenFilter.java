@@ -33,6 +33,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
                 
+                System.out.println("[AUTH FILTER] JWT Token validated for user: " + username + ", role: " + role);
+                
                 // Safely extract branchId regardless of whether it's stored as Integer or Long in JWT
                 Object branchIdObj = claims.get("branchId");
                 Long branchId = null;
@@ -41,6 +43,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 }
 
                 List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+                System.out.println("[AUTH FILTER] Created authority: " + authorities.iterator().next().getAuthority());
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         username, null, authorities);
@@ -49,9 +52,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 authentication.setDetails(branchId);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println("[AUTH FILTER] Authentication set for user: " + username);
+            } else {
+                System.out.println("[AUTH FILTER] JWT validation failed or JWT is null");
             }
         } catch (Exception e) {
             System.err.println("Cannot set user authentication: " + e);
+            e.printStackTrace();
         }
 
         filterChain.doFilter(request, response);
