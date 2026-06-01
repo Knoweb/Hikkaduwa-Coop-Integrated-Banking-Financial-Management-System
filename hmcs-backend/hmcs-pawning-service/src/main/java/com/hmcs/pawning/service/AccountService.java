@@ -1,0 +1,109 @@
+package com.hmcs.pawning.service;
+
+import com.hmcs.pawning.dto.MemberRegistrationRequest;
+import com.hmcs.pawning.dto.SavingsAccountRequest;
+import com.hmcs.pawning.entity.Member;
+import com.hmcs.pawning.entity.SavingsAccount;
+import com.hmcs.pawning.repository.MemberRepository;
+import com.hmcs.pawning.repository.SavingsAccountRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class AccountService {
+
+    @Autowired
+    private MemberRepository memberRepository;
+
+    @Autowired
+    private SavingsAccountRepository savingsAccountRepository;
+
+    @Transactional
+    public Member registerMember(MemberRegistrationRequest request, Long branchId) {
+        if (memberRepository.findByNic(request.getNic()).isPresent()) {
+            throw new RuntimeException("Member with NIC " + request.getNic() + " already exists.");
+        }
+
+        Member member = new Member();
+        member.setFullName(request.getFullName());
+        member.setNic(request.getNic());
+        member.setAddress(request.getAddress());
+        member.setContactNumber(request.getContactNumber());
+        member.setDateOfBirth(request.getDateOfBirth());
+        // Enforce branch isolation
+        member.setBranchId(branchId);
+
+        return memberRepository.save(member);
+    }
+
+    @Transactional
+    public SavingsAccount openSavingsAccount(SavingsAccountRequest request, Long branchId) {
+        Member member = memberRepository.findById(request.getMemberId())
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+
+        // Verify member belongs to the same branch
+        if (!member.getBranchId().equals(branchId)) {
+            throw new RuntimeException("Cannot open account for member of a different branch.");
+        }
+
+        SavingsAccount account = new SavingsAccount();
+        account.setMember(member);
+        account.setBranchId(branchId);
+        account.setAccountType(request.getAccountType());
+        account.setBalance(request.getInitialDeposit());
+        
+        // Generate a random account number (mock implementation)
+        account.setAccountNumber("SA-" + branchId + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
+        return savingsAccountRepository.save(account);
+    }
+
+    public List<Member> getMembersByBranch(Long branchId) {
+        return memberRepository.findByBranchId(branchId);
+    }
+    
+    public List<Member> searchMembers(Long branchId, String query) {
+        return memberRepository.searchByBranchIdAndQuery(branchId, query);
+    }
+    
+    public List<SavingsAccount> getAccountsByBranch(Long branchId) {
+        return savingsAccountRepository.findByBranchId(branchId);
+    }
+
+    @Transactional
+    public SavingsAccount processDeposit(com.hmcs.pawning.dto.TransactionRequest request, Long branchId) {
+        SavingsAccount account = savingsAccountRepository.findByAccountNumberAndBranchId(request.getAccountNumber(), branchId)
+                .orElseThrow(() -> new RuntimeException("Account not found in this branch"));
+        
+        account.setBalance(account.getBalance().add(request.getAmount()));
+        return savingsAccountRepository.save(account);
+    }
+
+    @Transactional
+    public SavingsAccount processWithdraw(com.hmcs.pawning.dto.TransactionRequest request, Long branchId) {
+        SavingsAccount account = savingsAccountRepository.findByAccountNumberAndBranchId(request.getAccountNumber(), branchId)
+                .orElseThrow(() -> new RuntimeException("Account not found in this branch"));
+        
+        if (account.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
+        
+        account.setBalance(account.getBalance().subtract(request.getAmount()));
+        return savingsAccountRepository.save(account);
+    }
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> getGlobalSummary() {
+        java.util.Map<String, Object> summary = new java.util.HashMap<>();
+        summary.put("totalSavings", savingsAccountRepository.getTotalConsolidatedBalance());
+        summary.put("totalMembers", memberRepository.count());
+        // For now, mock loan data until loan-service is integrated
+        summary.put("totalLoans", 15420000.00); 
+        summary.put("pendingApprovals", 12);
+        return summary;
+    }
+}
+
