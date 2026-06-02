@@ -32,13 +32,19 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
-        
+
         if (userOpt.isPresent() && userOpt.get().getPasswordHash().equals(request.getPassword())) {
             User user = userOpt.get();
+            Integer branchId = user.getBranch() != null ? user.getBranch().getBranchId() : null;
+            String branchName = user.getBranch() != null ? user.getBranch().getBranchName() : "System-wide";
+
             LoginResponse res = new LoginResponse();
-            res.setToken(jwtUtil.generateToken(user.getUsername(), user.getRole().getRoleName()));
+            // branchId is embedded INSIDE the JWT — frontend cannot tamper with it
+            res.setToken(jwtUtil.generateToken(user.getUsername(), user.getRole().getRoleName(), branchId));
             res.setUsername(user.getUsername());
             res.setRole(user.getRole().getRoleName());
+            res.setBranchId(branchId);
+            res.setBranchName(branchName);
             return ResponseEntity.ok(res);
         }
         return ResponseEntity.status(401).body("Invalid credentials");
@@ -46,22 +52,64 @@ public class AuthController {
 
     @PostMapping("/seed-admin")
     public ResponseEntity<?> seedAdmin() {
-        if(userRepository.findByUsername("admin").isPresent()) {
+        if(userRepository.findByUsername("Knoweb").isPresent()) {
             return ResponseEntity.ok("Admin user is already seeded!");
         }
         
         // Fetch seed data created by db_setup.sql
-        Branch branch = branchRepository.findByBranchName("Main Branch - Hikkaduwa").orElseThrow();
         Role role = roleRepository.findByRoleName("SYSTEM_ADMIN").orElseThrow();
         
         User admin = new User();
-        admin.setUsername("admin");
-        admin.setPasswordHash("password"); // Development MVP plain text
-        admin.setFullName("System Administrator");
-        admin.setBranch(branch);
+        admin.setUsername("Knoweb");
+        admin.setPasswordHash("Knoweb@099901"); 
+        admin.setFullName("knowebsolutions@gmail.com");
+        admin.setBranch(null); 
         admin.setRole(role);
         
         userRepository.save(admin);
-        return ResponseEntity.ok("Admin user created successfully! Username: admin, Password: password");
+        return ResponseEntity.ok("Admin user created successfully! Username: Knoweb, Password: Knoweb@099901");
+    }
+
+    @PostMapping("/seed-all")
+    public ResponseEntity<?> seedAllTestUsers() {
+        Branch mainBranch = branchRepository.findByBranchName("Main Branch - Hikkaduwa").orElseThrow();
+        Branch dodBranch  = branchRepository.findByBranchName("Dodanduwa Branch").orElseThrow();
+
+        Role gmRole      = roleRepository.findByRoleName("GENERAL_MANAGER").orElseThrow();
+        Role mgrRole     = roleRepository.findByRoleName("BRANCH_MANAGER").orElseThrow();
+        Role tellerRole  = roleRepository.findByRoleName("TELLER").orElseThrow();
+        Role valuerRole  = roleRepository.findByRoleName("VALUER").orElseThrow();
+        Role sysAdminRole = roleRepository.findByRoleName("SYSTEM_ADMIN").orElseThrow();
+
+        createIfNotExists("Knoweb", "knowebsolutions@gmail.com", "Knoweb@099901", sysAdminRole, null);
+        createIfNotExists("gm_perera",  "D.P. Perera",     "password", gmRole,     mainBranch);
+        createIfNotExists("mgr_hkw",    "R.M. Silva",      "password", mgrRole,    mainBranch);
+        createIfNotExists("mgr_dod",    "S.M. Fernando",   "password", mgrRole,    dodBranch);
+        createIfNotExists("teller_hkw", "K.D. Jayasinghe", "password", tellerRole, mainBranch);
+        createIfNotExists("valuer_hkw", "A.B. Bandara",    "password", valuerRole, mainBranch);
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "All test users seeded!",
+            "logins", java.util.List.of(
+                "SYSTEM_ADMIN   → admin      / password → /dashboard",
+                "GENERAL_MANAGER→ gm_perera  / password → /manager/dashboard",
+                "BRANCH_MANAGER → mgr_hkw    / password → /branch/dashboard  (Hikkaduwa)",
+                "BRANCH_MANAGER → mgr_dod    / password → /branch/dashboard  (Dodanduwa)",
+                "TELLER         → teller_hkw / password → /teller/dashboard",
+                "VALUER         → valuer_hkw / password → /valuer/dashboard"
+            )
+        ));
+    }
+
+    private void createIfNotExists(String username, String fullName, String password, Role role, Branch branch) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            User u = new User();
+            u.setUsername(username);
+            u.setPasswordHash(password);
+            u.setFullName(fullName);
+            u.setRole(role);
+            u.setBranch(branch);
+            userRepository.save(u);
+        }
     }
 }

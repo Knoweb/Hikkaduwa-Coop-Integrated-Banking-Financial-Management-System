@@ -22,16 +22,24 @@ export default function Login() {
       
       // Redirect based on user role
       const role = response.role;
-      if (role === 'ROLE_SYSTEM_ADMIN') {
+      if (role === 'SYSTEM_ADMIN') {
         navigate('/dashboard');
-      } else if (role === 'ROLE_GENERAL_MANAGER') {
+      } else if (role === 'GENERAL_MANAGER') {
         navigate('/manager/dashboard');
-      } else if (role === 'ROLE_BRANCH_MANAGER') {
+      } else if (role === 'BRANCH_MANAGER') {
         navigate('/branch/dashboard');
-      } else if (role === 'ROLE_TELLER') {
+      } else if (role === 'BANK_SERVICE_MANAGER') {
+        navigate('/bsm/dashboard');
+      } else if (role === 'LOAN_COMMITTEE') {
+        navigate('/committee/dashboard');
+      } else if (role === 'FIELD_OFFICER') {
+        navigate('/officer/dashboard');
+      } else if (role === 'TELLER') {
         navigate('/teller/dashboard');
+      } else if (role === 'VALUER') {
+        navigate('/valuer/dashboard');
       } else {
-        navigate('/dashboard');
+        navigate('/branch/dashboard');
       }
     } catch (err: any) {
       setError(
