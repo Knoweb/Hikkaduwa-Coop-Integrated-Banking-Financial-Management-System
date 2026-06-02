@@ -1,27 +1,38 @@
-# =============================================
-# PostgreSQL Docker Data Volume - NEVER COMMIT
-# =============================================
-postgres-data/
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
 
-# Maven build outputs
-**/target/
-
-# IDE files
+# IDE
 .idea/
-*.iml
 .vscode/
+*.iml
+*.swp
+*.swo
+*~
 
-# Node / Frontend
-hmcs-frontend/node_modules/
-hmcs-frontend/dist/
-
-# Environment files
-.env
-.env.local
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+build/
+out/
+
 # Logs
 *.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
