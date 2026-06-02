@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const API_URL = 'http://localhost:8082/api/v1/';
+const API_URL = 'http://localhost:8080/api/v1/';
 
 // Interceptor or simple helper to add auth header
 const authHeader = () => {

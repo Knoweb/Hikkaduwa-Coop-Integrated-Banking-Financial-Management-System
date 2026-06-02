@@ -5,17 +5,15 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "roles")
+@Table(name = "roles", schema = "auth_service")
 public class Role {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "role_id")
     private Integer roleId;
 
-    @Column(name = "role_name", nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 50)
     private String roleName;
 
-    @Column(name = "description")
+    @Column(columnDefinition = "TEXT")
     private String description;
 }

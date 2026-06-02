@@ -1,0 +1,11 @@
+package com.hmcs.auth.dto;
+import lombok.Data;
+
+@Data
+public class LoginResponse {
+    private String token;
+    private String username;
+    private String role;
+    private Integer branchId;   // returned to frontend for display only — never trusted for filtering
+    private String branchName;
+}

@@ -5,20 +5,18 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "branches")
+@Table(name = "branches", schema = "auth_service")
 public class Branch {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "branch_id")
     private Integer branchId;
 
-    @Column(name = "branch_name", nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String branchName;
 
-    @Column(name = "location")
+    @Column(length = 255)
     private String location;
 
-    @Column(name = "status")
-    private String status;
+    @Column(length = 20)
+    private String status = "ACTIVE";
 }

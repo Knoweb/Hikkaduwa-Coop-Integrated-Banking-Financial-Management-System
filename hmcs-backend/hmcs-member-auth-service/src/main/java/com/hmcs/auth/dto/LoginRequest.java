@@ -1,5 +1,4 @@
 package com.hmcs.auth.dto;
-
 import lombok.Data;
 
 @Data
