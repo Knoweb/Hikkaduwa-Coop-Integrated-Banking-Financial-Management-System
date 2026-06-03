@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
+import * as AccountService from '../services/account.service';
 import logo from '../assets/logo.jpg';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
@@ -19,7 +20,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gr
 };
 
 const ROLE_NAV: Record<string, { icon: any; label: string; key: string }[]> = {
-  BRANCH_MANAGER:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: FileText, label: 'Loan Queue', key: 'loans' }, { icon: CreditCard, label: 'Accounts', key: 'accounts' }, { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }],
+  BRANCH_MANAGER:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Users, label: 'Members', key: 'members' }, { icon: CreditCard, label: 'Accounts', key: 'accounts' }, { icon: FileText, label: 'Loan Queue', key: 'loans' }, { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }],
   BANK_SERVICE_MANAGER: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Shield, label: 'Compliance', key: 'loans' }],
   LOAN_COMMITTEE:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Scale, label: 'Vote on Loans', key: 'loans' }],
   FIELD_OFFICER:        [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: UserPlus, label: 'Register Member', key: 'members' }, { icon: ClipboardList, label: 'Field Tasks', key: 'tasks' }],
@@ -66,35 +67,155 @@ function QueueRow({ name, amount, status, date, onAction, actionLabel, actionCol
 
 // ── Role Views ─────────────────────────────────────────────────────────────────
 function BranchManagerView({ activeTab }: { activeTab: string }) {
+  const [members, setMembers] = useState<AccountService.MemberData[]>([]);
+  const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    AccountService.getMembers().then(setMembers).catch(() => {});
+    AccountService.getAccounts().then(setAccounts).catch(() => {});
+  }, []);
+
+  const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+  const filteredMembers = members.filter(m =>
+    m.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    m.nic.toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredAccounts = accounts.filter(a =>
+    a.accountNumber.toLowerCase().includes(search.toLowerCase())
+  );
+
   const loans = [
     { name: 'K.D. Perera', amount: 250000, status: 'PENDING', date: '2026-06-01' },
     { name: 'S.M. Silva',  amount: 180000, status: 'PENDING', date: '2026-06-02' },
     { name: 'R.P. Jayasinghe', amount: 450000, status: 'APPROVED', date: '2026-05-31' },
   ];
+
   if (activeTab === 'overview') return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign}    label="EOD Cash Position" value="Rs. 2.4M"  sub="End of today"      color="text-blue-600" />
-        <StatCard icon={FileText}      label="Pending Loans"     value="5"          sub="Awaiting approval"  color="text-amber-600" />
-        <StatCard icon={Users}         label="Total Members"     value="1,284"      sub="Active accounts"   color="text-green-600" />
-        <StatCard icon={AlertTriangle} label="FD Alerts"         value="3"          sub="Maturing this week" color="text-red-600" />
+        <StatCard icon={DollarSign}    label="Total Branch Balance" value={`Rs. ${totalBalance.toLocaleString()}`} sub="All accounts" color="text-blue-600" />
+        <StatCard icon={Users}         label="Total Members"        value={members.length.toString()}              sub="Registered"  color="text-green-600" />
+        <StatCard icon={CreditCard}    label="Total Accounts"       value={accounts.length.toString()}             sub="Active"      color="text-purple-600" />
+        <StatCard icon={FileText}      label="Pending Loans"        value={loans.filter(l => l.status === 'PENDING').length.toString()} sub="Awaiting action" color="text-amber-600" />
       </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> Loan Recommendation Queue</h3>
-        {loans.map((l, i) => <QueueRow key={i} {...l} actionLabel="Recommend" actionColor="bg-blue-600" onAction={l.status === 'PENDING' ? () => alert(`Recommended loan for ${l.name}`) : undefined} />)}
-      </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /> Alerts</h3>
-        {[{ msg: 'FD #10234 matures in 3 days — Rs. 100,000', type: 'FD' }, { msg: 'Pawn Ticket #698594 expires in 7 days', type: 'PAWN' }].map((a, i) => (
-          <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{a.type}</span>
-            <p className="text-sm text-slate-700">{a.msg}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> Pending Loan Queue</h3>
+          {loans.filter(l => l.status === 'PENDING').map((l, i) => <QueueRow key={i} {...l} actionLabel="Recommend" actionColor="bg-blue-600" onAction={() => alert(`Recommended loan for ${l.name}`)} />)}
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /> Alerts</h3>
+          {[{ msg: 'FD #10234 matures in 3 days — Rs. 100,000', type: 'FD' }, { msg: 'Pawn Ticket #698594 expires in 7 days', type: 'PAWN' }].map((a, i) => (
+            <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{a.type}</span>
+              <p className="text-sm text-slate-700">{a.msg}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-  return <div className="bg-white rounded-2xl p-6 shadow-sm"><h3 className="font-semibold text-slate-700">Loan Queue</h3>{loans.map((l, i) => <QueueRow key={i} {...l} actionLabel="Recommend" actionColor="bg-blue-600" onAction={() => {}} />)}</div>;
+
+  if (activeTab === 'members') return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-slate-800">Branch Members ({members.length})</h3>
+        <div className="relative w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or NIC..."
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Member</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">NIC</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredMembers.length === 0 ? (
+              <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">No members found</td></tr>
+            ) : filteredMembers.map(m => (
+              <tr key={m.memberId} className="hover:bg-slate-50 transition">
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-xs">{m.fullName.charAt(0)}</div>
+                    <span className="font-medium text-slate-800">{m.fullName}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-3 text-slate-600">{m.nic}</td>
+                <td className="px-5 py-3 text-slate-600">{m.contactNumber}</td>
+                <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{m.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  if (activeTab === 'accounts') return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-slate-800">Branch Accounts ({accounts.length}) — Total: Rs. {totalBalance.toLocaleString()}</h3>
+        <div className="relative w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search account number..."
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Account No.</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Balance</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Opened</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredAccounts.length === 0 ? (
+              <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">No accounts found</td></tr>
+            ) : filteredAccounts.map(a => (
+              <tr key={a.accountId} className="hover:bg-slate-50 transition">
+                <td className="px-5 py-3 font-bold text-slate-800">{a.accountNumber}</td>
+                <td className="px-5 py-3"><span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium">{a.accountType}</span></td>
+                <td className="px-5 py-3 font-semibold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</td>
+                <td className="px-5 py-3 text-slate-500">{a.openedDate || '—'}</td>
+                <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{a.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  if (activeTab === 'loans') return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> Loan Recommendation Queue</h3>
+      {loans.map((l, i) => <QueueRow key={i} {...l} actionLabel="Recommend" actionColor="bg-blue-600" onAction={l.status === 'PENDING' ? () => alert(`Recommended loan for ${l.name}`) : undefined} />)}
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /> Alerts</h3>
+      {[{ msg: 'FD #10234 matures in 3 days — Rs. 100,000', type: 'FD' }, { msg: 'Pawn Ticket #698594 expires in 7 days', type: 'PAWN' }].map((a, i) => (
+        <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{a.type}</span>
+          <p className="text-sm text-slate-700">{a.msg}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
@@ -140,33 +261,91 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
 
 function TellerView() {
   const [amount, setAmount] = useState('');
-  const [accNo, setAccNo]   = useState('');
+  const [accNo, setAccNo] = useState('');
   const [txType, setTxType] = useState<'deposit' | 'withdraw'>('deposit');
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+
+  useEffect(() => {
+    AccountService.getAccounts().then(setAccounts).catch(() => {});
+  }, []);
+
+  const handleTx = async () => {
+    if (!accNo || !amount) return;
+    setLoading(true); setResult(null);
+    try {
+      const amt = parseFloat(amount);
+      const res = txType === 'deposit'
+        ? await AccountService.deposit({ accountNumber: accNo, amount: amt })
+        : await AccountService.withdraw({ accountNumber: accNo, amount: amt });
+      setResult({ ok: true, msg: `✓ ${txType === 'deposit' ? 'Deposited' : 'Withdrawn'} Rs. ${amt.toLocaleString()}. New balance: Rs. ${(res as any).balance?.toLocaleString()}` });
+      setAmount(''); setAccNo('');
+      AccountService.getAccounts().then(setAccounts).catch(() => {});
+    } catch (e: any) {
+      setResult({ ok: false, msg: e.response?.data || 'Transaction failed' });
+    } finally { setLoading(false); }
+  };
+
+  const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={TrendingUp}   label="Transactions Today" value="47"        color="text-blue-600" />
-        <StatCard icon={Banknote}     label="Cash Processed"     value="Rs. 1.2M"  color="text-green-600" />
-        <StatCard icon={UserPlus}     label="Accounts Opened"    value="3"         color="text-purple-600" />
+        <StatCard icon={Banknote}   label="Total Branch Balance" value={`Rs. ${totalBalance.toLocaleString()}`} color="text-green-600" />
+        <StatCard icon={CreditCard} label="Active Accounts"      value={accounts.length.toString()}            color="text-blue-600" />
+        <StatCard icon={TrendingUp} label="Account Types"        value={[...new Set(accounts.map(a => a.accountType))].length.toString()} color="text-purple-600" />
       </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 max-w-md">
-        <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Banknote size={16} /> Cash Transaction</h3>
-        <div className="flex rounded-xl overflow-hidden border border-slate-200 mb-5">
-          <button onClick={() => setTxType('deposit')}  className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'deposit'  ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Deposit</button>
-          <button onClick={() => setTxType('withdraw')} className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'withdraw' ? 'bg-red-600   text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Withdraw</button>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Banknote size={16} /> Cash Transaction</h3>
+          <div className="flex rounded-xl overflow-hidden border border-slate-200 mb-4">
+            <button onClick={() => setTxType('deposit')}  className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'deposit'  ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Deposit</button>
+            <button onClick={() => setTxType('withdraw')} className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'withdraw' ? 'bg-red-600 text-white'   : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Withdraw</button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Account Number</label>
+              <input value={accNo} onChange={e => setAccNo(e.target.value)} placeholder="e.g. ACC-123456"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Amount (Rs.)</label>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            </div>
+            {result && (
+              <div className={`p-3 rounded-xl text-sm font-medium ${result.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {result.msg}
+              </div>
+            )}
+            <button onClick={handleTx} disabled={loading}
+              className={`w-full py-3 rounded-xl text-white font-semibold transition disabled:opacity-60 ${txType === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+              {loading ? 'Processing...' : `Process ${txType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
+            </button>
+          </div>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Account Number</label>
-            <input value={accNo} onChange={e => setAccNo(e.target.value)} placeholder="e.g. ACC-0001234" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16} /> Branch Accounts</h3>
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {accounts.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-6">No accounts found</p>
+            ) : accounts.map(a => (
+              <div key={a.accountId} onClick={() => setAccNo(a.accountNumber)}
+                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{a.accountNumber}</p>
+                  <p className="text-xs text-slate-400">{a.accountType}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{a.status}</span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Amount (Rs.)</label>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          </div>
-          <button onClick={() => alert(`${txType} of Rs. ${amount} for ${accNo} processed!`)} className={`w-full py-3 rounded-xl text-white font-semibold transition ${txType === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
-            Process {txType.charAt(0).toUpperCase() + txType.slice(1)}
-          </button>
         </div>
       </div>
     </div>
@@ -214,34 +393,185 @@ function ValuerView() {
 }
 
 function FieldOfficerView() {
+  const user = AuthService.getCurrentUser();
+  const [members, setMembers] = useState<AccountService.MemberData[]>([]);
+  const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [search, setSearch] = useState('');
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [showAccModal, setShowAccModal] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [regError, setRegError] = useState('');
+  const [accError, setAccError] = useState('');
+  const [form, setForm] = useState({ fullName: '', nic: '', dateOfBirth: '', address: '', contactNumber: '' });
+  const [accForm, setAccForm] = useState({ accountType: 'REGULAR', initialDeposit: 1000 });
+
+  const fetchData = () => {
+    AccountService.getMembers().then(setMembers).catch(() => {});
+    AccountService.getAccounts().then(setAccounts).catch(() => {});
+  };
+  useEffect(() => { fetchData(); }, []);
+
+  const filtered = members.filter(m =>
+    m.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    m.nic.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault(); setRegError(''); setLoading(true);
+    try {
+      await AccountService.registerMember(form);
+      setShowRegModal(false);
+      setForm({ fullName: '', nic: '', dateOfBirth: '', address: '', contactNumber: '' });
+      fetchData();
+    } catch (err: any) {
+      setRegError(err.response?.data || 'Registration failed. Check NIC for duplicates.');
+    } finally { setLoading(false); }
+  };
+
+  const handleOpenAccount = async (e: React.FormEvent) => {
+    e.preventDefault(); setAccError(''); setLoading(true);
+    try {
+      await AccountService.openAccount({ memberId: selectedMemberId, ...accForm });
+      setShowAccModal(false);
+      fetchData();
+    } catch (err: any) {
+      setAccError(err.response?.data || 'Failed to open account.');
+    } finally { setLoading(false); }
+  };
+
+  const getAccountCount = (memberId?: string) => accounts.filter(a => a.memberId === memberId).length;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={ClipboardList} label="Pending Field Visits" value="8"  color="text-green-600" />
-        <StatCard icon={FileText}      label="Reports Submitted"    value="3"  color="text-blue-600" />
-        <StatCard icon={UserPlus}      label="Members Registered"   value="12" color="text-purple-600" />
+        <StatCard icon={Users}        label="Total Members"    value={members.length.toString()} color="text-green-600" />
+        <StatCard icon={CreditCard}   label="Total Accounts"   value={accounts.length.toString()} color="text-blue-600" />
+        <StatCard icon={UserPlus}     label="Active Members"   value={members.filter(m => m.status === 'ACTIVE').length.toString()} color="text-purple-600" />
       </div>
+
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><ClipboardList size={16} /> Pending Field Tasks</h3>
-        {[
-          { name: 'K.D. Perera — Loan Asset Verification',    due: 'Due: Today',       urgent: true },
-          { name: 'S.M. Silva — KYC Update Required',         due: 'Due: Tomorrow',    urgent: false },
-          { name: 'A.B. Bandara — Property Valuation Report', due: 'Due: Jun 5, 2026', urgent: false },
-        ].map((t, i) => (
-          <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-            <div className="flex items-center gap-3">
-              {t.urgent && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
-              <div>
-                <p className="text-sm font-medium text-slate-800">{t.name}</p>
-                <p className="text-xs text-slate-400">{t.due}</p>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> Branch Members</h3>
+          <button onClick={() => setShowRegModal(true)}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+            <UserPlus size={14} /> Register Member
+          </button>
+        </div>
+        <div className="relative mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or NIC..."
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+        </div>
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">No members found. Register the first member!</p>
+          ) : filtered.map(m => (
+            <div key={m.memberId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                  {m.fullName.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{m.fullName}</p>
+                  <p className="text-xs text-slate-400">{m.nic} · {getAccountCount(m.memberId)} account(s)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{m.status}</span>
+                <button onClick={() => { setSelectedMemberId(m.memberId || ''); setShowAccModal(true); }}
+                  className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                  Open Account
+                </button>
               </div>
             </div>
-            <button className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition flex items-center gap-1">
-              Submit Report <ChevronRight size={12} />
-            </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* Register Member Modal */}
+      {showRegModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-800">Register New Member</h3>
+              <button onClick={() => setShowRegModal(false)}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+            </div>
+            <form onSubmit={handleRegister} className="p-6 space-y-4">
+              {regError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{regError}</div>}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
+                <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">NIC Number</label>
+                  <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Contact Number</label>
+                  <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth</label>
+                <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Address</label>
+                <textarea required rows={2} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowRegModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">Cancel</button>
+                <button type="submit" disabled={loading} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
+                  {loading ? 'Registering...' : 'Register Member'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Open Account Modal */}
+      {showAccModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-800">Open Savings Account</h3>
+              <button onClick={() => setShowAccModal(false)}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+            </div>
+            <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
+              {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Account Type</label>
+                <select value={accForm.accountType} onChange={e => setAccForm(p => ({ ...p, accountType: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="REGULAR">Regular Savings</option>
+                  <option value="CHILD">Children's Account</option>
+                  <option value="SENIOR">Senior Citizen</option>
+                  <option value="FIXED">Fixed Deposit</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Initial Deposit (Rs.)</label>
+                <input type="number" min="100" value={accForm.initialDeposit} onChange={e => setAccForm(p => ({ ...p, initialDeposit: parseInt(e.target.value) }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowAccModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">Cancel</button>
+                <button type="submit" disabled={loading} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
+                  {loading ? 'Opening...' : 'Open Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

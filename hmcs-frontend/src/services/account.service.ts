@@ -3,14 +3,9 @@ import { getCurrentUser } from './auth.service';
 
 const API_URL = 'http://localhost:8080/api/v1/';
 
-// Interceptor or simple helper to add auth header
 const authHeader = () => {
   const user = getCurrentUser();
-  if (user && user.token) {
-    return { Authorization: 'Bearer ' + user.token };
-  } else {
-    return {};
-  }
+  return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
 };
 
 export interface MemberData {
@@ -20,72 +15,61 @@ export interface MemberData {
   address: string;
   contactNumber: string;
   dateOfBirth: string;
+  registeredBranchId?: number;
   status?: string;
   createdAt?: string;
 }
 
-export const registerMember = async (memberData: MemberData) => {
-  const response = await axios.post(API_URL + 'members', memberData, {
-    headers: authHeader(),
-  });
-  return response.data;
-};
-
-export const searchMembers = async (query: string) => {
-  const response = await axios.get(API_URL + 'members/search?q=' + encodeURIComponent(query), {
-    headers: authHeader(),
-  });
-  return response.data;
-};
-
-export const getMembers = async () => {
-  const response = await axios.get(API_URL + 'members', {
-    headers: authHeader(),
-  });
-  return response.data;
-};
-
 export interface AccountData {
-  accountId?: number;
+  accountId?: string;
   accountNumber: string;
   memberId: string;
   accountType: string;
   balance: number;
+  branchId?: number;
   status: string;
-  createdAt: string;
+  openedDate?: string;
 }
 
-export const openAccount = async (accountData: { memberId: string, accountType: string, initialDeposit: number }) => {
-  const response = await axios.post(API_URL + 'accounts', accountData, {
-    headers: authHeader(),
-  });
-  return response.data;
+// ── Members ──────────────────────────────────────────────────────
+export const getMembers = async (): Promise<MemberData[]> => {
+  const res = await axios.get(API_URL + 'members', { headers: authHeader() });
+  return res.data;
 };
 
-export const getAccounts = async () => {
-  const response = await axios.get(API_URL + 'savings', {
-    headers: authHeader(),
-  });
-  return response.data;
+export const searchMembers = async (q: string): Promise<MemberData[]> => {
+  const res = await axios.get(API_URL + 'members/search?q=' + encodeURIComponent(q), { headers: authHeader() });
+  return res.data;
 };
 
-export const deposit = async (data: { accountNumber: string, amount: number }) => {
-  const response = await axios.post(API_URL + 'transactions/deposit', data, {
-    headers: authHeader(),
-  });
-  return response.data;
+export const registerMember = async (data: MemberData): Promise<MemberData> => {
+  const res = await axios.post(API_URL + 'members', data, { headers: authHeader() });
+  return res.data;
 };
 
-export const withdraw = async (data: { accountNumber: string, amount: number }) => {
-  const response = await axios.post(API_URL + 'transactions/withdraw', data, {
-    headers: authHeader(),
-  });
-  return response.data;
+// ── Accounts ──────────────────────────────────────────────────────
+export const getAccounts = async (): Promise<AccountData[]> => {
+  const res = await axios.get(API_URL + 'savings', { headers: authHeader() });
+  return res.data;
+};
+
+export const openAccount = async (data: { memberId: string; accountType: string; initialDeposit: number }): Promise<AccountData> => {
+  const res = await axios.post(API_URL + 'accounts', data, { headers: authHeader() });
+  return res.data;
+};
+
+// ── Transactions ──────────────────────────────────────────────────
+export const deposit = async (data: { accountNumber: string; amount: number }): Promise<AccountData> => {
+  const res = await axios.post(API_URL + 'transactions/deposit', data, { headers: authHeader() });
+  return res.data;
+};
+
+export const withdraw = async (data: { accountNumber: string; amount: number }): Promise<AccountData> => {
+  const res = await axios.post(API_URL + 'transactions/withdraw', data, { headers: authHeader() });
+  return res.data;
 };
 
 export const getAdminSummary = async () => {
-  const response = await axios.get(API_URL + 'admin/summary', {
-    headers: authHeader(),
-  });
-  return response.data;
+  const res = await axios.get(API_URL + 'admin/summary', { headers: authHeader() });
+  return res.data;
 };

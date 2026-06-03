@@ -30,7 +30,7 @@ CREATE TABLE auth_service.users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role_id INT NOT NULL REFERENCES auth_service.roles(role_id),
-    branch_id INT NOT NULL REFERENCES auth_service.branches(branch_id),
+    branch_id INT REFERENCES auth_service.branches(branch_id),
     full_name VARCHAR(100) NOT NULL,
     status VARCHAR(20) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
