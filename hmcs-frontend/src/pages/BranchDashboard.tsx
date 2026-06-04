@@ -14,6 +14,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gr
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
   BANK_SERVICE_MANAGER: { label: 'Bank Service Manager', color: 'text-purple-700', bg: 'bg-purple-600', gradient: 'from-purple-900 via-purple-800 to-slate-900' },
   LOAN_COMMITTEE:       { label: 'Loan Committee',       color: 'text-amber-700',  bg: 'bg-amber-600',  gradient: 'from-amber-900 via-amber-800 to-slate-900' },
+  CUSTOMER_SERVICE_ASSISTANT: { label: 'Customer Service', color: 'text-teal-700', bg: 'bg-teal-600',   gradient: 'from-teal-900 via-teal-800 to-slate-900' },
   FIELD_OFFICER:        { label: 'Field Officer',        color: 'text-green-700',  bg: 'bg-green-600',  gradient: 'from-green-900 via-green-800 to-slate-900' },
   TELLER:               { label: 'Teller',               color: 'text-red-700',    bg: 'bg-red-600',    gradient: 'from-red-900 via-red-800 to-slate-900' },
   VALUER:               { label: 'Valuer',               color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900' },
@@ -23,7 +24,8 @@ const ROLE_NAV: Record<string, { icon: any; label: string; key: string }[]> = {
   BRANCH_MANAGER:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Users, label: 'Members', key: 'members' }, { icon: CreditCard, label: 'Accounts', key: 'accounts' }, { icon: FileText, label: 'Loan Queue', key: 'loans' }, { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }],
   BANK_SERVICE_MANAGER: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Shield, label: 'Compliance', key: 'loans' }],
   LOAN_COMMITTEE:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Scale, label: 'Vote on Loans', key: 'loans' }],
-  FIELD_OFFICER:        [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: UserPlus, label: 'Register Member', key: 'members' }, { icon: ClipboardList, label: 'Field Tasks', key: 'tasks' }],
+  CUSTOMER_SERVICE_ASSISTANT: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: UserPlus, label: 'Register Member', key: 'members' }],
+  FIELD_OFFICER:        [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ClipboardList, label: 'Mobile Collection', key: 'tasks' }],
   TELLER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ArrowDownLeft, label: 'Deposit', key: 'deposit' }, { icon: ArrowUpRight, label: 'Withdraw', key: 'withdraw' }],
   VALUER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Gem, label: 'New Pawn Ticket', key: 'pawn' }],
 };
@@ -392,7 +394,7 @@ function ValuerView() {
   );
 }
 
-function FieldOfficerView() {
+function CustomerServiceView() {
   const user = AuthService.getCurrentUser();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
@@ -403,7 +405,8 @@ function FieldOfficerView() {
   const [loading, setLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [accError, setAccError] = useState('');
-  const [form, setForm] = useState({ fullName: '', nic: '', dateOfBirth: '', address: '', contactNumber: '' });
+  const initialFormState = { membershipNumber: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: 0 };
+  const [form, setForm] = useState(initialFormState);
   const [accForm, setAccForm] = useState({ accountType: 'REGULAR', initialDeposit: 1000 });
 
   const fetchData = () => {
@@ -422,7 +425,7 @@ function FieldOfficerView() {
     try {
       await AccountService.registerMember(form);
       setShowRegModal(false);
-      setForm({ fullName: '', nic: '', dateOfBirth: '', address: '', contactNumber: '' });
+      setForm(initialFormState);
       fetchData();
     } catch (err: any) {
       setRegError(err.response?.data || 'Registration failed. Check NIC for duplicates.');
@@ -497,35 +500,94 @@ function FieldOfficerView() {
               <h3 className="text-lg font-bold text-slate-800">Register New Member</h3>
               <button onClick={() => setShowRegModal(false)}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
             </div>
-            <form onSubmit={handleRegister} className="p-6 space-y-4">
+            <form onSubmit={handleRegister} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {regError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{regError}</div>}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
-                <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">NIC Number</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Membership No. (Optional)</label>
+                  <input value={form.membershipNumber} onChange={e => setForm(p => ({ ...p, membershipNumber: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">NIC Number *</label>
                   <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))}
                     className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Contact Number</label>
-                  <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))}
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Full Name (English) *</label>
+                  <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Full Name (Sinhala/Tamil)</label>
+                  <input value={form.fullNameSinhala} onChange={e => setForm(p => ({ ...p, fullNameSinhala: e.target.value }))}
                     className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth</label>
-                <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth *</label>
+                  <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Gender *</label>
+                  <select required value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Marital Status *</label>
+                  <select required value={form.maritalStatus} onChange={e => setForm(p => ({ ...p, maritalStatus: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
+                    <option value="UNMARRIED">Unmarried</option>
+                    <option value="MARRIED">Married</option>
+                  </select>
+                </div>
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Address</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Address *</label>
                 <textarea required rows={2} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
               </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Province/Electoral Div.</label>
+                  <input value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Contact Number *</label>
+                  <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Share Amount (Rs.)</label>
+                  <input type="number" min="0" step="0.01" value={form.shareAmount} onChange={e => setForm(p => ({ ...p, shareAmount: parseFloat(e.target.value) || 0 }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input type="checkbox" checked={form.belongsToOtherSociety} onChange={e => setForm(p => ({ ...p, belongsToOtherSociety: e.target.checked }))} className="w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500" />
+                  <span className="text-sm font-medium text-slate-700">Belongs to another co-operative society?</span>
+                </label>
+                {form.belongsToOtherSociety && (
+                  <input value={form.otherSocietyName} onChange={e => setForm(p => ({ ...p, otherSocietyName: e.target.value }))} placeholder="Name of the society..."
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 mt-2" />
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowRegModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">Cancel</button>
                 <button type="submit" disabled={loading} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
@@ -596,6 +658,45 @@ function BankServiceManagerView() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
+function FieldOfficerView() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={MapPin}        label="Assigned Area"    value="Hikkaduwa South" color="text-teal-600" />
+        <StatCard icon={Users}         label="Today's Visits"   value="24"             color="text-blue-600" />
+        <StatCard icon={Banknote}      label="Daily Collection" value="Rs. 0.00"       color="text-green-600" />
+        <StatCard icon={AlertTriangle} label="Overdue Loans"    value="3"              color="text-red-600" />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><ClipboardList size={16} className="text-blue-600" /> Today's Collection Route</h3>
+        <p className="text-sm text-slate-500 mb-4">Mobile collection features (offline sync, Bluetooth receipt printing) will be integrated here.</p>
+        <div className="space-y-3">
+          {[
+            { name: 'K.D. Perera', address: '45 Beach Road, Hikkaduwa', type: 'Loan Repayment', amount: '2,500' },
+            { name: 'S.M. Silva', address: '12 Temple Road, Hikkaduwa', type: 'Savings Deposit', amount: '1,000' },
+            { name: 'R.P. Jayasinghe', address: '89 Galle Road, Hikkaduwa', type: 'Loan Repayment', amount: '5,000' }
+          ].map((v, i) => (
+            <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{v.name.charAt(0)}</div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{v.name}</p>
+                  <p className="text-xs text-slate-500">{v.address}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-800">Rs. {v.amount}</p>
+                <p className="text-xs text-slate-500">{v.type}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BranchDashboard() {
   const navigate   = useNavigate();
   const user       = AuthService.getCurrentUser();
@@ -614,6 +715,7 @@ export default function BranchDashboard() {
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView />;
+      case 'CUSTOMER_SERVICE_ASSISTANT': return <CustomerServiceView />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
     }

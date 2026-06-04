@@ -10,12 +10,20 @@ const authHeader = () => {
 
 export interface MemberData {
   memberId?: string;
+  membershipNumber?: string;
   fullName: string;
+  fullNameSinhala?: string;
   nic: string;
-  address: string;
-  contactNumber: string;
   dateOfBirth: string;
+  gender?: string;
+  maritalStatus?: string;
+  address: string;
+  province?: string;
+  contactNumber: string;
   registeredBranchId?: number;
+  shareAmount?: number;
+  belongsToOtherSociety?: boolean;
+  otherSocietyName?: string;
   status?: string;
   createdAt?: string;
 }

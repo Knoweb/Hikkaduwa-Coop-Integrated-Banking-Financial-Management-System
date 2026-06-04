@@ -79,6 +79,8 @@ public class AuthController {
         Role mgrRole     = roleRepository.findByRoleName("BRANCH_MANAGER").orElseThrow();
         Role tellerRole  = roleRepository.findByRoleName("TELLER").orElseThrow();
         Role valuerRole  = roleRepository.findByRoleName("VALUER").orElseThrow();
+        Role fieldRole   = roleRepository.findByRoleName("FIELD_OFFICER").orElseThrow();
+        Role csRole      = roleRepository.findByRoleName("CUSTOMER_SERVICE_ASSISTANT").orElseThrow();
         Role sysAdminRole = roleRepository.findByRoleName("SYSTEM_ADMIN").orElseThrow();
 
         createIfNotExists("Knoweb", "knowebsolutions@gmail.com", "Knoweb@099901", sysAdminRole, null);
@@ -86,6 +88,8 @@ public class AuthController {
         createIfNotExists("mgr_hkw",    "R.M. Silva",      "password", mgrRole,    mainBranch);
         createIfNotExists("mgr_dod",    "S.M. Fernando",   "password", mgrRole,    dodBranch);
         createIfNotExists("teller_hkw", "K.D. Jayasinghe", "password", tellerRole, mainBranch);
+        createIfNotExists("cs_hkw",     "L.M. Silva",      "password", csRole,     mainBranch);
+        createIfNotExists("field_hkw",  "P.K. Saman",      "password", fieldRole,  mainBranch);
         createIfNotExists("valuer_hkw", "A.B. Bandara",    "password", valuerRole, mainBranch);
 
         return ResponseEntity.ok(java.util.Map.of(
@@ -96,6 +100,8 @@ public class AuthController {
                 "BRANCH_MANAGER → mgr_hkw    / password → /branch/dashboard  (Hikkaduwa)",
                 "BRANCH_MANAGER → mgr_dod    / password → /branch/dashboard  (Dodanduwa)",
                 "TELLER         → teller_hkw / password → /teller/dashboard",
+                "CUST_SERVICE   → cs_hkw     / password → /cs/dashboard",
+                "FIELD_OFFICER  → field_hkw  / password → /field/dashboard",
                 "VALUER         → valuer_hkw / password → /valuer/dashboard"
             )
         ));
