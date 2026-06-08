@@ -36,16 +36,27 @@ public class MemberController {
         Integer branchId = branchContext.extractBranchId(request);
         List<Member> members = memberRepository.findAll().stream()
                 .filter(m -> branchId == null || branchId.equals(m.getRegisteredBranchId()))
-                .filter(m -> m.getFullName().toLowerCase().contains(query.toLowerCase()) || m.getNic().toLowerCase().contains(query.toLowerCase()))
+                .filter(m -> {
+                    String q = query.toLowerCase();
+                    boolean matchName = m.getFullName() != null && m.getFullName().toLowerCase().contains(q);
+                    boolean matchNic = m.getNic() != null && m.getNic().toLowerCase().contains(q);
+                    boolean matchMembershipNum = m.getMembershipNumber() != null && m.getMembershipNumber().toLowerCase().contains(q);
+                    return matchName || matchNic || matchMembershipNum;
+                })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(members);
     }
 
     @PostMapping
     public ResponseEntity<?> registerMember(@RequestBody Member member, HttpServletRequest request) {
+        if (member.getNic() == null || member.getNic().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("NIC must be provided");
+        }
+
         if (memberRepository.findByNic(member.getNic()).isPresent()) {
             return ResponseEntity.badRequest().body("NIC already registered");
         }
+
         Integer branchId = branchContext.extractBranchId(request);
         member.setRegisteredBranchId(branchId != null ? branchId : 1);
         member.setStatus("ACTIVE");

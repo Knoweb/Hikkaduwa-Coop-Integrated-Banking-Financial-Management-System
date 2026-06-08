@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users,
-  Settings, ChevronRight, Save, ArrowLeft, X, Eye, EyeOff
+  Settings, ChevronRight, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
+import * as AccountService from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.jpg';
 
 const BRANCHES = [
@@ -72,14 +74,15 @@ function OverviewTab({ allUsers, onSelectBranch }: {
   allUsers: AuthService.UserDTO[];
   onSelectBranch: (b: typeof BRANCHES[0]) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Users,    label: 'Total System Users', value: allUsers.length.toString(),      sub: 'Across all branches', color: 'text-blue-600',    bg: 'bg-blue-50' },
-          { icon: Building, label: 'Active Branches',    value: '8 / 8',   sub: 'All online',           color: 'text-green-600',   bg: 'bg-green-50' },
-          { icon: Server,   label: 'System Uptime',      value: '99.9%',   sub: 'Last 45 days',         color: 'text-purple-600',  bg: 'bg-purple-50' },
-          { icon: Database, label: 'Daily Backup',       value: 'Success', sub: 'Today 02:00 AM',       color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { icon: Users,    label: t('Total System Users'), value: allUsers.length.toString(),      sub: t('Across all branches'), color: 'text-blue-600',    bg: 'bg-blue-50' },
+          { icon: Building, label: t('Active Branches'),    value: '8 / 8',   sub: t('All online'),           color: 'text-green-600',   bg: 'bg-green-50' },
+          { icon: Server,   label: t('System Uptime'),      value: '99.9%',   sub: t('Last 45 days'),         color: 'text-purple-600',  bg: 'bg-purple-50' },
+          { icon: Database, label: t('Daily Backup'),       value: 'Success', sub: t('Today 02:00 AM'),       color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ].map(({ icon: Icon, label, value, sub, color, bg }) => (
           <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg}`}>
@@ -123,13 +126,15 @@ function OverviewTab({ allUsers, onSelectBranch }: {
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
                     style={{ background: g.badge }}>B{branch.id}</div>
                   <span className="flex items-center gap-1 text-xs font-bold" style={{ color: g.badge }}>
-                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: g.badge }} /> Online
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: g.badge }} /> {t('Online')}
                   </span>
                 </div>
-                <p className="font-semibold text-slate-800 text-sm mb-0.5">{branch.name}</p>
-                <p className="text-xs text-slate-400 mb-3">{branch.location}</p>
+                <p className="font-semibold text-slate-800 text-sm mb-0.5">{t(branch.name)}</p>
+                <p className="text-xs text-slate-400 mb-3">{t(branch.location)}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-white/70 text-slate-600">{count} user{count !== 1 ? 's' : ''}</span>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-white/70 text-slate-600">
+                    {count} {count === 1 ? t('user') : t('users')}
+                  </span>
                   <ChevronRight size={14} style={{ color: g.badge }} />
                 </div>
               </button>
@@ -140,7 +145,7 @@ function OverviewTab({ allUsers, onSelectBranch }: {
 
       {/* Activity Log */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Clock size={16} className="text-amber-600" /> System Activity Log</h3>
+        <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Clock size={16} className="text-orange-500" /> {t('System Activity Log')}</h3>
         <div className="space-y-2">
           {[
             { time: '09:12 AM', msg: 'teller_hkw processed deposit — Rs. 15,000',    type: 'INFO' },
@@ -169,12 +174,53 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
   onRefresh: () => void;
   onBack: () => void;
 }) {
-  const [innerTab, setInnerTab] = useState<'users' | 'settings'>('users');
+  const { t } = useLanguage();
+  const [innerTab, setInnerTab] = useState('users');
   const [showForm, setShowForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<AuthService.UserDTO | null>(null);
   const [form, setForm] = useState({ username: '', fullName: '', password: '', role: 'TELLER' });
   const [error, setError] = useState('');
+  const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
+  const [showTypeForm, setShowTypeForm] = useState(false);
+  const [newType, setNewType] = useState({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
+
+  const fetchSavingsTypes = async () => {
+    try {
+      const types = await AccountService.getSavingsAccountTypes();
+      setSavingsTypes(types);
+    } catch (err) {
+      console.error("Failed to load savings types");
+    }
+  };
+
+  useEffect(() => {
+    fetchSavingsTypes();
+  }, []);
+
+  const handleAddSavingsType = async () => {
+    if (newType.code && newType.nameEn && newType.nameSi) {
+      try {
+        await AccountService.createSavingsAccountType(newType as any);
+        setNewType({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
+        setShowTypeForm(false);
+        fetchSavingsTypes();
+      } catch (err) {
+        alert("Failed to add account type. Ensure code is unique.");
+      }
+    }
+  };
+
+  const handleDeleteSavingsType = async (id: number) => {
+    if (confirm("Are you sure you want to delete this account type?")) {
+      try {
+        await AccountService.deleteSavingsAccountType(id);
+        fetchSavingsTypes();
+      } catch (err) {
+        alert("Failed to delete account type.");
+      }
+    }
+  };
 
   const branchUsers = allUsers.filter(u => u.branchId === branch.id && u.role !== 'SYSTEM_ADMIN' && u.role !== 'GENERAL_MANAGER');
 
@@ -255,9 +301,13 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
         </span>
       </div>
 
-      {/* Inner Tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-        {([['users', Users, 'Staff & Users'], ['settings', Settings, 'Branch Settings']] as const).map(([key, Icon, label]) => (
+      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit mb-4">
+        {([
+          ['users', Users, 'Staff & Users'], 
+          ['rates', Percent, 'Interest Rates'],
+          ['account_types', PiggyBank, 'Account Types'],
+          ['config', Settings, 'Branch Config']
+        ] as const).map(([key, Icon, label]) => (
           <button key={key} onClick={() => setInnerTab(key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${innerTab === key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             <Icon size={15} />{label}
@@ -400,22 +450,11 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
         </div>
       )}
 
-      {/* ── Settings Tab ── */}
-      {innerTab === 'settings' && (
+      {/* ── Rates Tab ── */}
+      {innerTab === 'rates' && (
         <div className="space-y-5 max-w-2xl">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Building size={16} /> Branch Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[{ label: 'Branch Name', value: branch.name }, { label: 'Location', value: branch.location }].map(f => (
-                <div key={f.label}>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">{f.label}</label>
-                  <input defaultValue={f.value} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Settings size={16} /> Branch-Specific Parameters</h3>
+            <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Percent size={16} /> Branch Interest & Loan Rates</h3>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: 'FD Interest Rate (%)',     value: 8.0 },
@@ -426,6 +465,106 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
                 <div key={f.label}>
                   <label className="block text-xs font-medium text-slate-500 mb-1">{f.label}</label>
                   <input type="number" defaultValue={f.value} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end mt-6 pt-4 border-t border-slate-100">
+              <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition">
+                <Save size={16} /> Save Rates
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Account Types Tab ── */}
+      {innerTab === 'account_types' && (
+        <div className="space-y-5 max-w-4xl">
+          {showTypeForm && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 max-w-md w-full">
+                <h4 className="font-bold text-slate-800 mb-4">Add Savings Type</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Code</label>
+                    <input value={newType.code} onChange={e => setNewType(p => ({ ...p, code: e.target.value.toUpperCase() }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Account Target</label>
+                    <select value={newType.isChildAccount ? 'child' : 'adult'} onChange={e => setNewType(p => ({ ...p, isChildAccount: e.target.value === 'child' }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                      <option value="adult">Adult</option>
+                      <option value="child">Child</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">English Name</label>
+                      <input value={newType.nameEn} onChange={e => setNewType(p => ({ ...p, nameEn: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Sinhala Name</label>
+                      <input value={newType.nameSi} onChange={e => setNewType(p => ({ ...p, nameSi: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button onClick={() => setShowTypeForm(false)} className="px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
+                  <button onClick={handleAddSavingsType} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold">Save</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Savings Account Types Management */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Database size={16} /> Manage Savings Account Types</h3>
+              <button 
+                onClick={() => setShowTypeForm(true)}
+                className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2">
+                <Plus size={14} /> Add Type
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="border border-slate-100 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                    <tr><th className="px-4 py-2.5">Code</th><th className="px-4 py-2.5">Target</th><th className="px-4 py-2.5">English</th><th className="px-4 py-2.5">Sinhala</th><th className="px-4 py-2.5 text-right">Action</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {savingsTypes.map(st => (
+                      <tr key={st.id}>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-600">{st.code}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {st.isChildAccount ? 'Child' : 'Adult'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-800">{st.nameEn}</td>
+                        <td className="px-4 py-3 text-slate-600">{st.nameSi}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => handleDeleteSavingsType(st.id!)} className="text-rose-500 hover:text-rose-700 p-1 bg-rose-50 hover:bg-rose-100 rounded-lg transition"><Trash2 size={14}/></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Branch Config Tab ── */}
+      {innerTab === 'config' && (
+        <div className="space-y-5 max-w-2xl">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-semibold text-slate-800 mb-5 flex items-center gap-2"><Building size={16} /> Branch Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[{ label: 'Branch Name', value: branch.name }, { label: 'Location', value: branch.location }].map(f => (
+                <div key={f.label}>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">{f.label}</label>
+                  <input defaultValue={f.value} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
                 </div>
               ))}
             </div>
@@ -445,7 +584,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
           </div>
           <div className="flex justify-end">
             <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition">
-              <Save size={16} /> Save Branch Configuration
+              <Save size={16} /> Save Config
             </button>
           </div>
         </div>
@@ -454,10 +593,10 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack }: {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
 export default function SystemAdminDashboard() {
   const navigate  = useNavigate();
   const user      = AuthService.getCurrentUser();
+  const { t, language, setLanguage } = useLanguage();
   const [allUsers, setAllUsers] = useState<AuthService.UserDTO[]>([]);
   const [activeBranch, setActiveBranch] = useState<typeof BRANCHES[0] | null>(null);
 
@@ -487,8 +626,8 @@ export default function SystemAdminDashboard() {
         <div className="h-16 flex items-center px-6 border-b border-white/10">
           <img src={logo} alt="HMCS" className="w-8 h-8 rounded-lg object-cover mr-3 border border-white/20" />
           <div>
-            <p className="font-bold text-white text-sm">HMCS Bank</p>
-            <p className="text-white/50 text-xs">System Administration</p>
+            <p className="font-bold text-white text-sm">{t('HMCS Bank')}</p>
+            <p className="text-white/50 text-xs">{t('System Administration')}</p>
           </div>
         </div>
 
@@ -523,12 +662,19 @@ export default function SystemAdminDashboard() {
       <main className="flex-1 md:ml-64">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">System Administration Panel</h1>
-            <p className="text-xs text-slate-400">HMCS Integrated Banking System · All 8 Branches</p>
+            <h1 className="text-lg font-bold text-slate-800">{t('System Administration Panel')}</h1>
+            <p className="text-xs text-slate-400">{t('HMCS Integrated Banking System · All 8 Branches')}</p>
           </div>
-          <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> 8 / 8 Branches Online
-          </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
+              <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
+              <div className="w-px h-4 bg-slate-300 mx-1"></div>
+              <button onClick={() => setLanguage('si')} className={`px-3 py-1 text-sm font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+            </div>
+            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('8 / 8 Branches Online')}
+            </span>
+          </div>
         </header>
 
         <div className="p-8">

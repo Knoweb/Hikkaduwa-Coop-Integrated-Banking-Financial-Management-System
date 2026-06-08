@@ -34,4 +34,18 @@ public class Account {
 
     @Column(length = 20)
     private String status = "ACTIVE";
+
+    // Fields for Children's Savings Accounts
+    @Column(name = "child_name", length = 150)
+    private String childName;
+
+    @Column(name = "child_birth_certificate", length = 50)
+    private String childBirthCertificate;
+
+    @Column(name = "child_date_of_birth")
+    private LocalDate childDateOfBirth;
+
+    // Interest rate configuration
+    @Column(precision = 5, scale = 4)
+    private BigDecimal annualInterestRate = new BigDecimal("0.0600"); // 6% by default
 }

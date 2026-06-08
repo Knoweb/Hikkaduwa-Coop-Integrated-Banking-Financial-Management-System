@@ -11,21 +11,29 @@ const authHeader = () => {
 export interface MemberData {
   memberId?: string;
   membershipNumber?: string;
+  nic: string;
+  nameWithInitials?: string;
   fullName: string;
   fullNameSinhala?: string;
-  nic: string;
   dateOfBirth: string;
   gender?: string;
   maritalStatus?: string;
   address: string;
   province?: string;
-  contactNumber: string;
+  contactNumber?: string;
+  isMember?: boolean;
   registeredBranchId?: number;
   shareAmount?: number;
   belongsToOtherSociety?: boolean;
   otherSocietyName?: string;
   status?: string;
   createdAt?: string;
+  birthCertificateNumber?: string;
+  photographUrl?: string;
+  digitalSignatureUrl?: string;
+  membershipType?: string;
+  deceasedDate?: string;
+  insuranceClaimNotes?: string;
 }
 
 export interface AccountData {
@@ -37,6 +45,10 @@ export interface AccountData {
   branchId?: number;
   status: string;
   openedDate?: string;
+  childName?: string;
+  childBirthCertificate?: string;
+  childDateOfBirth?: string;
+  annualInterestRate?: number;
 }
 
 // ── Members ──────────────────────────────────────────────────────
@@ -61,7 +73,7 @@ export const getAccounts = async (): Promise<AccountData[]> => {
   return res.data;
 };
 
-export const openAccount = async (data: { memberId: string; accountType: string; initialDeposit: number }): Promise<AccountData> => {
+export const openAccount = async (data: { memberId: string; accountType: string; initialDeposit: number; childName?: string; childBirthCertificate?: string; childDateOfBirth?: string }): Promise<AccountData> => {
   const res = await axios.post(API_URL + 'accounts', data, { headers: authHeader() });
   return res.data;
 };
@@ -80,4 +92,27 @@ export const withdraw = async (data: { accountNumber: string; amount: number }):
 export const getAdminSummary = async () => {
   const res = await axios.get(API_URL + 'admin/summary', { headers: authHeader() });
   return res.data;
+};
+
+// --- Savings Account Types API ---
+export interface SavingsAccountType {
+  id?: number;
+  code: string;
+  nameEn: string;
+  nameSi: string;
+  isChildAccount?: boolean;
+}
+
+export const getSavingsAccountTypes = async (): Promise<SavingsAccountType[]> => {
+  const response = await axios.get(`${API_URL}savings/account-types`, { headers: authHeader() });
+  return response.data;
+};
+
+export const createSavingsAccountType = async (data: SavingsAccountType): Promise<SavingsAccountType> => {
+  const response = await axios.post(`${API_URL}savings/account-types`, data, { headers: authHeader() });
+  return response.data;
+};
+
+export const deleteSavingsAccountType = async (id: number): Promise<void> => {
+  await axios.delete(`${API_URL}savings/account-types/${id}`, { headers: authHeader() });
 };

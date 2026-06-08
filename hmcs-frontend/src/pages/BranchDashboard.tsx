@@ -4,17 +4,18 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import logo from '../assets/logo.jpg';
+import { useLanguage } from '../context/LanguageContext';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
   BANK_SERVICE_MANAGER: { label: 'Bank Service Manager', color: 'text-purple-700', bg: 'bg-purple-600', gradient: 'from-purple-900 via-purple-800 to-slate-900' },
   LOAN_COMMITTEE:       { label: 'Loan Committee',       color: 'text-amber-700',  bg: 'bg-amber-600',  gradient: 'from-amber-900 via-amber-800 to-slate-900' },
-  CUSTOMER_SERVICE_ASSISTANT: { label: 'Customer Service', color: 'text-teal-700', bg: 'bg-teal-600',   gradient: 'from-teal-900 via-teal-800 to-slate-900' },
+  SENIOR_OFFICER:       { label: 'Senior Officer',       color: 'text-teal-700',   bg: 'bg-teal-600',   gradient: 'from-teal-900 via-teal-800 to-slate-900' },
   FIELD_OFFICER:        { label: 'Field Officer',        color: 'text-green-700',  bg: 'bg-green-600',  gradient: 'from-green-900 via-green-800 to-slate-900' },
   TELLER:               { label: 'Teller',               color: 'text-red-700',    bg: 'bg-red-600',    gradient: 'from-red-900 via-red-800 to-slate-900' },
   VALUER:               { label: 'Valuer',               color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900' },
@@ -24,7 +25,14 @@ const ROLE_NAV: Record<string, { icon: any; label: string; key: string }[]> = {
   BRANCH_MANAGER:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Users, label: 'Members', key: 'members' }, { icon: CreditCard, label: 'Accounts', key: 'accounts' }, { icon: FileText, label: 'Loan Queue', key: 'loans' }, { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }],
   BANK_SERVICE_MANAGER: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Shield, label: 'Compliance', key: 'loans' }],
   LOAN_COMMITTEE:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Scale, label: 'Vote on Loans', key: 'loans' }],
-  CUSTOMER_SERVICE_ASSISTANT: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: UserPlus, label: 'Register Member', key: 'members' }],
+  SENIOR_OFFICER:       [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' },
+    { icon: UserPlus, label: 'Members', key: 'members' },
+    { icon: Users, label: 'Non-Members', key: 'non-members' },
+    { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
+    { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
+    { icon: FileText, label: 'Loan Accounts', key: 'loans' }
+  ],
   FIELD_OFFICER:        [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ClipboardList, label: 'Mobile Collection', key: 'tasks' }],
   TELLER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ArrowDownLeft, label: 'Deposit', key: 'deposit' }, { icon: ArrowUpRight, label: 'Withdraw', key: 'withdraw' }],
   VALUER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Gem, label: 'New Pawn Ticket', key: 'pawn' }],
@@ -394,10 +402,12 @@ function ValuerView() {
   );
 }
 
-function CustomerServiceView() {
+function CustomerServiceView({ activeTab }: { activeTab: string }) {
+  const { t, language } = useLanguage();
   const user = AuthService.getCurrentUser();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
   const [showRegModal, setShowRegModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
@@ -405,17 +415,32 @@ function CustomerServiceView() {
   const [loading, setLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [accError, setAccError] = useState('');
-  const initialFormState = { membershipNumber: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: 0 };
+  const initialFormState = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: '' as number | string, photographUrl: '' };
   const [form, setForm] = useState(initialFormState);
-  const [accForm, setAccForm] = useState({ accountType: 'REGULAR', initialDeposit: 1000 });
+  const [accForm, setAccForm] = useState({ accountType: 'NORMAL', initialDeposit: 1000, childName: '', childBirthCertificate: '', childDateOfBirth: '' });
+  const [accCustomerType, setAccCustomerType] = useState<'true' | 'false' | null>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(p => ({ ...p, photographUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const fetchData = () => {
     AccountService.getMembers().then(setMembers).catch(() => {});
     AccountService.getAccounts().then(setAccounts).catch(() => {});
+    AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
   };
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = members.filter(m =>
+  const isNonMembersTab = activeTab === 'non-members';
+  const displayedMembers = members.filter(m => isNonMembersTab ? m.isMember === false : m.isMember !== false);
+  const filtered = displayedMembers.filter(m =>
     m.fullName.toLowerCase().includes(search.toLowerCase()) ||
     m.nic.toLowerCase().includes(search.toLowerCase())
   );
@@ -423,7 +448,8 @@ function CustomerServiceView() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault(); setRegError(''); setLoading(true);
     try {
-      await AccountService.registerMember(form);
+      const payload = { ...form, shareAmount: Number(form.shareAmount) || 0, isMember: true };
+      await AccountService.registerMember(payload as any);
       setShowRegModal(false);
       setForm(initialFormState);
       fetchData();
@@ -445,153 +471,371 @@ function CustomerServiceView() {
 
   const getAccountCount = (memberId?: string) => accounts.filter(a => a.memberId === memberId).length;
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={Users}        label="Total Members"    value={members.length.toString()} color="text-green-600" />
-        <StatCard icon={CreditCard}   label="Total Accounts"   value={accounts.length.toString()} color="text-blue-600" />
-        <StatCard icon={UserPlus}     label="Active Members"   value={members.filter(m => m.status === 'ACTIVE').length.toString()} color="text-purple-600" />
-      </div>
+  const filteredAccounts = accounts.filter(a => a.accountNumber.toLowerCase().includes(search.toLowerCase()));
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> Branch Members</h3>
-          <button onClick={() => setShowRegModal(true)}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
-            <UserPlus size={14} /> Register Member
+  if (activeTab === 'savings') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-800">{t('Branch Accounts')} ({accounts.length})</h3>
+          <button onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+            <CreditCard size={14} /> {t('Open Account')}
           </button>
         </div>
         <div className="relative mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or NIC..."
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
         </div>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No members found. Register the first member!</p>
-          ) : filtered.map(m => (
-            <div key={m.memberId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-                  {m.fullName.charAt(0)}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Account No.')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Type')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Balance')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Status')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredAccounts.length === 0 ? (
+                <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">{t('No accounts found')}</td></tr>
+              ) : filteredAccounts.map(a => (
+                <tr key={a.accountId} className="hover:bg-slate-50 transition">
+                  <td className="px-5 py-3 font-bold text-slate-800">{a.accountNumber}</td>
+                  <td className="px-5 py-3"><span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium">{t(a.accountType)}</span></td>
+                  <td className="px-5 py-3 font-semibold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</td>
+                  <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(a.status)}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Open Account Modal */}
+        {showAccModal && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-lg font-bold text-slate-800">{t('Open Savings Account')}</h3>
+                <button onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+              </div>
+              
+              {!selectedMemberId && accCustomerType === null ? (
+                <div className="p-8 space-y-4">
+                  <h4 className="text-center text-slate-600 font-medium mb-6">{t('Registration Type')}</h4>
+                  <button onClick={() => setAccCustomerType('true')}
+                    className="w-full p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-500 text-green-700 font-bold transition flex items-center justify-center gap-3">
+                    <UserPlus size={20} />
+                    {t('Society Member')}
+                  </button>
+                  <button onClick={() => setAccCustomerType('false')}
+                    className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-bold transition flex items-center justify-center gap-3">
+                    <Users size={20} />
+                    {t('Non-Member')}
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
+                  {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
+                  
+                  {/* Member Selection if opened from general button */}
+                  {!selectedMemberId && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-bold text-slate-700">{accCustomerType === 'true' ? t('Society Member') : t('Non-Member')}</span>
+                        <button type="button" onClick={() => setAccCustomerType(null)} className="text-xs text-blue-600 hover:underline">{t('Cancel')}</button>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Select Person')}</label>
+                        <select required value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                          <option value="">-- {t('Select Person')} --</option>
+                          {members.filter((m: any) => accCustomerType === 'true' ? m.isMember !== false : m.isMember === false).map(m => (
+                            <option key={m.memberId} value={m.memberId}>{m.fullName} - {m.nic}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">{t('Account Type')}</label>
+                  <select value={accForm.accountType} onChange={e => setAccForm(p => ({ ...p, accountType: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    {savingsTypes.map(st => (
+                      <option key={st.id} value={st.code}>
+                        {language === 'si' ? st.nameSi : st.nameEn}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">{m.fullName}</p>
-                  <p className="text-xs text-slate-400">{m.nic} · {getAccountCount(m.memberId)} account(s)</p>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">{t('Initial Deposit (Rs.)')}</label>
+                  <input type="number" min="100" value={accForm.initialDeposit} onChange={e => setAccForm(p => ({ ...p, initialDeposit: parseInt(e.target.value) }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{m.status}</span>
-                <button onClick={() => { setSelectedMemberId(m.memberId || ''); setShowAccModal(true); }}
-                  className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
-                  Open Account
-                </button>
-              </div>
+                
+                {['ARUNALU', 'RANTHILINA', 'CHILD'].includes(accForm.accountType) && (
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4">
+                    <h4 className="text-xs font-bold text-slate-700 uppercase">{t('Child Information')}</h4>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{t("Child's Name *")}</label>
+                      <input required value={accForm.childName} onChange={e => setAccForm(p => ({ ...p, childName: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Birth Certificate No. *')}</label>
+                        <input required value={accForm.childBirthCertificate} onChange={e => setAccForm(p => ({ ...p, childBirthCertificate: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Date of Birth *')}</label>
+                        <input required type="date" value={accForm.childDateOfBirth} onChange={e => setAccForm(p => ({ ...p, childDateOfBirth: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">{t('Cancel')}</button>
+                  <button type="submit" disabled={loading} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
+                    {loading ? t('Opening...') : t('Open Account')}
+                  </button>
+                </div>
+              </form>
+              )}
             </div>
-          ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard icon={Users}        label={isNonMembersTab ? t('Total Non-Members') : t('Total Members')}    value={displayedMembers.length.toString()} color="text-green-600" />
+        <StatCard icon={CreditCard}   label={t('Total Accounts')}   value={accounts.length.toString()} color="text-blue-600" />
+        <StatCard icon={UserPlus}     label={isNonMembersTab ? t('Active Non-Members') : t('Active Members')}   value={displayedMembers.filter(m => m.status === 'ACTIVE').length.toString()} color="text-purple-600" />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> {isNonMembersTab ? t('Non-Members') : t('Branch Members')}</h3>
+          <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setShowRegModal(true); }}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+            <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
+          </button>
+        </div>
+        <div className="relative mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by name or NIC...')}
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+        </div>
+        <div className="overflow-x-auto max-h-80 border border-slate-100 rounded-xl">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 sticky top-0 z-10">
+              <tr>
+                <th className="px-4 py-3">{t('Member')}</th>
+                <th className="px-4 py-3">{t('Membership No')}</th>
+                <th className="px-4 py-3">{t('NIC')}</th>
+                <th className="px-4 py-3">{t('Accounts')}</th>
+                <th className="px-4 py-3">{t('Status')}</th>
+                <th className="px-4 py-3 text-right">{t('Action')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('No members found. Register the first member!')}</td></tr>
+              ) : filtered.map(m => (
+                <tr key={m.memberId} className="hover:bg-slate-50 transition">
+                  <td className="px-4 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      {m.fullName.charAt(0)}
+                    </div>
+                    <span className="font-semibold text-slate-800">{m.nameWithInitials || m.fullName}</span>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-slate-600">{m.membershipNumber || '-'}</td>
+                  <td className="px-4 py-3">{m.nic}</td>
+                  <td className="px-4 py-3">{getAccountCount(m.memberId)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(m.status)}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button onClick={() => { setSelectedMemberId(m.memberId || ''); setShowAccModal(true); }}
+                      className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                      {t('Open Account')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Register Member Modal */}
       {showRegModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800">Register New Member</h3>
-              <button onClick={() => setShowRegModal(false)}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Header / Letterhead */}
+            <div className="bg-slate-800 px-6 py-5 flex justify-between items-center shrink-0 border-b-4 border-green-600">
+              <div className="flex items-center gap-4">
+                <img src={logo} alt="HMCS Logo" className="w-12 h-12 rounded-md object-cover border border-white/20 shadow-sm bg-white" />
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('Hikkaduwa Branch')}</h2>
+                  <p className="text-slate-300 text-sm">{t('Register New Member')}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowRegModal(false)} className="text-slate-400 hover:text-white transition bg-white/10 p-1.5 rounded-full">
+                <X size={20} />
+              </button>
             </div>
-            <form onSubmit={handleRegister} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {regError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{regError}</div>}
+            
+            <form onSubmit={handleRegister} className="overflow-y-auto flex-1 p-6 bg-slate-50">
+              {regError && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm border-l-4 border-red-500 font-medium shadow-sm">{regError}</div>}
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Membership No. (Optional)</label>
-                  <input value={form.membershipNumber} onChange={e => setForm(p => ({ ...p, membershipNumber: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+              <div className="space-y-8">
+                {/* Section 1: Identification */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><FileText size={16} className="text-green-600"/> Identification Details</h3>
+                  <div className="grid grid-cols-2 gap-5 mb-5">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Registration Type')} <span className="text-red-500">*</span></label>
+                      <select required value={form.isMember ? 'true' : 'false'} onChange={e => setForm(p => ({ ...p, isMember: e.target.value === 'true' }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50/50 font-semibold text-slate-700">
+                        <option value="true">{t('Society Member')}</option>
+                        <option value="false">{t('Non-Member')}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Membership Number</label>
+                      <input value={form.membershipNumber} onChange={e => setForm(p => ({ ...p, membershipNumber: e.target.value }))} placeholder="Auto-generated if left blank"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">National Identity Card (NIC) <span className="text-red-500">*</span></label>
+                      <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))} placeholder="e.g. 199XXXXXXXXX"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">NIC Number *</label>
-                  <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Full Name (English) *</label>
-                  <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                {/* Section 2: Personal Information */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><UserPlus size={16} className="text-green-600"/> {t('Personal Information')}</h3>
+                  <div className="grid grid-cols-2 gap-5 mb-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Name with Initials')} <span className="text-red-500">*</span></label>
+                      <input required value={form.nameWithInitials} onChange={e => setForm(p => ({ ...p, nameWithInitials: e.target.value }))} placeholder="e.g. A.B.C. Perera"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Full Name (English)')} <span className="text-red-500">*</span></label>
+                      <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Full Name (Sinhala/Tamil)')}</label>
+                      <input value={form.fullNameSinhala} onChange={e => setForm(p => ({ ...p, fullNameSinhala: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Date of Birth <span className="text-red-500">*</span></label>
+                      <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Gender <span className="text-red-500">*</span></label>
+                      <select required value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50">
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Marital Status <span className="text-red-500">*</span></label>
+                      <select required value={form.maritalStatus} onChange={e => setForm(p => ({ ...p, maritalStatus: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50">
+                        <option value="UNMARRIED">Unmarried</option>
+                        <option value="MARRIED">Married</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Full Name (Sinhala/Tamil)</label>
-                  <input value={form.fullNameSinhala} onChange={e => setForm(p => ({ ...p, fullNameSinhala: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth *</label>
-                  <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                {/* Section 3: Contact Details */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><MapPin size={16} className="text-green-600"/> {t('Address')} & {t('Contact Number')}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Address')} <span className="text-red-500">*</span></label>
+                      <textarea required rows={2} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Province')}</label>
+                      <input value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Contact Number')} <span className="text-red-500">*</span></label>
+                      <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))} placeholder="07X XXXXXXX"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Gender *</label>
-                  <select required value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Marital Status *</label>
-                  <select required value={form.maritalStatus} onChange={e => setForm(p => ({ ...p, maritalStatus: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
-                    <option value="UNMARRIED">Unmarried</option>
-                    <option value="MARRIED">Married</option>
-                  </select>
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Address *</label>
-                <textarea required rows={2} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Province/Electoral Div.</label>
-                  <input value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Contact Number *</label>
-                  <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Share Amount (Rs.)</label>
-                  <input type="number" min="0" step="0.01" value={form.shareAmount} onChange={e => setForm(p => ({ ...p, shareAmount: parseFloat(e.target.value) || 0 }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                <label className="flex items-center gap-2 cursor-pointer mb-2">
-                  <input type="checkbox" checked={form.belongsToOtherSociety} onChange={e => setForm(p => ({ ...p, belongsToOtherSociety: e.target.checked }))} className="w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500" />
-                  <span className="text-sm font-medium text-slate-700">Belongs to another co-operative society?</span>
-                </label>
-                {form.belongsToOtherSociety && (
-                  <input value={form.otherSocietyName} onChange={e => setForm(p => ({ ...p, otherSocietyName: e.target.value }))} placeholder="Name of the society..."
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 mt-2" />
+                {/* Section 4: Membership & Shares */}
+                {form.isMember && (
+                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><Award size={16} className="text-green-600"/> {t('Membership Details')}</h3>
+                    <div className="grid grid-cols-2 gap-5 mb-5">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Share Amount (Rs.)')}</label>
+                        <input type="number" min="0" step="0.01" value={form.shareAmount} onChange={e => setForm(p => ({ ...p, shareAmount: e.target.value }))} placeholder="e.g. 1000.00"
+                          className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')}</label>
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload}
+                          className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                        {form.photographUrl && <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1"><CheckCircle size={12}/> Photo attached</p>}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={form.belongsToOtherSociety} onChange={e => setForm(p => ({ ...p, belongsToOtherSociety: e.target.checked }))} 
+                          className="w-5 h-5 text-green-600 rounded border-slate-300 focus:ring-green-500" />
+                        <span className="text-sm font-bold text-slate-700">{t('Belongs to another society?')}</span>
+                      </label>
+                      {form.belongsToOtherSociety && (
+                        <div className="mt-3 ml-8">
+                          <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Other Society Name')}</label>
+                          <input value={form.otherSocietyName} onChange={e => setForm(p => ({ ...p, otherSocietyName: e.target.value }))}
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowRegModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">Cancel</button>
-                <button type="submit" disabled={loading} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
-                  {loading ? 'Registering...' : 'Register Member'}
+              {/* Footer Actions */}
+              <div className="sticky bottom-0 bg-slate-50 pt-6 mt-2 flex justify-end gap-4 border-t border-slate-200">
+                <button type="button" onClick={() => setShowRegModal(false)} className="px-6 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 hover:text-slate-900 rounded-lg font-bold text-sm transition shadow-sm">
+                  {t('Cancel')}
+                </button>
+                <button type="submit" disabled={loading} className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-60 transition flex items-center gap-2">
+                  {loading ? t('Processing...') : <><CheckCircle size={18}/> {t('Authorize & Register')}</>}
                 </button>
               </div>
             </form>
@@ -602,40 +846,103 @@ function CustomerServiceView() {
       {/* Open Account Modal */}
       {showAccModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800">Open Savings Account</h3>
-              <button onClick={() => setShowAccModal(false)}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-lg font-bold text-slate-800">{t('Open Savings Account')}</h3>
+              <button onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
             </div>
-            <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
-              {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Account Type</label>
+            
+            {!selectedMemberId && accCustomerType === null ? (
+              <div className="p-8 space-y-4">
+                <h4 className="text-center text-slate-600 font-medium mb-6">{t('Registration Type')}</h4>
+                <button onClick={() => setAccCustomerType('true')}
+                  className="w-full p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-500 text-green-700 font-bold transition flex items-center justify-center gap-3">
+                  <UserPlus size={20} />
+                  {t('Society Member')}
+                </button>
+                <button onClick={() => setAccCustomerType('false')}
+                  className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-bold transition flex items-center justify-center gap-3">
+                  <Users size={20} />
+                  {t('Non-Member')}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
+                {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
+                
+                {/* Member Selection if opened from general button */}
+                {!selectedMemberId && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-slate-700">{accCustomerType === 'true' ? t('Society Member') : t('Non-Member')}</span>
+                      <button type="button" onClick={() => setAccCustomerType(null)} className="text-xs text-blue-600 hover:underline">{t('Cancel')}</button>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Select Person')}</label>
+                      <select required value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        <option value="">-- {t('Select Person')} --</option>
+                        {members.filter((m: any) => accCustomerType === 'true' ? m.isMember !== false : m.isMember === false).map(m => (
+                          <option key={m.memberId} value={m.memberId}>{m.fullName} - {m.nic}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">{t('Account Type')}</label>
                 <select value={accForm.accountType} onChange={e => setAccForm(p => ({ ...p, accountType: e.target.value }))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                  <option value="REGULAR">Regular Savings</option>
-                  <option value="CHILD">Children's Account</option>
-                  <option value="SENIOR">Senior Citizen</option>
-                  <option value="FIXED">Fixed Deposit</option>
+                    <option value="NORMAL">{t('Normal Savings (Samanaya 01)')}</option>
+                    <option value="JANASETHA">{t('Janasetha')}</option>
+                    <option value="DHANA_YOJANA">{t('Dhana Yojana')}</option>
+                    <option value="VANDANA">{t('Vandana')}</option>
+                    <option value="ARUNALU">{t('Arunalu (Children)')}</option>
+                    <option value="RANTHILINA">{t('Ranthilina (Children)')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Initial Deposit (Rs.)</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">{t('Initial Deposit (Rs.)')}</label>
                 <input type="number" min="100" value={accForm.initialDeposit} onChange={e => setAccForm(p => ({ ...p, initialDeposit: parseInt(e.target.value) }))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAccModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">Cancel</button>
-                <button type="submit" disabled={loading} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
-                  {loading ? 'Opening...' : 'Open Account'}
-                </button>
-              </div>
-            </form>
+              
+              {['ARUNALU', 'RANTHILINA', 'CHILD'].includes(accForm.accountType) && (
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase">{t('Child Information')}</h4>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t("Child's Name *")}</label>
+                    <input required value={accForm.childName} onChange={e => setAccForm(p => ({ ...p, childName: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Birth Certificate No. *')}</label>
+                      <input required value={accForm.childBirthCertificate} onChange={e => setAccForm(p => ({ ...p, childBirthCertificate: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Date of Birth *')}</label>
+                      <input required type="date" value={accForm.childDateOfBirth} onChange={e => setAccForm(p => ({ ...p, childDateOfBirth: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                    </div>
+                  </div>
+                </div>
+              )}
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">{t('Cancel')}</button>
+                  <button type="submit" disabled={loading || !selectedMemberId} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
+                    {loading ? t('Opening...') : t('Open Account')}
+                  </button>
+                </div>
+              </form>
+            )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
 }
 
 function BankServiceManagerView() {
@@ -701,6 +1008,7 @@ export default function BranchDashboard() {
   const navigate   = useNavigate();
   const user       = AuthService.getCurrentUser();
   const [tab, setTab] = useState('overview');
+  const { t, language, toggleLanguage } = useLanguage();
 
   if (!user) { navigate('/login'); return null; }
 
@@ -715,7 +1023,7 @@ export default function BranchDashboard() {
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView />;
-      case 'CUSTOMER_SERVICE_ASSISTANT': return <CustomerServiceView />;
+      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
     }
@@ -728,8 +1036,8 @@ export default function BranchDashboard() {
         <div className="h-16 flex items-center px-6 border-b border-white/10">
           <img src={logo} alt="HMCS" className="w-8 h-8 rounded-lg object-cover mr-3 border border-white/20" />
           <div>
-            <p className="font-bold text-white text-sm">HMCS Bank</p>
-            <p className="text-white/50 text-xs">Hikkaduwa Branch</p>
+            <p className="font-bold text-white text-sm">{t('Hikkaduwa Branch')}</p>
+            <p className="text-white/50 text-xs">HMCS Bank</p>
           </div>
         </div>
 
@@ -740,7 +1048,7 @@ export default function BranchDashboard() {
             </div>
             <div>
               <p className="text-white text-sm font-semibold">{user.username}</p>
-              <p className="text-white/60 text-xs">{config.label}</p>
+              <p className="text-white/60 text-xs">{t(config.label)}</p>
             </div>
           </div>
         </div>
@@ -749,7 +1057,7 @@ export default function BranchDashboard() {
           {navItems.map(item => (
             <button key={item.key} onClick={() => setTab(item.key)}
               className={`flex items-center w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === item.key ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}>
-              <item.icon size={18} className="mr-3" />{item.label}
+              <item.icon size={18} className="mr-3" />{t(item.label)}
             </button>
           ))}
         </nav>
@@ -757,7 +1065,7 @@ export default function BranchDashboard() {
         <div className="p-4 border-t border-white/10">
           <button onClick={() => { AuthService.logout(); navigate('/login'); }}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
-            <LogOut size={16} className="mr-2" /> Sign Out
+            <LogOut size={16} className="mr-2" /> {t('Sign Out')}
           </button>
         </div>
       </aside>
@@ -766,12 +1074,17 @@ export default function BranchDashboard() {
       <main className="flex-1 md:ml-64">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">Hikkaduwa Branch</h1>
-            <p className="text-xs text-slate-400">{config.label} Dashboard</p>
+            <h1 className="text-lg font-bold text-slate-800">{t('Hikkaduwa Branch')}</h1>
+            <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <button onClick={toggleLanguage} className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition border border-slate-200 shadow-sm">
+              <span className={language === 'en' ? 'text-blue-700' : 'text-slate-500 hover:text-blue-700'}>EN</span>
+              <span className="text-slate-300">|</span>
+              <span className={language === 'si' ? 'text-blue-700' : 'text-slate-500 hover:text-blue-700'}>සිංහල</span>
+            </button>
             <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Branch Online
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('Branch Online')}
             </span>
             <Bell size={18} className="text-slate-400 cursor-pointer hover:text-slate-600" />
           </div>
@@ -780,9 +1093,9 @@ export default function BranchDashboard() {
         <div className="p-8">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-800">
-              {navItems.find(n => n.key === tab)?.label || 'Overview'}
+              {t(navItems.find(n => n.key === tab)?.label || 'Overview')}
             </h2>
-            <p className="text-sm text-slate-500">Welcome back, {user.username}. Here's your work summary.</p>
+            <p className="text-sm text-slate-500">{t('Welcome back')}, {user.username}. {t("Here's your work summary.")}</p>
           </div>
           {renderContent()}
         </div>

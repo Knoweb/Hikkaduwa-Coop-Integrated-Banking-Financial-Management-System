@@ -21,7 +21,10 @@ public class Member {
     @Column(nullable = false, unique = true, length = 20)
     private String nic;
 
-    @Column(nullable = false, length = 150)
+    @Column(name = "name_with_initials", length = 150)
+    private String nameWithInitials;
+
+    @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
     @Column(length = 150)
@@ -42,10 +45,13 @@ public class Member {
     @Column(length = 50)
     private String province;
 
-    @Column(length = 15)
+    @Column(name = "contact_number")
     private String contactNumber;
 
-    @Column(nullable = false)
+    @Column(name = "is_member")
+    private Boolean isMember = true;
+
+    @Column(name = "registered_branch_id")
     private Integer registeredBranchId;
 
     @Column(precision = 10, scale = 2)
@@ -60,9 +66,18 @@ public class Member {
     @Column(length = 255)
     private String digitalSignatureUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String photographUrl;
+
     @Column(length = 20)
     private String status = "ACTIVE";
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "deceased_date")
+    private LocalDate deceasedDate;
+
+    @Column(name = "insurance_claim_notes", columnDefinition = "TEXT")
+    private String insuranceClaimNotes;
 }

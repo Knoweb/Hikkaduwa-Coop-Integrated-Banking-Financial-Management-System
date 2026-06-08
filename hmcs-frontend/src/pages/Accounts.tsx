@@ -20,7 +20,10 @@ export default function Accounts() {
   const [formData, setFormData] = useState({
     memberId: '',
     accountType: 'REGULAR',
-    initialDeposit: 1000
+    initialDeposit: 1000,
+    childName: '',
+    childBirthCertificate: '',
+    childDateOfBirth: ''
   });
   const [submitError, setSubmitError] = useState('');
 
@@ -50,7 +53,7 @@ export default function Accounts() {
     try {
       await AccountService.openAccount(formData);
       setShowModal(false);
-      setFormData({ memberId: '', accountType: 'REGULAR', initialDeposit: 1000 });
+      setFormData({ memberId: '', accountType: 'REGULAR', initialDeposit: 1000, childName: '', childBirthCertificate: '', childDateOfBirth: '' });
       fetchData();
     } catch (err: any) {
       setSubmitError(err.response?.data || 'Failed to open account.');
@@ -266,6 +269,29 @@ export default function Accounts() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" 
                     />
                   </div>
+
+                  {formData.accountType === 'CHILD' && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-4">
+                      <h4 className="text-xs font-bold text-slate-700 uppercase">Child Information</h4>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">Child's Name *</label>
+                        <input required value={formData.childName} onChange={e => setFormData(p => ({ ...p, childName: e.target.value }))}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Birth Certificate No. *</label>
+                          <input required value={formData.childBirthCertificate} onChange={e => setFormData(p => ({ ...p, childBirthCertificate: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth *</label>
+                          <input required type="date" value={formData.childDateOfBirth} onChange={e => setFormData(p => ({ ...p, childDateOfBirth: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="pt-4 flex justify-end gap-3">
                     <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
                     <button type="submit" className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm transition-colors">Open Account</button>
