@@ -34,6 +34,9 @@ export interface MemberData {
   membershipType?: string;
   deceasedDate?: string;
   insuranceClaimNotes?: string;
+  ageCategory?: string;
+  guardianNic?: string;
+  guardianMemberNo?: string;
 }
 
 export interface AccountData {

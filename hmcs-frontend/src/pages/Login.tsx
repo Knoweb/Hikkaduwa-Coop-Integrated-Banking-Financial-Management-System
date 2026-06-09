@@ -38,6 +38,8 @@ export default function Login() {
         navigate('/teller/dashboard');
       } else if (role === 'VALUER') {
         navigate('/valuer/dashboard');
+      } else if (role === 'SENIOR_OFFICER') {
+        navigate('/cs/dashboard');
       } else {
         navigate('/branch/dashboard');
       }

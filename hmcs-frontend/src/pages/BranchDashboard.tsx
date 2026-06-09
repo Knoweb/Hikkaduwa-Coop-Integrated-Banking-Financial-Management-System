@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
@@ -21,21 +21,52 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gr
   VALUER:               { label: 'Valuer',               color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900' },
 };
 
-const ROLE_NAV: Record<string, { icon: any; label: string; key: string }[]> = {
-  BRANCH_MANAGER:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Users, label: 'Members', key: 'members' }, { icon: CreditCard, label: 'Accounts', key: 'accounts' }, { icon: FileText, label: 'Loan Queue', key: 'loans' }, { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }],
-  BANK_SERVICE_MANAGER: [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Shield, label: 'Compliance', key: 'loans' }],
-  LOAN_COMMITTEE:       [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Scale, label: 'Vote on Loans', key: 'loans' }],
+const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSection?: boolean }[]> = {
+  BRANCH_MANAGER:       [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'People' },
+    { icon: Users, label: 'Members', key: 'members' }, 
+    { isSection: true, label: 'Operations' },
+    { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
+    { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
+    { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }
+  ],
+  BANK_SERVICE_MANAGER: [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'Compliance' },
+    { icon: Shield, label: 'Audit Logs', key: 'loans' }
+  ],
+  LOAN_COMMITTEE:       [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'Approvals' },
+    { icon: Scale, label: 'Vote on Loans', key: 'loans' }
+  ],
   SENIOR_OFFICER:       [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' },
+    { isSection: true, label: 'People Management' },
     { icon: UserPlus, label: 'Members', key: 'members' },
     { icon: Users, label: 'Non-Members', key: 'non-members' },
+    { isSection: true, label: 'Financial Accounts' },
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
     { icon: FileText, label: 'Loan Accounts', key: 'loans' }
   ],
-  FIELD_OFFICER:        [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ClipboardList, label: 'Mobile Collection', key: 'tasks' }],
-  TELLER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: ArrowDownLeft, label: 'Deposit', key: 'deposit' }, { icon: ArrowUpRight, label: 'Withdraw', key: 'withdraw' }],
-  VALUER:               [{ icon: LayoutDashboard, label: 'Overview', key: 'overview' }, { icon: Gem, label: 'New Pawn Ticket', key: 'pawn' }],
+  FIELD_OFFICER:        [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'Field Tasks' },
+    { icon: ClipboardList, label: 'Mobile Collection', key: 'tasks' }
+  ],
+  TELLER:               [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'Transactions' },
+    { icon: ArrowDownLeft, label: 'Deposit', key: 'deposit' }, 
+    { icon: ArrowUpRight, label: 'Withdraw', key: 'withdraw' }
+  ],
+  VALUER:               [
+    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
+    { isSection: true, label: 'Appraisals' },
+    { icon: Gem, label: 'New Pawn Ticket', key: 'pawn' }
+  ],
 };
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
@@ -409,23 +440,74 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
+  const [ageFilter, setAgeFilter] = useState('ALL');
   const [showRegModal, setShowRegModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [loading, setLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [accError, setAccError] = useState('');
-  const initialFormState = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: '' as number | string, photographUrl: '' };
+  const [isChildReg, setIsChildReg] = useState(false);
+  const [guardianNic, setGuardianNic] = useState('');
+  const [guardianMemberNo, setGuardianMemberNo] = useState('');
+  const [guardianSearch, setGuardianSearch] = useState('');
+  const [guardianSearchResults, setGuardianSearchResults] = useState<any[]>([]);
+  const [showGuardianDropdown, setShowGuardianDropdown] = useState(false);
+  const [selectedGuardianData, setSelectedGuardianData] = useState<any>(null);
+  const initialFormState = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: '' as number | string, photographUrl: '', digitalSignatureUrl: '' };
   const [form, setForm] = useState(initialFormState);
   const [accForm, setAccForm] = useState({ accountType: 'NORMAL', initialDeposit: 1000, childName: '', childBirthCertificate: '', childDateOfBirth: '' });
   const [accCustomerType, setAccCustomerType] = useState<'true' | 'false' | null>(null);
+  const [photoProgress, setPhotoProgress] = useState(0);
+  const [signatureProgress, setSignatureProgress] = useState(0);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPhotoProgress(10);
+      setForm(p => ({ ...p, photographUrl: '' }));
+      
+      const interval = setInterval(() => {
+        setPhotoProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 15;
+        });
+      }, 50);
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setForm(p => ({ ...p, photographUrl: reader.result as string }));
+        setTimeout(() => {
+          setForm(p => ({ ...p, photographUrl: reader.result as string }));
+        }, 500);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSignatureProgress(10);
+      setForm(p => ({ ...p, digitalSignatureUrl: '' }));
+      
+      const interval = setInterval(() => {
+        setSignatureProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 15;
+        });
+      }, 50);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTimeout(() => {
+          setForm(p => ({ ...p, digitalSignatureUrl: reader.result as string }));
+        }, 500);
       };
       reader.readAsDataURL(file);
     }
@@ -438,23 +520,71 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   };
   useEffect(() => { fetchData(); }, []);
 
+  const handleGuardianSearch = (q: string) => {
+    setGuardianSearch(q);
+    if (!q) {
+      setShowGuardianDropdown(false);
+      return;
+    }
+    const res = members.filter(m => 
+      m.nic.toLowerCase().includes(q.toLowerCase()) || 
+      m.fullName.toLowerCase().includes(q.toLowerCase()) || 
+      (m.membershipNumber && m.membershipNumber.toLowerCase().includes(q.toLowerCase()))
+    );
+    setGuardianSearchResults(res);
+    setShowGuardianDropdown(true);
+  };
+
+  const selectGuardian = (m: any) => {
+    setGuardianNic(m.nic);
+    setGuardianMemberNo(m.membershipNumber || '');
+    setGuardianSearch(m.nameWithInitials || m.fullName);
+    setSelectedGuardianData(m);
+    setShowGuardianDropdown(false);
+  };
+
   const isNonMembersTab = activeTab === 'non-members';
   const displayedMembers = members.filter(m => isNonMembersTab ? m.isMember === false : m.isMember !== false);
-  const filtered = displayedMembers.filter(m =>
-    m.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    m.nic.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = members.filter(m => {
+    const matchesSearch = search ? (
+      m.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      m.nic.toLowerCase().includes(search.toLowerCase()) ||
+      (m.membershipNumber && m.membershipNumber.toLowerCase().includes(search.toLowerCase()))
+    ) : true;
+    const matchesTab = isNonMembersTab ? m.isMember === false : m.isMember !== false;
+    
+    let isMatch = search ? matchesSearch : matchesTab;
+    
+    if (ageFilter !== 'ALL') {
+      const ageCat = m.ageCategory || 'ADULT';
+      isMatch = isMatch && ageCat === ageFilter;
+    }
+    
+    return isMatch;
+  });
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault(); setRegError(''); setLoading(true);
+    e.preventDefault(); 
+    if (form.memberId) {
+      if (!window.confirm(t("Are you sure you want to save changes to this profile?"))) return;
+    }
+    setRegError(''); setLoading(true);
     try {
-      const payload = { ...form, shareAmount: Number(form.shareAmount) || 0, isMember: true };
+      const payload = { 
+        ...form, 
+        shareAmount: Number(form.shareAmount) || 0,
+        ageCategory: isChildReg ? 'CHILD' : 'ADULT',
+        guardianNic: isChildReg ? guardianNic : null,
+        guardianMemberNo: isChildReg ? guardianMemberNo : null
+      };
       await AccountService.registerMember(payload as any);
       setShowRegModal(false);
       setForm(initialFormState);
       fetchData();
     } catch (err: any) {
-      setRegError(err.response?.data || 'Registration failed. Check NIC for duplicates.');
+      const data = err.response?.data;
+      const msg = data?.message || data?.error || (typeof data === 'string' ? data : 'Registration failed. Check details.');
+      setRegError(msg);
     } finally { setLoading(false); }
   };
 
@@ -630,18 +760,26 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
           </button>
         </div>
-        <div className="relative mb-4">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by name or NIC...')}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by name or NIC...')}
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+          </div>
+          <select value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
+            className="w-40 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white text-slate-600 font-medium">
+            <option value="ALL">{t('All Ages')}</option>
+            <option value="ADULT">{t('Adults Only')}</option>
+            <option value="CHILD">{t('Children Only')}</option>
+          </select>
         </div>
         <div className="overflow-x-auto max-h-80 border border-slate-100 rounded-xl">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3">{t('Member')}</th>
-                <th className="px-4 py-3">{t('Membership No')}</th>
-                <th className="px-4 py-3">{t('NIC')}</th>
+                <th className="px-4 py-3">{isNonMembersTab ? t('Name') : t('Member')}</th>
+                <th className="px-4 py-3">{isNonMembersTab ? t('Client ID') : t('Membership No')}</th>
+                <th className="px-4 py-3">{t('NIC / Birth Cert. No.')}</th>
                 <th className="px-4 py-3">{t('Accounts')}</th>
                 <th className="px-4 py-3">{t('Status')}</th>
                 <th className="px-4 py-3 text-right">{t('Action')}</th>
@@ -649,7 +787,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('No members found. Register the first member!')}</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-slate-400">{isNonMembersTab ? t('No non-members found.') : t('No members found. Register the first member!')}</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.memberId} className="hover:bg-slate-50 transition">
                   <td className="px-4 py-3 flex items-center gap-3">
@@ -662,12 +800,29 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                   <td className="px-4 py-3">{m.nic}</td>
                   <td className="px-4 py-3">{getAccountCount(m.memberId)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(m.status)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(m.status)}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        {m.ageCategory ? t(m.ageCategory) : t('ADULT')}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => { setSelectedMemberId(m.memberId || ''); setShowAccModal(true); }}
-                      className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
-                      {t('Open Account')}
+                    <button onClick={() => { 
+                        setForm(m as any); 
+                        setIsChildReg(m.ageCategory === 'CHILD');
+                        setGuardianNic(m.guardianNic || '');
+                        setGuardianMemberNo(m.guardianMemberNo || '');
+                        if (m.guardianNic || m.guardianMemberNo) {
+                          const g = members.find(gm => (m.guardianNic && gm.nic === m.guardianNic) || (m.guardianMemberNo && gm.membershipNumber === m.guardianMemberNo));
+                          setSelectedGuardianData(g || null);
+                        } else {
+                          setSelectedGuardianData(null);
+                        }
+                        setShowRegModal(true); 
+                      }}
+                      className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold hover:bg-slate-200 transition flex items-center gap-1.5 inline-flex">
+                      <FileText size={12} /> {t('View / Edit')}
                     </button>
                   </td>
                 </tr>
@@ -686,40 +841,106 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 <img src={logo} alt="HMCS Logo" className="w-12 h-12 rounded-md object-cover border border-white/20 shadow-sm bg-white" />
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('Hikkaduwa Branch')}</h2>
-                  <p className="text-slate-300 text-sm">{t('Register New Member')}</p>
+                  <p className="text-slate-300 text-sm">{form.memberId ? t('Edit Profile') : form.isMember ? t('Register New Member') : t('Register Non-Member')}</p>
                 </div>
               </div>
               <button onClick={() => setShowRegModal(false)} className="text-slate-400 hover:text-white transition bg-white/10 p-1.5 rounded-full">
                 <X size={20} />
               </button>
             </div>
-            
-            <form onSubmit={handleRegister} className="overflow-y-auto flex-1 p-6 bg-slate-50">
-              {regError && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm border-l-4 border-red-500 font-medium shadow-sm">{regError}</div>}
-              
-              <div className="space-y-8">
-                {/* Section 1: Identification */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><FileText size={16} className="text-green-600"/> Identification Details</h3>
-                  <div className="grid grid-cols-2 gap-5 mb-5">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Registration Type')} <span className="text-red-500">*</span></label>
-                      <select required value={form.isMember ? 'true' : 'false'} onChange={e => setForm(p => ({ ...p, isMember: e.target.value === 'true' }))}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50/50 font-semibold text-slate-700">
-                        <option value="true">{t('Society Member')}</option>
-                        <option value="false">{t('Non-Member')}</option>
+            <form onSubmit={handleRegister} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                {regError && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm border-l-4 border-red-500 font-medium shadow-sm">{regError}</div>}
+                
+                <div className="space-y-8">
+                  {/* Section 1: Identification */}
+                  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                      <FileText size={16} className="text-green-600"/> {t('Identification Details')}
+                      <span className="ml-2 px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600 font-semibold border border-slate-200">{form.isMember ? t('Society Member') : t('Non-Member')}</span>
+                    </h3>
+                  
+                  {!form.isMember && (
+                    <div className="mb-5">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Age Category')} <span className="text-red-500">*</span></label>
+                      <select required value={isChildReg ? 'child' : 'adult'} onChange={e => setIsChildReg(e.target.value === 'child')}
+                        className="w-full max-w-sm border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50">
+                        <option value="adult">{t('Adult (18+)')}</option>
+                        <option value="child">{t('Child (Under 18)')}</option>
                       </select>
                     </div>
-                  </div>
+                  )}
+
+                  {isChildReg ? (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-5 space-y-4 shadow-sm">
+                      <div className="flex gap-2">
+                        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                          {t('Children (under 18) cannot be official members. A Guardian\'s NIC is required to proceed. Please enter the child\'s Birth Certificate Number in the NIC field below.')}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {selectedGuardianData ? (
+                          <div className="col-span-2 p-4 bg-white border border-amber-300 rounded-xl flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-200 to-amber-300 flex items-center justify-center text-amber-800 font-bold shadow-inner">
+                                {selectedGuardianData.fullName.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-800 text-sm mb-0.5">{selectedGuardianData.nameWithInitials || selectedGuardianData.fullName}</div>
+                                <div className="text-xs text-slate-500 font-medium flex gap-3">
+                                  <span className="flex items-center gap-1"><span className="text-slate-400">NIC:</span> {selectedGuardianData.nic}</span>
+                                  {selectedGuardianData.membershipNumber && <span className="flex items-center gap-1"><span className="text-slate-400">ID:</span> {selectedGuardianData.membershipNumber}</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <button type="button" onClick={() => { setSelectedGuardianData(null); setGuardianNic(''); setGuardianMemberNo(''); setGuardianSearch(''); }} className="text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 transition">
+                              {t('Change Guardian')}
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="col-span-2 relative">
+                              <label className="block text-xs font-bold text-amber-800 mb-1.5">{t('Search & Auto-fill Guardian')}</label>
+                              <div className="relative">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600" />
+                                <input value={guardianSearch} onChange={e => handleGuardianSearch(e.target.value)} placeholder={t('Search Guardian by Name, NIC, or ID...')}
+                                  className="w-full pl-9 pr-4 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+                              </div>
+                              {showGuardianDropdown && guardianSearchResults.length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-amber-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                  {guardianSearchResults.map(m => (
+                                    <div key={m.memberId} onClick={() => selectGuardian(m)} className="px-4 py-2 hover:bg-amber-50 cursor-pointer border-b border-amber-50 last:border-0">
+                                      <div className="font-semibold text-sm text-slate-800">{m.nameWithInitials || m.fullName}</div>
+                                      <div className="text-xs text-slate-500 flex justify-between mt-0.5">
+                                        <span>NIC: {m.nic}</span>
+                                        <span className="font-medium text-amber-700">{m.membershipNumber || 'Non-Member'}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-amber-800 mb-1.5">{t('Guardian NIC')} <span className="text-red-500">*</span></label>
+                              <input required value={guardianNic} onChange={e => setGuardianNic(e.target.value)} placeholder="e.g. 198XXXXXXXXX"
+                                className="w-full border border-amber-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-amber-800 mb-1.5">{t('Guardian ID')}</label>
+                              <input value={guardianMemberNo} onChange={e => setGuardianMemberNo(e.target.value)} placeholder="(Optional)"
+                                className="w-full border border-amber-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Membership Number</label>
-                      <input value={form.membershipNumber} onChange={e => setForm(p => ({ ...p, membershipNumber: e.target.value }))} placeholder="Auto-generated if left blank"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">National Identity Card (NIC) <span className="text-red-500">*</span></label>
-                      <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))} placeholder="e.g. 199XXXXXXXXX"
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{form.isMember ? t('Membership Number') : isChildReg ? t('Child ID') : t('Client ID')} <span className="text-red-500">*</span></label>
+                      <input required value={form.membershipNumber} onChange={e => setForm(p => ({ ...p, membershipNumber: e.target.value }))} placeholder={form.isMember ? "e.g. M-1025" : isChildReg ? "e.g. CH-8042" : "e.g. C-8042"}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
                     </div>
                   </div>
@@ -730,11 +951,16 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                   <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><UserPlus size={16} className="text-green-600"/> {t('Personal Information')}</h3>
                   <div className="grid grid-cols-2 gap-5 mb-5">
                     <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{isChildReg ? t('Birth Certificate No.') : t('National Identity Card (NIC)')} <span className="text-red-500">*</span></label>
+                      <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))} placeholder={isChildReg ? "Birth Certificate Number" : "e.g. 199XXXXXXXXX"}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                    </div>
+                    <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Name with Initials')} <span className="text-red-500">*</span></label>
                       <input required value={form.nameWithInitials} onChange={e => setForm(p => ({ ...p, nameWithInitials: e.target.value }))} placeholder="e.g. A.B.C. Perera"
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
                     </div>
-                    <div>
+                    <div className="col-span-2">
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Full Name (English)')} <span className="text-red-500">*</span></label>
                       <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
@@ -803,12 +1029,6 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                         <input type="number" min="0" step="0.01" value={form.shareAmount} onChange={e => setForm(p => ({ ...p, shareAmount: e.target.value }))} placeholder="e.g. 1000.00"
                           className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')}</label>
-                        <input type="file" accept="image/*" onChange={handlePhotoUpload}
-                          className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
-                        {form.photographUrl && <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1"><CheckCircle size={12}/> Photo attached</p>}
-                      </div>
                     </div>
                     
                     <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
@@ -827,15 +1047,43 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                     </div>
                   </div>
                 )}
+
+                {/* Digital Documents for both Members and Non-Members */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <FileImage size={16} className="text-green-600"/> {t('Digital Documents')}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')}</label>
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                      
+                      {photoProgress > 0 && photoProgress < 100 && (
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
+                          <div className="bg-green-500 h-1.5 rounded-full transition-all duration-75" style={{ width: `${photoProgress}%` }}></div>
+                        </div>
+                      )}
+                      
+                      {form.photographUrl && (
+                        <div className="mt-3 flex items-start gap-3 p-2 bg-green-50/50 rounded-lg border border-green-100 w-fit">
+                          <img src={form.photographUrl} alt="Photograph Preview" className="w-12 h-12 rounded object-cover border border-green-200 shadow-sm" />
+                          <p className="text-xs text-green-700 font-medium flex items-center gap-1.5 mt-1 pr-2"><CheckCircle size={14}/> Photo successfully attached</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                </div>
               </div>
 
               {/* Footer Actions */}
-              <div className="sticky bottom-0 bg-slate-50 pt-6 mt-2 flex justify-end gap-4 border-t border-slate-200">
+              <div className="bg-slate-50 p-4 px-6 flex justify-end gap-4 border-t border-slate-200">
                 <button type="button" onClick={() => setShowRegModal(false)} className="px-6 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 hover:text-slate-900 rounded-lg font-bold text-sm transition shadow-sm">
                   {t('Cancel')}
                 </button>
                 <button type="submit" disabled={loading} className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-60 transition flex items-center gap-2">
-                  {loading ? t('Processing...') : <><CheckCircle size={18}/> {t('Authorize & Register')}</>}
+                  {loading ? t('Processing...') : <><CheckCircle size={18}/> {form.memberId ? t('Save Changes') : t('Authorize & Register')}</>}
                 </button>
               </div>
             </form>
@@ -1007,7 +1255,13 @@ function FieldOfficerView() {
 export default function BranchDashboard() {
   const navigate   = useNavigate();
   const user       = AuthService.getCurrentUser();
-  const [tab, setTab] = useState('overview');
+  const [tab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
+  
+  const setTab = (newTab: string) => {
+    localStorage.setItem('hmcs_active_tab', newTab);
+    setTabState(newTab);
+  };
+
   const { t, language, toggleLanguage } = useLanguage();
 
   if (!user) { navigate('/login'); return null; }
@@ -1054,12 +1308,27 @@ export default function BranchDashboard() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(item => (
-            <button key={item.key} onClick={() => setTab(item.key)}
-              className={`flex items-center w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === item.key ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}>
-              <item.icon size={18} className="mr-3" />{t(item.label)}
-            </button>
-          ))}
+          {navItems.map((item, idx) => {
+            if (item.isSection) {
+              return (
+                <div key={`sec-${idx}`} className={idx === 0 ? "mb-2 px-3" : "mt-6 mb-2 px-3"}>
+                  {idx !== 0 && <div className="h-px w-full bg-white/10 mb-3"></div>}
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t(item.label)}</p>
+                </div>
+              );
+            }
+            return (
+              <button key={item.key} onClick={() => setTab(item.key!)}
+                className={`flex items-center w-full px-3 py-3 mb-2 rounded-xl text-sm font-bold transition-all border ${
+                  tab === item.key 
+                    ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)] scale-[1.02]' 
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white'
+                }`}>
+                <item.icon size={18} className={`mr-3 shrink-0 ${tab === item.key ? config.color : 'text-white/70'}`} />
+                {t(item.label)}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-white/10">

@@ -57,13 +57,22 @@ public class Member {
     @Column(precision = 10, scale = 2)
     private BigDecimal shareAmount = BigDecimal.ZERO;
 
+    @Column(name = "age_category", length = 20)
+    private String ageCategory = "ADULT";
+
+    @Column(name = "guardian_nic", length = 20)
+    private String guardianNic;
+
+    @Column(name = "guardian_member_no", length = 20)
+    private String guardianMemberNo;
+
     @Column
     private Boolean belongsToOtherSociety = false;
 
     @Column(length = 150)
     private String otherSocietyName;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String digitalSignatureUrl;
 
     @Column(columnDefinition = "TEXT")

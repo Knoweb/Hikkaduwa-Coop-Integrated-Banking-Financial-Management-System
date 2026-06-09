@@ -44,6 +44,9 @@ public class SavingsController {
         public UUID memberId;
         public String accountType;
         public BigDecimal initialDeposit;
+        public String childName;
+        public String childBirthCertificate;
+        public String childDateOfBirth;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -61,6 +64,14 @@ public class SavingsController {
         account.setBalance(body.initialDeposit != null ? body.initialDeposit : BigDecimal.ZERO);
         account.setBranchId(branchId);
         account.setStatus("ACTIVE");
+        
+        if (body.childName != null && !body.childName.trim().isEmpty()) {
+            account.setChildName(body.childName);
+            account.setChildBirthCertificate(body.childBirthCertificate);
+            if (body.childDateOfBirth != null && !body.childDateOfBirth.isEmpty()) {
+                account.setChildDateOfBirth(java.time.LocalDate.parse(body.childDateOfBirth));
+            }
+        }
 
         Account savedAccount = accountRepository.save(account);
 
