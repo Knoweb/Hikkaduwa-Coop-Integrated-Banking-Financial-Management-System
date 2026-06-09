@@ -30,7 +30,7 @@ CREATE TABLE auth_service.users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role_id INT NOT NULL REFERENCES auth_service.roles(role_id),
-    branch_id INT NOT NULL REFERENCES auth_service.branches(branch_id),
+    branch_id INT REFERENCES auth_service.branches(branch_id),
     full_name VARCHAR(100) NOT NULL,
     status VARCHAR(20) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -41,12 +41,22 @@ CREATE TABLE auth_service.users (
 -- ==========================================
 CREATE TABLE member_service.members (
     member_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    membership_number VARCHAR(20) UNIQUE,           -- Auto-generated member number
     nic VARCHAR(20) NOT NULL UNIQUE,
+    name_with_initials VARCHAR(150),
     full_name VARCHAR(150) NOT NULL,
+    full_name_sinhala VARCHAR(150),                 -- Name in Sinhala/Tamil
     date_of_birth DATE NOT NULL,
+    gender VARCHAR(10),                             -- MALE / FEMALE
+    marital_status VARCHAR(15),                     -- MARRIED / UNMARRIED
     address TEXT NOT NULL,
+    province VARCHAR(50),                           -- Province / Electoral Division
     contact_number VARCHAR(15),
+    is_member BOOLEAN DEFAULT TRUE,
     registered_branch_id INT NOT NULL,
+    share_amount NUMERIC(10, 2) DEFAULT 0.00,       -- Share amount paid by member
+    belongs_to_other_society BOOLEAN DEFAULT FALSE, -- Member of another co-operative?
+    other_society_name VARCHAR(150),
     digital_signature_url VARCHAR(255),
     status VARCHAR(20) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -168,6 +178,7 @@ INSERT INTO auth_service.roles (role_name, description) VALUES
 ('BRANCH_MANAGER', 'Manager of a specific branch'),
 ('BANK_SERVICE_MANAGER', 'Compliance and loan directive manager'),
 ('LOAN_COMMITTEE', 'Loan approval committee member'),
+('SENIOR_OFFICER', 'Registers members and opens savings accounts'),
 ('FIELD_OFFICER', 'Senior/Field Officer for KYC and valuations'),
 ('TELLER', 'Counter staff for daily cash transactions'),
 ('VALUER', 'Thaksarukaruge - Gold pawning valuer');

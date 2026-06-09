@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hmcs-postgres
+    environment:
+      POSTGRES_USER: hmcs_app
+      POSTGRES_PASSWORD: hmcs_secure_pass_2026
+      POSTGRES_DB: hmcs_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - "./documents/HMCS Integrated Banking & Financial Management SystemPostgreSQL Setup(1).sql:/docker-entrypoint-initdb.d/init.sql"
+    restart: unless-stopped
+
+  hmcs-api-gateway:
+    build: ./hmcs-backend/hmcs-api-gateway
+    container_name: hmcs-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  hmcs-member-auth-service:
+    build: ./hmcs-backend/hmcs-member-auth-service
+    container_name: hmcs-member-auth-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  hmcs-savings-service:
+    build: ./hmcs-backend/hmcs-savings-service
+    container_name: hmcs-savings-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  hmcs-loan-service:
+    build: ./hmcs-backend/hmcs-loan-service
+    container_name: hmcs-loan-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  hmcs-pawning-service:
+    build: ./hmcs-backend/hmcs-pawning-service
+    container_name: hmcs-pawning-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  hmcs-reporting-service:
+    build: ./hmcs-backend/hmcs-reporting-service
+    container_name: hmcs-reporting-service
+    ports:
+      - "8087:8087"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    container_name: hmcs-db-viewer
+    ports:
+      - "8088:8080"
+    depends_on:
+      - postgres
+    restart: unless-stopped

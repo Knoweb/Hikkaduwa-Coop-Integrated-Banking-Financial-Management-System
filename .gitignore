@@ -1,0 +1,27 @@
+# =============================================
+# PostgreSQL Docker Data Volume - NEVER COMMIT
+# =============================================
+postgres-data/
+
+# Maven build outputs
+**/target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Node / Frontend
+hmcs-frontend/node_modules/
+hmcs-frontend/dist/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
