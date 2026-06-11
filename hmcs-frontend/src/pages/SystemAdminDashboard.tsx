@@ -181,7 +181,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   const [rateCategory, setRateCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
   const [accountCategory, setAccountCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
   const [editingRateId, setEditingRateId] = useState<string | null>(null);
-  const [editRateValue, setEditRateValue] = useState<number>(0);
+  const [editRateValue, setEditRateValue] = useState<string | number>(0);
   const [confirmRateChange, setConfirmRateChange] = useState<{ category: string, id: string, name: string, oldVal: number, newVal: number, unit: string } | null>(null);
   
   const [ratesData, setRatesData] = useState({
@@ -201,12 +201,19 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
       { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: 120000, unit: 'Rs.' },
     ]
   });
-  const handleConfirmRateUpdate = () => {
+  const handleConfirmRateUpdate = async () => {
     if (!confirmRateChange) return;
     const { category, id, newVal } = confirmRateChange;
     
     if (category === 'savings') {
-      setSavingsRatesData(prev => prev.map(s => s.id === id ? { ...s, value: newVal } : s));
+      try {
+        const numericId = parseInt(id.replace('sav_', ''), 10);
+        await AccountService.updateSavingsAccountTypeRate(numericId, newVal / 100);
+        setSavingsRatesData(prev => prev.map(s => s.id === id ? { ...s, value: newVal } : s));
+        fetchSavingsTypes();
+      } catch(err) {
+        alert("Failed to update savings rate in backend.");
+      }
     } else {
       setRatesData(prev => ({
         ...prev,
@@ -226,7 +233,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   const [savingsRatesData, setSavingsRatesData] = useState<{id: string, value: number}[]>([]);
 
   useEffect(() => {
-    setSavingsRatesData(savingsTypes.map(st => ({ id: `sav_${st.id}`, value: st.isChildAccount ? 5.5 : 4.0 })));
+    setSavingsRatesData(savingsTypes.map(st => ({ id: `sav_${st.id}`, value: (st.interestRate != null ? st.interestRate : (st.isChildAccount ? 0.055 : 0.04)) * 100 })));
   }, [savingsTypes]);
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [newType, setNewType] = useState({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
@@ -521,7 +528,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {rateCategory === 'savings' && savingsTypes.map(st => {
                     const id = `sav_${st.id}`;
-                    const name = language === 'en' ? st.nameEn : st.nameSi;
+                    const name = st.nameSi || st.nameEn; // Force Sinhala name for Hikkaduwa branches
                     const currentValue = savingsRatesData.find(s => s.id === id)?.value || 0;
                     const isEditing = editingRateId === id;
                     
@@ -530,25 +537,25 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                         <td className="px-8 py-5 font-bold text-slate-800">{name}</td>
                         <td className="px-8 py-5">
                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {st.isChildAccount ? t('Child') : t('Adult')}
+                            {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
                           </span>
                         </td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">
-                              <input type="number" value={editRateValue} onChange={e => setEditRateValue(Number(e.target.value))} step="0.1" autoFocus
+                              <input type="number" value={editRateValue} onChange={e => setEditRateValue(e.target.value)} step="0.1" autoFocus
                                 className="w-24 border-2 border-blue-400 rounded-lg px-3 py-1.5 text-sm font-bold text-right focus:outline-none focus:ring-4 focus:ring-blue-400/20 shadow-sm" />
                               <span className="text-slate-400 font-bold">%</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-bold text-slate-700 text-base">{currentValue} %</span>
+                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(currentValue).toFixed(4))} %</span>
                           )}
                         </td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">
                               <button onClick={() => setEditingRateId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
-                              <button onClick={() => setConfirmRateChange({ category: 'savings', id, name, oldVal: currentValue, newVal: editRateValue, unit: '%' })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
+                              <button onClick={() => setConfirmRateChange({ category: 'savings', id, name, oldVal: currentValue, newVal: Number(editRateValue), unit: '%' })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                             </div>
                           ) : (
                             <button onClick={() => { setEditingRateId(id); setEditRateValue(currentValue); }} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition">
@@ -574,19 +581,19 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">
-                              <input type="number" value={editRateValue} onChange={e => setEditRateValue(Number(e.target.value))} step={item.value > 100 ? "1000" : "0.1"} autoFocus
+                              <input type="number" value={editRateValue} onChange={e => setEditRateValue(e.target.value)} step={item.value > 100 ? "1000" : "0.1"} autoFocus
                                 className="w-28 border-2 border-amber-400 rounded-lg px-3 py-1.5 text-sm font-bold text-right focus:outline-none focus:ring-4 focus:ring-amber-400/20 shadow-sm" />
                               <span className="text-slate-400 font-bold whitespace-nowrap">{item.unit === '%' ? '%' : t(item.unit)}</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-bold text-slate-700 text-base">{item.value} <span className="text-sm font-sans">{item.unit === '%' ? '%' : t(item.unit)}</span></span>
+                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(item.value).toFixed(4))} <span className="text-sm font-sans">{item.unit === '%' ? '%' : t(item.unit)}</span></span>
                           )}
                         </td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">
                               <button onClick={() => setEditingRateId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
-                              <button onClick={() => setConfirmRateChange({ category: rateCategory, id: item.id, name, oldVal: item.value, newVal: editRateValue, unit: item.unit })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
+                              <button onClick={() => setConfirmRateChange({ category: rateCategory, id: item.id, name, oldVal: item.value, newVal: Number(editRateValue), unit: item.unit })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                             </div>
                           ) : (
                             <button onClick={() => { setEditingRateId(item.id); setEditRateValue(item.value); }} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 shadow-sm rounded-xl transition">
@@ -613,33 +620,33 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                 <Shield size={24} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-amber-900 leading-tight">{t('Confirm Rate Update')}</h3>
-                <p className="text-amber-700/80 text-sm mt-1.5 font-medium leading-snug">{t('You are about to change a critical financial parameter. This action requires confirmation.')}</p>
+                <h3 className="text-lg font-bold text-amber-900 leading-tight">පොලී අනුපාතය යාවත්කාලීන කිරීම (Confirm Rate Update)</h3>
+                <p className="text-amber-700/80 text-sm mt-1.5 font-medium leading-snug">ඔබ විසින් තීරණාත්මක මූල්‍ය පරාමිතියක් වෙනස් කිරීමට යයි. කරුණාකර මෙය තහවුරු කරන්න. (You are about to change a critical financial parameter.)</p>
               </div>
             </div>
             <div className="p-6">
               <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 mb-6">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">{t('Product / Type')}</p>
+                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">ගිණුම් වර්ගය (Product / Type)</p>
                 <p className="text-slate-800 font-bold text-lg mb-4">{confirmRateChange.name}</p>
                 
                 <div className="flex items-center justify-between border-t border-slate-200/60 pt-4">
                   <div>
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">{t('Previous Rate')}</p>
-                    <p className="text-slate-500 font-mono font-semibold text-lg line-through decoration-slate-300 decoration-2">{confirmRateChange.oldVal} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">පෙර අනුපාතය (Previous)</p>
+                    <p className="text-slate-500 font-mono font-semibold text-lg line-through decoration-slate-300 decoration-2">{Number(Number(confirmRateChange.oldVal).toFixed(4))} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
                     <ChevronRight size={16} className="text-blue-400" />
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-1.5">{t('New Rate')}</p>
-                    <p className="text-blue-600 font-mono font-black text-2xl">{confirmRateChange.newVal} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
+                    <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-1.5">නව අනුපාතය (New Rate)</p>
+                    <p className="text-blue-600 font-mono font-black text-2xl">{Number(Number(confirmRateChange.newVal).toFixed(4))} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
                   </div>
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setConfirmRateChange(null)} className="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">{t('Cancel')}</button>
+                <button onClick={() => setConfirmRateChange(null)} className="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">අවලංගු කරන්න (Cancel)</button>
                 <button onClick={handleConfirmRateUpdate} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5">
-                  {t('Confirm Update')}
+                  තහවුරු කරන්න (Confirm)
                 </button>
               </div>
             </div>
@@ -741,7 +748,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                           <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600">{st.code}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {st.isChildAccount ? t('Child') : t('Adult')}
+                              {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
                             </span>
                           </td>
                           <td className="px-6 py-4 font-bold text-slate-800">{st.nameEn}</td>

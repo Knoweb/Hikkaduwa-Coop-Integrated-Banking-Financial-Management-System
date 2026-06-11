@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus } from 'lucide-react';
+import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
+import ViewAccountModal from '../components/ViewAccountModal';
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [viewAccount, setViewAccount] = useState<AccountService.AccountData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Passbook state
+  const [showPassbook, setShowPassbook] = useState<string | null>(null);
+  const [passbookData, setPassbookData] = useState<{ account: any; transactions: any[]; dailyBalances: any[] } | null>(null);
+  const [passbookLoading, setPassbookLoading] = useState(false);
   
   // Transaction Modal state
   const [showTxModal, setShowTxModal] = useState(false);
@@ -81,6 +88,20 @@ export default function Accounts() {
     acc.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     acc.memberId.toString().toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleViewPassbook = async (accountId: string) => {
+    setShowPassbook(accountId);
+    setPassbookLoading(true);
+    setPassbookData(null);
+    try {
+      const data = await AccountService.getPassbook(accountId);
+      setPassbookData(data);
+    } catch (err) {
+      console.error('Failed to fetch passbook:', err);
+    } finally {
+      setPassbookLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -157,6 +178,7 @@ export default function Accounts() {
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
                 <tr>
                   <th className="px-6 py-3 font-medium">Account Number</th>
+                  <th className="px-6 py-3 font-medium">Account Holder</th>
                   <th className="px-6 py-3 font-medium">Type</th>
                   <th className="px-6 py-3 font-medium">Balance</th>
                   <th className="px-6 py-3 font-medium">Status</th>
@@ -170,12 +192,15 @@ export default function Accounts() {
                   </tr>
                 ) : filteredAccounts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">No accounts found.</td>
+                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No accounts found.</td>
                   </tr>
                 ) : (
                   filteredAccounts.map((acc) => (
                     <tr key={acc.accountId} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">{acc.accountNumber}</td>
+                      <td className="px-6 py-4 text-slate-700 font-medium">
+                        {acc.childName || members.find(m => m.memberId === acc.memberId)?.fullNameSinhala || members.find(m => m.memberId === acc.memberId)?.fullName || 'N/A'}
+                      </td>
                       <td className="px-6 py-4 text-slate-600">
                         <span className="bg-slate-100 px-2 py-0.5 rounded text-xs uppercase font-bold">
                           {acc.accountType}
@@ -190,6 +215,20 @@ export default function Accounts() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right flex justify-end gap-2">
+                        <button 
+                          onClick={() => setViewAccount(acc)}
+                          className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors"
+                          title="View Account"
+                        >
+                          View
+                        </button>
+                        <button 
+                          onClick={() => handleViewPassbook(acc.accountId!)}
+                          className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                          title="View Passbook"
+                        >
+                          <BookOpen size={14} /> Passbook
+                        </button>
                         <button 
                           onClick={() => {
                             setTxType('DEPOSIT');
@@ -340,6 +379,111 @@ export default function Accounts() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Account Modal */}
+        {viewAccount && (
+          <ViewAccountModal 
+            account={viewAccount} 
+            members={members} 
+            onClose={() => setViewAccount(null)} 
+          />
+        )}
+
+        {/* Passbook Modal */}
+        {showPassbook && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <BookOpen size={20} className="text-indigo-600" /> Account Passbook / Statement
+                  </h3>
+                  {passbookData && (
+                    <p className="text-xs text-slate-500 mt-1 font-mono">{passbookData.account?.accountNumber}</p>
+                  )}
+                </div>
+                <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors">✕</button>
+              </div>
+              <div className="p-0 overflow-y-auto flex-1">
+                {passbookLoading ? (
+                  <div className="p-12 text-center text-slate-500 font-medium animate-pulse">Loading passbook data...</div>
+                ) : passbookData ? (
+                  <div className="p-6 space-y-8">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current Balance</p>
+                        <p className="text-2xl font-black text-slate-800 font-mono">Rs. {passbookData.account?.balance?.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interest Rate</p>
+                        <p className="text-2xl font-black text-indigo-600 font-mono">{(passbookData.account?.annualInterestRate * 100).toFixed(2)}%</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                        <p className="text-lg font-bold text-emerald-600 mt-1">{passbookData.account?.status}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8">
+                      {/* Transactions */}
+                      <div>
+                        <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Transactions History</h4>
+                        {passbookData.transactions.length === 0 ? (
+                          <p className="text-sm text-slate-500">No transactions recorded.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {passbookData.transactions.sort((a,b) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => (
+                              <div key={tx.transactionId} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
+                                <div>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {tx.transactionType}
+                                  </span>
+                                  <p className="text-xs text-slate-400 mt-1">{new Date(tx.transactionTimestamp).toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-mono font-bold ${tx.transactionType === 'DEPOSIT' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {tx.transactionType === 'DEPOSIT' ? '+' : '-'} {tx.amount.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-slate-500 font-mono mt-0.5">Bal: {tx.balanceAfter.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Daily Balances / Interest */}
+                      <div>
+                        <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Daily Balances & Interest</h4>
+                        {passbookData.dailyBalances.length === 0 ? (
+                          <p className="text-sm text-slate-500">No daily balances recorded yet.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {passbookData.dailyBalances.sort((a,b) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime()).map((db: any) => (
+                              <div key={db.id} className="flex justify-between items-center p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-700">{db.recordDate}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">Bal: {db.endOfDayBalance.toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interest Added</p>
+                                  <p className="font-mono font-bold text-blue-600">+{db.dailyInterestEarned.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-12 text-center text-red-500 font-medium">Failed to load passbook.</div>
+                )}
               </div>
             </div>
           </div>

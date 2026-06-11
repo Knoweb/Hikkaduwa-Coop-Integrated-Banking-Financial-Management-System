@@ -20,13 +20,19 @@ public class SavingsController {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final BranchContext branchContext;
+    private final com.hmcs.savings.repository.SavingsAccountTypeRepository savingsAccountTypeRepository;
+    private final com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository;
 
     public SavingsController(AccountRepository accountRepository,
                              TransactionRepository transactionRepository,
-                             BranchContext branchContext) {
+                             BranchContext branchContext,
+                             com.hmcs.savings.repository.SavingsAccountTypeRepository savingsAccountTypeRepository,
+                             com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
+        this.savingsAccountTypeRepository = savingsAccountTypeRepository;
+        this.dailyBalanceRepository = dailyBalanceRepository;
     }
 
     // 1. GET /api/v1/savings - Get all savings accounts (filtered by branch if applicable)
@@ -42,11 +48,22 @@ public class SavingsController {
     // DTO for openAccount
     public static class OpenAccountRequest {
         public UUID memberId;
+        public String accountNumber;
         public String accountType;
         public BigDecimal initialDeposit;
         public String childName;
         public String childBirthCertificate;
         public String childDateOfBirth;
+        public UUID memberId2;
+        public UUID memberId3;
+        public String occupation1;
+        public String occupation2;
+        public String occupation3;
+        public String accountMode;
+        public String modeOfOperation;
+        public String witnessName;
+        public String witnessAddress;
+        public String specimenSignature;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -58,12 +75,27 @@ public class SavingsController {
         }
 
         Account account = new Account();
-        account.setAccountNumber("ACC-" + (100000 + new Random().nextInt(900000)));
+        if (body.accountNumber != null && !body.accountNumber.trim().isEmpty()) {
+            account.setAccountNumber(body.accountNumber);
+        } else {
+            account.setAccountNumber("ACC-" + (100000 + new Random().nextInt(900000)));
+        }
         account.setMemberId(body.memberId);
         account.setAccountType(body.accountType != null ? body.accountType : "REGULAR");
         account.setBalance(body.initialDeposit != null ? body.initialDeposit : BigDecimal.ZERO);
         account.setBranchId(branchId);
         account.setStatus("ACTIVE");
+        
+        if (body.memberId2 != null) account.setMemberId2(body.memberId2);
+        if (body.memberId3 != null) account.setMemberId3(body.memberId3);
+        if (body.occupation1 != null) account.setOccupation1(body.occupation1);
+        if (body.occupation2 != null) account.setOccupation2(body.occupation2);
+        if (body.occupation3 != null) account.setOccupation3(body.occupation3);
+        if (body.accountMode != null) account.setAccountMode(body.accountMode);
+        if (body.modeOfOperation != null) account.setModeOfOperation(body.modeOfOperation);
+        if (body.witnessName != null) account.setWitnessName(body.witnessName);
+        if (body.witnessAddress != null) account.setWitnessAddress(body.witnessAddress);
+        if (body.specimenSignature != null) account.setSpecimenSignature(body.specimenSignature);
         
         if (body.childName != null && !body.childName.trim().isEmpty()) {
             account.setChildName(body.childName);
@@ -73,10 +105,21 @@ public class SavingsController {
             }
         }
 
+        // Fetch Savings Account Type to get correct interest rate
+        String searchCode = body.accountType != null ? body.accountType.toUpperCase().trim() : "";
+        if ("SAMANAYA".equals(searchCode)) searchCode = "NORMAL";
+        java.util.Optional<com.hmcs.savings.entity.SavingsAccountType> typeOpt = savingsAccountTypeRepository.findByCode(searchCode);
+        if (typeOpt.isPresent() && typeOpt.get().getInterestRate() != null) {
+            account.setAnnualInterestRate(typeOpt.get().getInterestRate());
+        }
+
         Account savedAccount = accountRepository.save(account);
 
         // Record initial deposit transaction if deposit > 0
         if (body.initialDeposit != null && body.initialDeposit.compareTo(BigDecimal.ZERO) > 0) {
+            account.setInitialDeposit(body.initialDeposit);
+            savedAccount = accountRepository.save(account);
+
             Transaction tx = new Transaction();
             tx.setAccount(savedAccount);
             tx.setTransactionType("DEPOSIT");
@@ -174,6 +217,44 @@ public class SavingsController {
             "totalBalance", totalBalance,
             "activeAccounts", activeAccounts,
             "avgBalance", avgBalance
+        ));
+    }
+
+    // 6. GET /api/v1/savings/{accountId}/passbook - Fetch passbook (transactions & interest)
+    @GetMapping("/savings/{accountId}/passbook")
+    public ResponseEntity<?> getPassbook(@PathVariable UUID accountId) {
+        Optional<Account> accountOpt = accountRepository.findById(accountId);
+        if (accountOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        List<Transaction> transactions = transactionRepository.findByAccountAccountId(accountId);
+        
+        // Use a generic find strategy for daily balances if specific method doesn't exist,
+        // or just use findAll() and filter if necessary (for simplicity here, we'll fetch all and filter)
+        List<com.hmcs.savings.entity.DailyBalance> dailyBalances = dailyBalanceRepository.findAll().stream()
+                .filter(db -> db.getAccountId().equals(accountId))
+                .collect(Collectors.toList());
+                
+        List<Map<String, Object>> dailyBalancesList = dailyBalances.stream().map(db -> {
+            BigDecimal rate = db.getAnnualInterestRate() != null ? db.getAnnualInterestRate() : accountOpt.get().getAnnualInterestRate();
+            BigDecimal dailyInterest = db.getClosingBalance()
+                .multiply(rate)
+                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP);
+                
+            return Map.<String, Object>of(
+                "id", db.getId(),
+                "recordDate", db.getRecordDate(),
+                "endOfDayBalance", db.getClosingBalance(),
+                "annualInterestRate", rate,
+                "dailyInterestEarned", dailyInterest
+            );
+        }).collect(Collectors.toList());
+                
+        return ResponseEntity.ok(Map.of(
+            "account", accountOpt.get(),
+            "transactions", transactions,
+            "dailyBalances", dailyBalancesList
         ));
     }
 }

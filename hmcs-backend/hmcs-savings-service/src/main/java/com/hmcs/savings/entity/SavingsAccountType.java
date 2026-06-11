@@ -19,6 +19,9 @@ public class SavingsAccountType {
     @jakarta.persistence.Column(name = "is_child_account")
     private Boolean isChildAccount = false;
 
+    @jakarta.persistence.Column(name = "interest_rate", precision = 5, scale = 4)
+    private java.math.BigDecimal interestRate = new java.math.BigDecimal("0.0400"); // Default 4%
+
     public Long getId() {
         return id;
     }
@@ -57,5 +60,13 @@ public class SavingsAccountType {
 
     public void setIsChildAccount(Boolean isChildAccount) {
         this.isChildAccount = isChildAccount;
+    }
+
+    public java.math.BigDecimal getInterestRate() {
+        return interestRate;
+    }
+
+    public void setInterestRate(java.math.BigDecimal interestRate) {
+        this.interestRate = interestRate;
     }
 }

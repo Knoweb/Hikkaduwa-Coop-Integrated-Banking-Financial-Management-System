@@ -43,14 +43,25 @@ export interface AccountData {
   accountId?: string;
   accountNumber: string;
   memberId: string;
+  memberId2?: string;
+  memberId3?: string;
   accountType: string;
-  balance: number;
-  branchId?: number;
-  status: string;
-  openedDate?: string;
+  accountMode?: string;
+  modeOfOperation?: string;
+  occupation1?: string;
+  occupation2?: string;
+  occupation3?: string;
   childName?: string;
   childBirthCertificate?: string;
   childDateOfBirth?: string;
+  witnessName?: string;
+  witnessAddress?: string;
+  specimenSignature?: string;
+  balance: number;
+  initialDeposit?: number;
+  branchId?: number;
+  status: string;
+  openedDate?: string;
   annualInterestRate?: number;
 }
 
@@ -103,7 +114,8 @@ export interface SavingsAccountType {
   code: string;
   nameEn: string;
   nameSi: string;
-  isChildAccount?: boolean;
+  isChildAccount: boolean;
+  interestRate?: number;
 }
 
 export const getSavingsAccountTypes = async (): Promise<SavingsAccountType[]> => {
@@ -117,5 +129,15 @@ export const createSavingsAccountType = async (data: SavingsAccountType): Promis
 };
 
 export const deleteSavingsAccountType = async (id: number): Promise<void> => {
-  await axios.delete(`${API_URL}savings/account-types/${id}`, { headers: authHeader() });
+  await axios.delete(API_URL + 'savings/account-types/' + id, { headers: authHeader() });
+};
+
+export const updateSavingsAccountTypeRate = async (id: number, interestRate: number): Promise<SavingsAccountType> => {
+  const response = await axios.put(API_URL + 'savings/account-types/' + id + '/rate', { interestRate }, { headers: authHeader() });
+  return response.data;
+};
+
+export const getPassbook = async (accountId: string): Promise<{ account: any; transactions: any[]; dailyBalances: any[] }> => {
+  const res = await axios.get(API_URL + `savings/${accountId}/passbook`, { headers: authHeader() });
+  return res.data;
 };

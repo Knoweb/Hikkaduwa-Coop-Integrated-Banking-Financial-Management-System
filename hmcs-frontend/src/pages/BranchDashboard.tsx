@@ -4,12 +4,14 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
+import OpenAccountForm from '../components/OpenAccountForm';
+import ViewAccountModal from '../components/ViewAccountModal';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
@@ -49,7 +51,9 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { isSection: true, label: 'Financial Accounts' },
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
-    { icon: FileText, label: 'Loan Accounts', key: 'loans' }
+    { icon: FileText, label: 'Loan Accounts', key: 'loans' },
+    { isSection: true, label: 'Operations' },
+    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' }
   ],
   FIELD_OFFICER:        [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
@@ -443,6 +447,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [ageFilter, setAgeFilter] = useState('ALL');
   const [showRegModal, setShowRegModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
+  const [viewAccount, setViewAccount] = useState<AccountService.AccountData | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [loading, setLoading] = useState(false);
   const [regError, setRegError] = useState('');
@@ -458,8 +463,21 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [form, setForm] = useState(initialFormState);
   const [accForm, setAccForm] = useState({ accountType: 'NORMAL', initialDeposit: 1000, childName: '', childBirthCertificate: '', childDateOfBirth: '' });
   const [accCustomerType, setAccCustomerType] = useState<'true' | 'false' | null>(null);
+  const [savingsTab, setSavingsTab] = useState<'SOCIETY' | 'NON_SOCIETY'>('SOCIETY');
   const [photoProgress, setPhotoProgress] = useState(0);
   const [signatureProgress, setSignatureProgress] = useState(0);
+  
+  // Passbook state
+  const [showPassbook, setShowPassbook] = useState<string | null>(null);
+  const [passbookData, setPassbookData] = useState<{ account: any; transactions: any[]; dailyBalances: any[] } | null>(null);
+  const [passbookLoading, setPassbookLoading] = useState(false);
+
+  // Global Transaction state
+  const [txAmount, setTxAmount] = useState('');
+  const [txAccNo, setTxAccNo] = useState('');
+  const [txType, setTxType] = useState<'deposit' | 'withdraw'>('deposit');
+  const [txResult, setTxResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [txLoading, setTxLoading] = useState(false);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -595,24 +613,188 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
       setShowAccModal(false);
       fetchData();
     } catch (err: any) {
-      setAccError(err.response?.data || 'Failed to open account.');
+      setAccError(err.response?.data || 'Failed to open account');
     } finally { setLoading(false); }
   };
 
+  const handleViewPassbook = async (accountId: string) => {
+    setShowPassbook(accountId);
+    setPassbookLoading(true);
+    setPassbookData(null);
+    try {
+      const data = await AccountService.getPassbook(accountId);
+      setPassbookData(data);
+    } catch (err) {
+      console.error('Failed to fetch passbook:', err);
+    } finally {
+      setPassbookLoading(false);
+    }
+  };
+
+  const handleGlobalTx = async () => {
+    if (!txAccNo || !txAmount) return;
+    setTxLoading(true); setTxResult(null);
+    try {
+      const amt = parseFloat(txAmount);
+      const res = txType === 'deposit'
+        ? await AccountService.deposit({ accountNumber: txAccNo, amount: amt })
+        : await AccountService.withdraw({ accountNumber: txAccNo, amount: amt });
+      setTxResult({ ok: true, msg: `✓ ${txType === 'deposit' ? 'Deposited' : 'Withdrawn'} Rs. ${amt.toLocaleString()}. New balance: Rs. ${(res as any).balance?.toLocaleString()}` });
+      setTxAmount(''); setTxAccNo('');
+      AccountService.getAccounts().then(setAccounts).catch(() => {});
+    } catch (e: any) {
+      setTxResult({ ok: false, msg: e.response?.data || 'Transaction failed' });
+    } finally { setTxLoading(false); }
+  };
+
+  const totalBranchBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+
   const getAccountCount = (memberId?: string) => accounts.filter(a => a.memberId === memberId).length;
 
-  const filteredAccounts = accounts.filter(a => a.accountNumber.toLowerCase().includes(search.toLowerCase()));
+  const filteredAccounts = accounts.filter(a => {
+    const matchesSearch = a.accountNumber.toLowerCase().includes(search.toLowerCase());
+    const member = members.find(m => m.memberId === a.memberId);
+    // If member not found, default to false (treat as non-member)
+    const isSociety = member ? member.isMember !== false : false; 
+    const matchesTab = savingsTab === 'SOCIETY' ? isSociety : !isSociety;
+    return matchesSearch && matchesTab;
+  });
+
+  if (activeTab === 'overview') {
+    return (
+      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-400">
+          <LayoutDashboard size={40} />
+        </div>
+        <h3 className="text-2xl font-bold text-slate-800 mb-2">Senior Officer Overview</h3>
+        <p className="text-slate-500">Welcome to your dashboard. Use the sidebar to manage members and financial accounts.</p>
+      </div>
+    );
+  }
+
+  if (activeTab === 'fds') {
+    return (
+      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 text-blue-500">
+          <Lock size={40} />
+        </div>
+        <h3 className="text-2xl font-bold text-slate-800 mb-2">Fixed Deposits</h3>
+        <p className="text-slate-500">The Fixed Deposits management module is currently under development.</p>
+      </div>
+    );
+  }
+
+  if (activeTab === 'loans') {
+    return (
+      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-500">
+          <FileText size={40} />
+        </div>
+        <h3 className="text-2xl font-bold text-slate-800 mb-2">Loan Accounts</h3>
+        <p className="text-slate-500">The Loan Accounts management module is currently under development.</p>
+      </div>
+    );
+  }
+
+  if (activeTab === 'transactions') {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard icon={Banknote}   label="Total Branch Balance" value={`Rs. ${totalBranchBalance.toLocaleString()}`} color="text-green-600" />
+          <StatCard icon={CreditCard} label="Active Accounts"      value={accounts.length.toString()}            color="text-blue-600" />
+          <StatCard icon={TrendingUp} label="Account Types"        value={[...new Set(accounts.map(a => a.accountType))].length.toString()} color="text-purple-600" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Banknote size={16} /> Cash Transaction</h3>
+            <div className="flex rounded-xl overflow-hidden border border-slate-200 mb-4">
+              <button onClick={() => setTxType('deposit')}  className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'deposit'  ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Deposit</button>
+              <button onClick={() => setTxType('withdraw')} className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'withdraw' ? 'bg-red-600 text-white'   : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Withdraw</button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Account Number</label>
+                <input value={txAccNo} onChange={e => setTxAccNo(e.target.value)} placeholder="e.g. 89905789"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Amount (Rs.)</label>
+                <input type="number" min="1" value={txAmount} onChange={e => setTxAmount(e.target.value)} placeholder="0.00"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+              {txResult && (
+                <div className={`p-3 rounded-xl text-sm font-medium ${txResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {txResult.msg}
+                </div>
+              )}
+              <button onClick={handleGlobalTx} disabled={txLoading}
+                className={`w-full py-3 rounded-xl text-white font-semibold transition disabled:opacity-60 ${txType === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                {txLoading ? 'Processing...' : `Process ${txType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16} /> Recent Accounts Directory</h3>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+              {accounts.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">No accounts found</p>
+              ) : accounts.map(a => (
+                <div key={a.accountId} onClick={() => setTxAccNo(a.accountNumber)}
+                  className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{a.accountNumber}</p>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">{a.accountType}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${a.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{a.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (activeTab === 'savings') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">{t('Branch Accounts')} ({accounts.length})</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800">{t('Branch Accounts')} ({filteredAccounts.length})</h3>
           <button onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
             <CreditCard size={14} /> {t('Open Account')}
           </button>
         </div>
+
+        {/* Animated Tab Switcher */}
+        <div className="flex justify-center mb-8 mt-4">
+          <div className="relative flex bg-slate-900/5 p-1.5 rounded-2xl w-full max-w-lg shadow-inner backdrop-blur-md border border-slate-200/50">
+            {/* Flowing Glowing Active Background */}
+            <div 
+              className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${savingsTab === 'NON_SOCIETY' ? 'left-[50%] tab-glow-blue' : 'left-1.5 tab-glow-green'}`}
+            ></div>
+            
+            <button 
+              onClick={() => setSavingsTab('SOCIETY')} 
+              className={`relative z-10 flex-1 py-3 text-base font-bold tracking-wide transition-all duration-300 ${savingsTab === 'SOCIETY' ? 'text-white scale-[1.05] drop-shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              සමාජීය
+            </button>
+            
+            <button 
+              onClick={() => setSavingsTab('NON_SOCIETY')} 
+              className={`relative z-10 flex-1 py-3 text-base font-bold tracking-wide transition-all duration-300 ${savingsTab === 'NON_SOCIETY' ? 'text-white scale-[1.05] drop-shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              සමාජීය නොවන
+            </button>
+          </div>
+        </div>
+
         <div className="relative mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
@@ -623,20 +805,33 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Account No.')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Account Holder')}</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Type')}</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Balance')}</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Status')}</th>
+                <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredAccounts.length === 0 ? (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">{t('No accounts found')}</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">{t('No accounts found')}</td></tr>
               ) : filteredAccounts.map(a => (
                 <tr key={a.accountId} className="hover:bg-slate-50 transition">
                   <td className="px-5 py-3 font-bold text-slate-800">{a.accountNumber}</td>
+                  <td className="px-5 py-3 text-slate-700 font-medium">
+                    {a.childName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || members.find(m => m.memberId === a.memberId)?.fullName || 'N/A'}
+                  </td>
                   <td className="px-5 py-3"><span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium">{t(a.accountType)}</span></td>
                   <td className="px-5 py-3 font-semibold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</td>
                   <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(a.status)}</span></td>
+                  <td className="px-5 py-3 text-right flex justify-end gap-2">
+                    <button onClick={() => setViewAccount(a)} className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition" title={t('View Account')}>
+                      {t('View')}
+                    </button>
+                    <button onClick={() => handleViewPassbook(a.accountId!)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition flex items-center gap-1" title={t('View Passbook')}>
+                      <BookOpen size={14} /> Passbook
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -645,98 +840,116 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
 
         {/* Open Account Modal */}
         {showAccModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="text-lg font-bold text-slate-800">{t('Open Savings Account')}</h3>
-                <button onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
-              </div>
-              
-              {!selectedMemberId && accCustomerType === null ? (
-                <div className="p-8 space-y-4">
-                  <h4 className="text-center text-slate-600 font-medium mb-6">{t('Registration Type')}</h4>
-                  <button onClick={() => setAccCustomerType('true')}
-                    className="w-full p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-500 text-green-700 font-bold transition flex items-center justify-center gap-3">
-                    <UserPlus size={20} />
-                    {t('Society Member')}
-                  </button>
-                  <button onClick={() => setAccCustomerType('false')}
-                    className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-bold transition flex items-center justify-center gap-3">
-                    <Users size={20} />
-                    {t('Non-Member')}
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
-                  {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
-                  
-                  {/* Member Selection if opened from general button */}
-                  {!selectedMemberId && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">{accCustomerType === 'true' ? t('Society Member') : t('Non-Member')}</span>
-                        <button type="button" onClick={() => setAccCustomerType(null)} className="text-xs text-blue-600 hover:underline">{t('Cancel')}</button>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Select Person')}</label>
-                        <select required value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                          <option value="">-- {t('Select Person')} --</option>
-                          {members.filter((m: any) => accCustomerType === 'true' ? m.isMember !== false : m.isMember === false).map(m => (
-                            <option key={m.memberId} value={m.memberId}>{m.fullName} - {m.nic}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-6xl relative shadow-2xl rounded-2xl">
+              <OpenAccountForm 
+                isSocietyMember={savingsTab === 'SOCIETY'} 
+                onClose={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} 
+              />
+            </div>
+          </div>
+        )}
+        {/* View Account Modal */}
+        {viewAccount && (
+          <ViewAccountModal 
+            account={viewAccount} 
+            members={members} 
+            onClose={() => setViewAccount(null)} 
+          />
+        )}
 
+        {/* Passbook Modal */}
+        {showPassbook && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">{t('Account Type')}</label>
-                  <select value={accForm.accountType} onChange={e => setAccForm(p => ({ ...p, accountType: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                    {savingsTypes.map(st => (
-                      <option key={st.id} value={st.code}>
-                        {language === 'si' ? st.nameSi : st.nameEn}
-                      </option>
-                    ))}
-                  </select>
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <BookOpen size={20} className="text-indigo-600" /> Account Passbook / Statement
+                  </h3>
+                  {passbookData && (
+                    <p className="text-xs text-slate-500 mt-1 font-mono">{passbookData.account?.accountNumber}</p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">{t('Initial Deposit (Rs.)')}</label>
-                  <input type="number" min="100" value={accForm.initialDeposit} onChange={e => setAccForm(p => ({ ...p, initialDeposit: parseInt(e.target.value) }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-                </div>
-                
-                {['ARUNALU', 'RANTHILINA', 'CHILD'].includes(accForm.accountType) && (
-                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4">
-                    <h4 className="text-xs font-bold text-slate-700 uppercase">{t('Child Information')}</h4>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t("Child's Name *")}</label>
-                      <input required value={accForm.childName} onChange={e => setAccForm(p => ({ ...p, childName: e.target.value }))}
-                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Birth Certificate No. *')}</label>
-                        <input required value={accForm.childBirthCertificate} onChange={e => setAccForm(p => ({ ...p, childBirthCertificate: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors"><X size={18} /></button>
+              </div>
+              <div className="p-0 overflow-y-auto flex-1">
+                {passbookLoading ? (
+                  <div className="p-12 text-center text-slate-500 font-medium animate-pulse">Loading passbook data...</div>
+                ) : passbookData ? (
+                  <div className="p-6 space-y-8">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current Balance</p>
+                        <p className="text-2xl font-black text-slate-800 font-mono">Rs. {passbookData.account?.balance?.toLocaleString()}</p>
                       </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interest Rate</p>
+                        <p className="text-2xl font-black text-indigo-600 font-mono">{(passbookData.account?.annualInterestRate * 100).toFixed(2)}%</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                        <p className="text-lg font-bold text-emerald-600 mt-1">{passbookData.account?.status}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8">
+                      {/* Transactions */}
                       <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('Date of Birth *')}</label>
-                        <input required type="date" value={accForm.childDateOfBirth} onChange={e => setAccForm(p => ({ ...p, childDateOfBirth: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
+                        <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Transactions History</h4>
+                        {passbookData.transactions.length === 0 ? (
+                          <p className="text-sm text-slate-500">No transactions recorded.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => (
+                              <div key={tx.transactionId} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
+                                <div>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {tx.transactionType}
+                                  </span>
+                                  <p className="text-xs text-slate-400 mt-1">{new Date(tx.transactionTimestamp).toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-mono font-bold ${tx.transactionType === 'DEPOSIT' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {tx.transactionType === 'DEPOSIT' ? '+' : '-'} {tx.amount.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-slate-500 font-mono mt-0.5">Bal: {tx.balanceAfter.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Daily Balances / Interest */}
+                      <div>
+                        <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Daily Balances & Interest</h4>
+                        {passbookData.dailyBalances.length === 0 ? (
+                          <p className="text-sm text-slate-500">No daily balances recorded yet.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {passbookData.dailyBalances.sort((a: any, b: any) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime()).map((db: any) => (
+                              <div key={db.id} className="flex justify-between items-center p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-700">{db.recordDate}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">Bal: {db.endOfDayBalance.toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interest Added</p>
+                                  <p className="font-mono font-bold text-blue-600">+{db.dailyInterestEarned.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="p-12 text-center text-red-500 font-medium">Failed to load passbook.</div>
                 )}
-                <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">{t('Cancel')}</button>
-                  <button type="submit" disabled={loading} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
-                    {loading ? t('Opening...') : t('Open Account')}
-                  </button>
-                </div>
-              </form>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -1189,6 +1402,16 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             </div>
           </div>
         )}
+
+        {/* View Account Modal */}
+        {viewAccount && (
+          <ViewAccountModal 
+            account={viewAccount} 
+            members={members} 
+            onClose={() => setViewAccount(null)} 
+          />
+        )}
+
       </div>
     );
 }

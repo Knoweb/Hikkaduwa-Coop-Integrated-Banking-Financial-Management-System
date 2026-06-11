@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:8080/api/v1/auth/';
 
+const authHeader = () => {
+  const user = getCurrentUser();
+  return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
+};
+
 export const login = async (username: string, password: string) => {
   const response = await axios.post(API_URL + 'login', {
     username,
@@ -34,20 +39,20 @@ export interface UserDTO {
 }
 
 export const getUsers = async (): Promise<UserDTO[]> => {
-  const response = await axios.get(API_URL + 'users');
+  const response = await axios.get(API_URL + 'users', { headers: authHeader() });
   return response.data;
 };
 
 export const createUser = async (user: UserDTO): Promise<UserDTO> => {
-  const response = await axios.post(API_URL + 'users', user);
+  const response = await axios.post(API_URL + 'users', user, { headers: authHeader() });
   return response.data;
 };
 
 export const updateUser = async (userId: string, user: UserDTO): Promise<UserDTO> => {
-  const response = await axios.put(API_URL + 'users/' + userId, user);
+  const response = await axios.put(API_URL + 'users/' + userId, user, { headers: authHeader() });
   return response.data;
 };
 
 export const deleteUser = async (userId: string): Promise<void> => {
-  await axios.delete(API_URL + 'users/' + userId);
+  await axios.delete(API_URL + 'users/' + userId, { headers: authHeader() });
 };
