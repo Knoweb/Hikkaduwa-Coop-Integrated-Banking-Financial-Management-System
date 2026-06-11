@@ -8,5 +8,28 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
+}
+
+@keyframes glow-flow-green {
+  0% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+  50% { background-position: 100% 50%; box-shadow: 0 0 30px rgba(20, 184, 166, 0.8); }
+  100% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+}
+
+@keyframes glow-flow-blue {
+  0% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+  50% { background-position: 100% 50%; box-shadow: 0 0 30px rgba(139, 92, 246, 0.8); }
+  100% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+}
+
+.tab-glow-green {
+  background: linear-gradient(270deg, #10b981, #059669, #0ea5e9);
+  background-size: 200% 200%;
+  animation: glow-flow-green 3s ease infinite;
+}
+
+.tab-glow-blue {
+  background: linear-gradient(270deg, #3b82f6, #2563eb, #8b5cf6);
+  background-size: 200% 200%;
+  animation: glow-flow-blue 3s ease infinite;
 }

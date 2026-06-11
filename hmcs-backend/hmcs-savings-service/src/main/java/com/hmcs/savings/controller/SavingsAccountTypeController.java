@@ -12,9 +12,11 @@ import java.util.List;
 public class SavingsAccountTypeController {
 
     private final SavingsAccountTypeRepository repository;
+    private final com.hmcs.savings.repository.AccountRepository accountRepository;
 
-    public SavingsAccountTypeController(SavingsAccountTypeRepository repository) {
+    public SavingsAccountTypeController(SavingsAccountTypeRepository repository, com.hmcs.savings.repository.AccountRepository accountRepository) {
         this.repository = repository;
+        this.accountRepository = accountRepository;
     }
 
     @GetMapping
@@ -45,5 +47,32 @@ public class SavingsAccountTypeController {
         }
         repository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/rate")
+    public ResponseEntity<SavingsAccountType> updateRate(@PathVariable Long id, @RequestBody java.util.Map<String, java.math.BigDecimal> body) {
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        SavingsAccountType type = repository.findById(id).get();
+        if (body.containsKey("interestRate")) {
+            java.math.BigDecimal newRate = body.get("interestRate");
+            type.setInterestRate(newRate);
+            
+            // Cascade update to all existing accounts of this type
+            String accountTypeCode = type.getCode().toLowerCase();
+            if ("NORMAL".equals(type.getCode())) {
+                accountTypeCode = "samanaya"; // Revert the mapping for existing DB records
+            }
+            
+            List<com.hmcs.savings.entity.Account> existingAccounts = accountRepository.findAll();
+            for (com.hmcs.savings.entity.Account acc : existingAccounts) {
+                if (acc.getAccountType() != null && acc.getAccountType().equalsIgnoreCase(accountTypeCode)) {
+                    acc.setAnnualInterestRate(newRate);
+                    accountRepository.save(acc);
+                }
+            }
+        }
+        return ResponseEntity.ok(repository.save(type));
     }
 }
