@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Search, ArrowDownLeft, ArrowUpRight, Lock, FileText } from 'lucide-react';
 import type { AccountData, MemberData } from '../services/account.service';
+import TransactionModal, { type TransactionAction } from './TransactionModal';
 
 interface Props {
   account: AccountData;
@@ -9,7 +10,8 @@ interface Props {
 }
 
 export default function ViewAccountModal({ account, members, onClose }: Props) {
-  
+  const [txAction, setTxAction] = useState<TransactionAction | null>(null);
+
   const getMemberDetails = (memberId?: string) => {
     if (!memberId) return null;
     return members.find(m => m.memberId === memberId) || null;
@@ -79,8 +81,42 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-[#025a4e] rounded-t-2xl text-white">
           <h2 className="text-lg font-bold">ගිණුම් තොරතුරු (Account Details) - {account.accountNumber}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition"><X size={20} /></button>
+          
+          <div className="flex items-center gap-4">
+            {/* Quick Action Buttons based on account generic categories */}
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setTxAction('DEPOSIT')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition shadow-sm border border-emerald-400"
+              >
+                <ArrowDownLeft size={16} /> Deposit Cash
+              </button>
+              <button 
+                onClick={() => setTxAction('WITHDRAW')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-lg transition shadow-sm border border-amber-400"
+              >
+                <ArrowUpRight size={16} /> Withdraw Cash
+              </button>
+            </div>
+            
+            <div className="h-6 w-px bg-white/20"></div>
+            
+            <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition"><X size={20} /></button>
+          </div>
         </div>
+
+        {txAction && (
+          <TransactionModal 
+            accountNumber={account.accountNumber}
+            accountType={account.accountType}
+            action={txAction}
+            onClose={() => setTxAction(null)}
+            onSuccess={() => {
+              setTxAction(null);
+              // Ideally trigger a refresh of the account data here if needed
+            }}
+          />
+        )}
 
         {/* Form Details */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50">
