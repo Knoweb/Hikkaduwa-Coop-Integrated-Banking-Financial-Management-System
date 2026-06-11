@@ -12,6 +12,7 @@ import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import OpenAccountForm from '../components/OpenAccountForm';
 import ViewAccountModal from '../components/ViewAccountModal';
+import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
@@ -479,6 +480,10 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [txResult, setTxResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [txLoading, setTxLoading] = useState(false);
 
+  // Row Transaction Modal state
+  const [rowTxAction, setRowTxAction] = useState<TransactionAction | null>(null);
+  const [rowTxAccount, setRowTxAccount] = useState<AccountService.AccountData | null>(null);
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -763,73 +768,131 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   if (activeTab === 'savings') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-800">{t('Branch Accounts')} ({filteredAccounts.length})</h3>
-          <button onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
-            <CreditCard size={14} /> {t('Open Account')}
-          </button>
-        </div>
-
-        {/* Animated Tab Switcher */}
-        <div className="flex justify-center mb-8 mt-4">
-          <div className="relative flex bg-slate-900/5 p-1.5 rounded-2xl w-full max-w-lg shadow-inner backdrop-blur-md border border-slate-200/50">
-            {/* Flowing Glowing Active Background */}
-            <div 
-              className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${savingsTab === 'NON_SOCIETY' ? 'left-[50%] tab-glow-blue' : 'left-1.5 tab-glow-green'}`}
-            ></div>
+        {/* Module Header */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <PiggyBank className="text-blue-600" size={22} /> {t('Savings Accounts Module')}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">Manage {filteredAccounts.length} accounts, view passbooks, and process transactions.</p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+              <button 
+                onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-emerald-700 hover:bg-white hover:shadow-sm"
+              >
+                <ArrowDownLeft size={16} className="text-emerald-500" /> {t('Deposit')}
+              </button>
+              <div className="w-px bg-slate-300 mx-1 my-2"></div>
+              <button 
+                onClick={() => { setRowTxAccount(null); setRowTxAction('WITHDRAW'); }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-red-700 hover:bg-white hover:shadow-sm"
+              >
+                <ArrowUpRight size={16} className="text-red-500" /> {t('Withdraw')}
+              </button>
+            </div>
             
-            <button 
-              onClick={() => setSavingsTab('SOCIETY')} 
-              className={`relative z-10 flex-1 py-3 text-base font-bold tracking-wide transition-all duration-300 ${savingsTab === 'SOCIETY' ? 'text-white scale-[1.05] drop-shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              සමාජීය
-            </button>
-            
-            <button 
-              onClick={() => setSavingsTab('NON_SOCIETY')} 
-              className={`relative z-10 flex-1 py-3 text-base font-bold tracking-wide transition-all duration-300 ${savingsTab === 'NON_SOCIETY' ? 'text-white scale-[1.05] drop-shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              සමාජීය නොවන
+            <button onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5">
+              <CreditCard size={18} /> {t('Open Account')}
             </button>
           </div>
         </div>
 
-        <div className="relative mb-4">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {/* Unified Data Table Card */}
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
+          
+          {/* Table Toolbar */}
+          <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50/80">
+            
+            {/* Compact Animated Tab Switcher */}
+            <div className="relative flex bg-slate-200/50 p-1 rounded-xl w-full md:w-[320px] shadow-inner">
+              <div 
+                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${savingsTab === 'NON_SOCIETY' ? 'left-[50%] bg-blue-500 shadow-md shadow-blue-500/20' : 'left-1 bg-emerald-500 shadow-md shadow-emerald-500/20'}`}
+              ></div>
+              
+              <button 
+                onClick={() => setSavingsTab('SOCIETY')} 
+                className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                සමාජීය
+              </button>
+              
+              <button 
+                onClick={() => setSavingsTab('NON_SOCIETY')} 
+                className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'NON_SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                සමාජීය නොවන
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative w-full md:w-72">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" />
+            </div>
+          </div>
+
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
+            <thead className="bg-blue-50/80 border-b border-blue-100">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Account No.')}</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Account Holder')}</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Type')}</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Balance')}</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t('Status')}</th>
-                <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">{t('Actions')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Account No.')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Account Holder')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Type')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Balance')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Status')}</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-blue-50 bg-white">
               {filteredAccounts.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">{t('No accounts found')}</td></tr>
               ) : filteredAccounts.map(a => (
-                <tr key={a.accountId} className="hover:bg-slate-50 transition">
-                  <td className="px-5 py-3 font-bold text-slate-800">{a.accountNumber}</td>
-                  <td className="px-5 py-3 text-slate-700 font-medium">
+                <tr key={a.accountId} className="hover:bg-blue-50/40 transition-colors group">
+                  <td className="px-6 py-4 font-bold text-blue-700 font-mono text-base">{a.accountNumber}</td>
+                  <td className="px-6 py-4 text-slate-700 font-semibold group-hover:text-blue-900 transition-colors">
                     {a.childName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || members.find(m => m.memberId === a.memberId)?.fullName || 'N/A'}
                   </td>
-                  <td className="px-5 py-3"><span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium">{t(a.accountType)}</span></td>
-                  <td className="px-5 py-3 font-semibold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</td>
-                  <td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(a.status)}</span></td>
-                  <td className="px-5 py-3 text-right flex justify-end gap-2">
+                  <td className="px-6 py-4">
+                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
+                      {t(a.accountType)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-black text-slate-800 text-base">Rs. {Number(a.balance).toLocaleString()}</td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border ${a.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                      {t(a.status)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right flex justify-end gap-2">
                     <button onClick={() => setViewAccount(a)} className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition" title={t('View Account')}>
                       {t('View')}
                     </button>
                     <button onClick={() => handleViewPassbook(a.accountId!)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition flex items-center gap-1" title={t('View Passbook')}>
                       <BookOpen size={14} /> Passbook
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setRowTxAccount(a);
+                        setRowTxAction('DEPOSIT');
+                      }}
+                      className="bg-emerald-50 text-emerald-700 p-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+                      title={t('Deposit')}
+                    >
+                      <ArrowDownLeft size={16} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setRowTxAccount(a);
+                        setRowTxAction('WITHDRAW');
+                      }}
+                      className="bg-red-50 text-red-700 p-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                      title={t('Withdraw')}
+                    >
+                      <ArrowUpRight size={16} />
                     </button>
                   </td>
                 </tr>
@@ -837,6 +900,21 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             </tbody>
           </table>
         </div>
+
+        {/* Row Transaction Modal */}
+        {rowTxAction && (
+          <TransactionModal 
+            accountNumber={rowTxAccount?.accountNumber || ''}
+            accountType={rowTxAccount?.accountType || 'SAVINGS'}
+            action={rowTxAction}
+            onClose={() => { setRowTxAction(null); setRowTxAccount(null); }}
+            onSuccess={() => {
+              setRowTxAction(null); setRowTxAccount(null);
+              // Refresh accounts
+              AccountService.getAccounts().then(setAccounts).catch(() => {});
+            }}
+          />
+        )}
 
         {/* Open Account Modal */}
         {showAccModal && (
