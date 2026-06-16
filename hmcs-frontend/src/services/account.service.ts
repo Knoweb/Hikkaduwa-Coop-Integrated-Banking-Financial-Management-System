@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const API_URL = 'http://localhost:8080/api/v1/';
+export const API_URL = 'http://localhost:8080/api/v1/';
 
 const authHeader = () => {
   const user = getCurrentUser();
@@ -66,8 +66,20 @@ export interface AccountData {
 }
 
 // ── Members ──────────────────────────────────────────────────────
+// Returns ALL members (cross-branch) - used by Transaction Modal
 export const getMembers = async (): Promise<MemberData[]> => {
   const res = await axios.get(API_URL + 'members', { headers: authHeader() });
+  return res.data;
+};
+
+// Returns ONLY current branch members
+export const getBranchMembers = async (): Promise<MemberData[]> => {
+  const res = await axios.get(API_URL + 'members?branchOnly=true', { headers: authHeader() });
+  return res.data;
+};
+
+export const getMemberById = async (id: string): Promise<MemberData> => {
+  const res = await axios.get(API_URL + `members/${id}`, { headers: authHeader() });
   return res.data;
 };
 
@@ -82,7 +94,19 @@ export const registerMember = async (data: MemberData): Promise<MemberData> => {
 };
 
 // ── Accounts ──────────────────────────────────────────────────────
+// Returns ALL accounts (cross-branch) - used by Transaction Modal
 export const getAccounts = async (): Promise<AccountData[]> => {
+  const res = await axios.get(API_URL + 'savings', { headers: authHeader() });
+  return res.data;
+};
+
+// Returns ONLY current branch accounts - used by Ledger tables & Dashboards
+export const getBranchAccounts = async (): Promise<AccountData[]> => {
+  const res = await axios.get(API_URL + 'savings?branchOnly=true', { headers: authHeader() });
+  return res.data;
+};
+
+export const getGlobalAccounts = async (): Promise<AccountData[]> => {
   const res = await axios.get(API_URL + 'savings', { headers: authHeader() });
   return res.data;
 };
@@ -98,7 +122,7 @@ export const deposit = async (data: { accountNumber: string; amount: number }): 
   return res.data;
 };
 
-export const withdraw = async (data: { accountNumber: string; amount: number }): Promise<AccountData> => {
+export const withdraw = async (data: { accountNumber: string; amount: number; reference?: string; requestApproval?: boolean; managerUsername?: string; managerPassword?: string }): Promise<any> => {
   const res = await axios.post(API_URL + 'transactions/withdraw', data, { headers: authHeader() });
   return res.data;
 };
@@ -140,4 +164,40 @@ export const updateSavingsAccountTypeRate = async (id: number, interestRate: num
 export const getPassbook = async (accountId: string): Promise<{ account: any; transactions: any[]; dailyBalances: any[] }> => {
   const res = await axios.get(API_URL + `savings/${accountId}/passbook`, { headers: authHeader() });
   return res.data;
+};
+
+// --- Pending Approvals API ---
+export const getPendingApprovals = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}savings/approvals`, { headers: authHeader() });
+  return response.data;
+};
+
+export const approveTransaction = async (approvalId: string): Promise<any> => {
+  const response = await axios.post(`${API_URL}savings/approvals/${approvalId}/approve`, {}, { headers: authHeader() });
+  return response.data;
+};
+
+export const rejectTransaction = async (approvalId: string): Promise<any> => {
+  const response = await axios.post(`${API_URL}savings/approvals/${approvalId}/reject`, {}, { headers: authHeader() });
+  return response.data;
+};
+
+// --- Fixed Deposit Types API ---
+export const getFixedDepositTypes = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}fixed-deposit-types`, { headers: authHeader() });
+  return response.data;
+};
+
+export const createFixedDepositType = async (data: any): Promise<any> => {
+  const response = await axios.post(`${API_URL}fixed-deposit-types`, data, { headers: authHeader() });
+  return response.data;
+};
+
+export const deleteFixedDepositType = async (id: string): Promise<void> => {
+  await axios.delete(`${API_URL}fixed-deposit-types/${id}`, { headers: authHeader() });
+};
+
+export const updateFixedDepositType = async (id: string, data: any): Promise<any> => {
+  const response = await axios.put(`${API_URL}fixed-deposit-types/${id}`, data, { headers: authHeader() });
+  return response.data;
 };

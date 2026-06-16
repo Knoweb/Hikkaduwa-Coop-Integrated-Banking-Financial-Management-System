@@ -42,7 +42,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     }
   };
 
-  const selectApplicant = (member: AccountService.MemberData, applicantNum: number) => {
+  const selectApplicant = async (member: AccountService.MemberData, applicantNum: number) => {
     const fullName = member.fullNameSinhala || member.fullName || '';
     const nic = member.nic || member.birthCertificateNumber || '';
     
@@ -69,6 +69,51 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     }));
     setSearchResults([]);
     setSearchQuery('');
+
+    // Auto-fill Guardian Details for Children
+    if (applicantNum === 1 && clientType === 'child') {
+      const guardianQuery = member.guardianNic || member.guardianMemberNo;
+      
+      // At minimum, fill what we know from the child's profile
+      if (member.guardianNic) {
+        setFormData(prev => ({ ...prev, idNumber2: member.guardianNic || '' }));
+      }
+
+      if (guardianQuery) {
+        try {
+          const results = await AccountService.searchMembers(guardianQuery);
+          if (results && results.length > 0) {
+            const guardian = results[0];
+            const gFullName = guardian.fullNameSinhala || guardian.fullName || '';
+            const gNic = guardian.nic || guardian.birthCertificateNumber || '';
+            
+            let gCalculatedAge = '';
+            if (guardian.dateOfBirth) {
+              const dob = new Date(guardian.dateOfBirth);
+              const today = new Date(formData.date);
+              let age = today.getFullYear() - dob.getFullYear();
+              const m = today.getMonth() - dob.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                age--;
+              }
+              gCalculatedAge = age.toString();
+            }
+
+            setFormData(prev => ({
+              ...prev,
+              memberId2: guardian.memberId || '',
+              fullName2: gFullName,
+              address2: guardian.address || prev.address2, // keep existing if not found
+              idNumber2: gNic || prev.idNumber2,
+              dob2: guardian.dateOfBirth || '',
+              age2: gCalculatedAge,
+            }));
+          }
+        } catch (e) {
+          console.error('Failed to auto-fetch guardian details', e);
+        }
+      }
+    }
   };
 
   const [formData, setFormData] = useState({
@@ -349,7 +394,8 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
-                  placeholder="ජා.හැ.අ (NIC) / නම / සාමාජික අංකය..." 
+                  placeholder={clientType === 'child' ? "උප්පැන්න සහතික අංකය / නම / සාමාජික අංකය..." : "ජා.හැ.අ (NIC) / නම / සාමාජික අංකය..."} 
+
                   className="flex-1 border border-blue-200 rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                 />
                 <button 
@@ -366,10 +412,10 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-blue-100 z-50 max-h-60 overflow-y-auto overflow-hidden">
                   <div className="p-2 bg-slate-50 border-b border-gray-100 text-xs font-semibold text-gray-500 flex justify-between">
-                    <span>ප්‍රතිඵල {searchResults.length} ක් හමුවිය</span>
+                    <span>ප්‍රතිඵල {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').length} ක් හමුවිය</span>
                     <button type="button" onClick={() => setSearchResults([])} className="text-red-500 hover:underline">වසන්න</button>
                   </div>
-                  {searchResults.map((result) => (
+                  {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').map((result) => (
                     <button 
                       key={result.memberId}
                       type="button"
@@ -378,12 +424,17 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                     >
                       <div className="font-semibold text-sm text-gray-800">{result.fullNameSinhala || result.fullName}</div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded">NIC: {result.nic}</span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">NIC/BC: {result.nic}</span>
                         {result.membershipNumber && <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">Mem No: {result.membershipNumber}</span>}
                         <span className="truncate flex-1">{result.address}</span>
                       </div>
                     </button>
                   ))}
+                  {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').length === 0 && (
+                    <div className="p-4 text-center text-sm text-gray-500">
+                      {clientType === 'child' ? 'ළමා ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.' : 'වැඩිහිටි ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

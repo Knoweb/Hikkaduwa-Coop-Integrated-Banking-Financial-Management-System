@@ -14,9 +14,20 @@ public class FixedDeposit {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID fdId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private Account account;
+    @Column(nullable = false)
+    private UUID memberId;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String fdNumber;
+
+    @Column
+    private UUID linkedSavingsAccountId;
+
+    @Column(length = 20)
+    private String interestPayoutMethod = "AT_MATURITY";
+
+    @Column(nullable = false, length = 50)
+    private String maturityInstruction = "REINVEST_PRINCIPAL_AND_INTEREST";
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal principalAmount;

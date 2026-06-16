@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -23,12 +24,26 @@ public class MemberController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Member>> getMembers(HttpServletRequest request) {
-        Integer branchId = branchContext.extractBranchId(request);
-        List<Member> members = memberRepository.findAll().stream()
-                .filter(m -> branchId == null || branchId.equals(m.getRegisteredBranchId()))
-                .collect(Collectors.toList());
+    public ResponseEntity<List<Member>> getMembers(
+            HttpServletRequest request,
+            @RequestParam(value = "branchOnly", defaultValue = "false") boolean branchOnly) {
+        List<Member> members;
+        if (branchOnly) {
+            Integer branchId = branchContext.extractBranchId(request);
+            members = memberRepository.findAll().stream()
+                    .filter(m -> branchId == null || branchId.equals(m.getRegisteredBranchId()))
+                    .collect(Collectors.toList());
+        } else {
+            members = memberRepository.findAll();
+        }
         return ResponseEntity.ok(members);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Member> getMemberById(@PathVariable UUID id) {
+        return memberRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/search")
@@ -41,7 +56,8 @@ public class MemberController {
                     boolean matchName = m.getFullName() != null && m.getFullName().toLowerCase().contains(q);
                     boolean matchNic = m.getNic() != null && m.getNic().toLowerCase().contains(q);
                     boolean matchMembershipNum = m.getMembershipNumber() != null && m.getMembershipNumber().toLowerCase().contains(q);
-                    return matchName || matchNic || matchMembershipNum;
+                    boolean matchGuardianNic = m.getGuardianNic() != null && m.getGuardianNic().toLowerCase().contains(q);
+                    return matchName || matchNic || matchMembershipNum || matchGuardianNic;
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(members);

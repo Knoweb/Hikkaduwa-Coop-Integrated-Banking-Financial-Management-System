@@ -8,10 +8,16 @@ import com.hmcs.savings.entity.SavingsAccountType;
 import com.hmcs.savings.repository.SavingsAccountTypeRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
 @EnableScheduling
 public class HmcsSavingsServiceApplication {
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(HmcsSavingsServiceApplication.class, args);

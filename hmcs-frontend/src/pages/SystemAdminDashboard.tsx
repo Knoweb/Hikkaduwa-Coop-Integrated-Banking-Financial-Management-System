@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users,
-  Settings, ChevronRight, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
+  Settings, ChevronRight, ChevronDown, ChevronUp, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
   Lock, Briefcase, Scale
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
@@ -22,10 +22,8 @@ const BRANCHES = [
   { id: 8, name: 'Gonapinuwala Branch',      location: 'Gonapinuwala' },
 ];
 
-const ROLES = [
-  'GENERAL_MANAGER', 'BRANCH_MANAGER', 'BANK_SERVICE_MANAGER',
-  'LOAN_COMMITTEE', 'FIELD_OFFICER', 'TELLER', 'VALUER'
-];
+// ROLES will be fetched from backend dynamically
+
 
 const ROLE_COLORS: Record<string, string> = {
   GENERAL_MANAGER:      'bg-purple-100 text-purple-700 border border-purple-200',
@@ -182,7 +180,16 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   const [accountCategory, setAccountCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
   const [editingRateId, setEditingRateId] = useState<string | null>(null);
   const [editRateValue, setEditRateValue] = useState<string | number>(0);
+  const [editRateValueMaturity, setEditRateValueMaturity] = useState<string | number>(0);
+  const [editRateValueMonthly, setEditRateValueMonthly] = useState<string | number>(0);
   const [confirmRateChange, setConfirmRateChange] = useState<{ category: string, id: string, name: string, oldVal: number, newVal: number, unit: string } | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
+
+  useEffect(() => {
+    AuthService.getRoles()
+      .then(data => setRoles(data.map(r => r.roleName)))
+      .catch(() => setRoles(['GENERAL_MANAGER','BRANCH_MANAGER','BANK_SERVICE_MANAGER','LOAN_COMMITTEE','FIELD_OFFICER','TELLER','VALUER','SENIOR_OFFICER']));
+  }, []);
   
   const [ratesData, setRatesData] = useState({
     fd: [
@@ -203,26 +210,32 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   });
   const handleConfirmRateUpdate = async () => {
     if (!confirmRateChange) return;
-    const { category, id, newVal } = confirmRateChange;
+    const { category, id, newVal, rateType, fullObj } = confirmRateChange as any;
     
-    if (category === 'savings') {
-      try {
+    try {
+      if (category === 'savings') {
         const numericId = parseInt(id.replace('sav_', ''), 10);
         await AccountService.updateSavingsAccountTypeRate(numericId, newVal / 100);
         setSavingsRatesData(prev => prev.map(s => s.id === id ? { ...s, value: newVal } : s));
         fetchSavingsTypes();
-      } catch(err) {
-        alert("Failed to update savings rate in backend.");
+      } else if (category === 'fd') {
+        const payload = { ...fullObj };
+        payload.interestRateMaturity = newVal.maturity;
+        payload.interestRateMonthly = newVal.monthly;
+        await AccountService.updateFixedDepositType(payload.id, payload);
+        await fetchFdTypes();
+      } else {
+        setRatesData(prev => ({
+          ...prev,
+          [category]: (prev[category as keyof typeof prev] as any[]).map(item => item.id === id ? { ...item, value: newVal } : item)
+        }));
       }
-    } else {
-      setRatesData(prev => ({
-        ...prev,
-        [category]: (prev[category as keyof typeof prev] as any[]).map(item => item.id === id ? { ...item, value: newVal } : item)
-      }));
+      setConfirmRateChange(null);
+      setEditingRateId(null);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to update rate');
     }
-    
-    setConfirmRateChange(null);
-    setEditingRateId(null);
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -231,6 +244,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   const [error, setError] = useState('');
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [savingsRatesData, setSavingsRatesData] = useState<{id: string, value: number}[]>([]);
+  const [fdTypes, setFdTypes] = useState<any[]>([]);
 
   useEffect(() => {
     setSavingsRatesData(savingsTypes.map(st => ({ id: `sav_${st.id}`, value: (st.interestRate != null ? st.interestRate : (st.isChildAccount ? 0.055 : 0.04)) * 100 })));
@@ -238,28 +252,80 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [newType, setNewType] = useState({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
 
+  const [showFdTypeForm, setShowFdTypeForm] = useState(false);
+  const [newFdType, setNewFdType] = useState({ category: 'NORMAL', termMonths: 12 });
+  const [expandedFdCategories, setExpandedFdCategories] = useState<string[]>(['NORMAL', 'SENIOR', 'CHILD']);
+
+  const toggleFdCategory = (cat: string) => {
+    setExpandedFdCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  };
+
   const fetchSavingsTypes = async () => {
     try {
       const types = await AccountService.getSavingsAccountTypes();
       setSavingsTypes(types);
     } catch (err) {
-      console.error("Failed to load savings types");
+      console.error(err);
+    }
+  };
+
+  const fetchFdTypes = async () => {
+    try {
+      const types = await AccountService.getFixedDepositTypes();
+      setFdTypes(types);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
     fetchSavingsTypes();
+    fetchFdTypes();
   }, []);
 
   const handleAddSavingsType = async () => {
-    if (newType.code && newType.nameEn && newType.nameSi) {
+    try {
+      await AccountService.createSavingsAccountType(newType as any);
+      setShowTypeForm(false);
+      setNewType({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
+      fetchSavingsTypes();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create savings type");
+    }
+  };
+
+  const handleAddFdType = async () => {
+    try {
+      const catCode = newFdType.category === 'NORMAL' ? 'NRM' : newFdType.category === 'SENIOR' ? 'SNR' : 'CHD';
+      const catName = newFdType.category === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : newFdType.category === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+      
+      const payload = {
+        code: `FD_${catCode}_${newFdType.termMonths}M`,
+        name: `${catName} - මාස ${newFdType.termMonths}`,
+        termMonths: newFdType.termMonths,
+        interestRateMaturity: 0.0,
+        interestRateMonthly: 0.0,
+        isSeniorCitizen: newFdType.category === 'SENIOR'
+      };
+
+      await AccountService.createFixedDepositType(payload);
+      setShowFdTypeForm(false);
+      setNewFdType({ category: 'NORMAL', termMonths: 12 });
+      fetchFdTypes();
+    } catch (err: any) {
+      console.error(err);
+      alert("මෙම කාල සීමාව දැනටමත් ඇතුළත් කර ඇත! වෙනත් මාස ගණනක් ලබා දෙන්න. (This time period already exists!)");
+    }
+  };
+
+  const handleDeleteFdType = async (id: string) => {
+    if (confirm("Are you sure you want to delete this FD type?")) {
       try {
-        await AccountService.createSavingsAccountType(newType as any);
-        setNewType({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
-        setShowTypeForm(false);
-        fetchSavingsTypes();
+        await AccountService.deleteFixedDepositType(id);
+        fetchFdTypes();
       } catch (err) {
-        alert("Failed to add account type. Ensure code is unique.");
+        console.error(err);
       }
     }
   };
@@ -419,7 +485,9 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Role')}</label>
                     <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition">
-                      {ROLES.map(r => <option key={r} value={r}>{t(r.replace(/_/g, ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))))}</option>)}
+                      {roles.length === 0 ? (
+                        <option disabled>Loading roles...</option>
+                      ) : roles.map(r => <option key={r} value={r}>{t(r.replace(/_/g, ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))))}</option>)}
                     </select>
                   </div>
                 </div>
@@ -518,12 +586,21 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
             <div className="p-0">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-100 border-b border-slate-200 text-xs font-extrabold text-slate-500 uppercase tracking-widest">
-                  <tr>
-                    <th className="px-8 py-5 w-2/5">{t('Product / Type')}</th>
-                    <th className="px-8 py-5 w-1/5">{t('Target')}</th>
-                    <th className="px-8 py-5 w-1/5 text-right">{t('Current Rate')}</th>
-                    <th className="px-8 py-5 w-1/5 text-right">{t('Actions')}</th>
-                  </tr>
+                  {rateCategory === 'fd' ? (
+                    <tr>
+                      <th className="px-8 py-5 w-2/5">{t('Product / Type')}</th>
+                      <th className="px-8 py-5 w-1/5 text-center">{t('Maturity Rate')} (කල් පිරුණම)</th>
+                      <th className="px-8 py-5 w-1/5 text-center">{t('Monthly Rate')} (මාසිකව)</th>
+                      <th className="px-8 py-5 w-1/5 text-right">{t('Actions')}</th>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <th className="px-8 py-5 w-2/5">{t('Product / Type')}</th>
+                      <th className="px-8 py-5 w-1/5">{t('Target')}</th>
+                      <th className="px-8 py-5 w-1/5 text-right">{t('Current Rate')}</th>
+                      <th className="px-8 py-5 w-1/5 text-right">{t('Actions')}</th>
+                    </tr>
+                  )}
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {rateCategory === 'savings' && savingsTypes.map(st => {
@@ -570,7 +647,99 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                     <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold">{t('No savings account types found.')}</td></tr>
                   )}
 
-                  {rateCategory !== 'savings' && ratesData[rateCategory as keyof typeof ratesData].map((item: any) => {
+                  {rateCategory === 'fd' ? (
+                    <>
+                      {['NORMAL', 'SENIOR', 'CHILD'].map(cat => {
+                        const catPrefix = cat === 'NORMAL' ? 'FD_NRM' : cat === 'SENIOR' ? 'FD_SNR' : 'FD_CHD';
+                        const catName = cat === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : cat === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+                        const items = fdTypes.filter((t: any) => t.code.startsWith(catPrefix)).sort((a: any, b: any) => a.termMonths - b.termMonths);
+                        const isExpanded = expandedFdCategories.includes(cat);
+
+                        return (
+                          <React.Fragment key={cat}>
+                            {/* Category Header Row */}
+                            <tr 
+                              className="bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors border-b border-slate-100"
+                              onClick={() => toggleFdCategory(cat)}
+                            >
+                              <td colSpan={4} className="px-6 py-4">
+                                <div className="font-bold text-slate-800 flex items-center gap-2">
+                                  {isExpanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                                  <Lock size={16} className="text-emerald-500 ml-1" />
+                                  {catName}
+                                </div>
+                              </td>
+                            </tr>
+                            
+                            {/* Items Rows */}
+                            {isExpanded && (
+                              items.length === 0 ? (
+                                <tr>
+                                  <td colSpan={4} className="px-8 py-4 text-xs font-semibold text-slate-400 text-center">
+                                    මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)
+                                  </td>
+                                </tr>
+                              ) : (
+                                items.map((st: any) => {
+                                  const isEditing = editingRateId === st.id;
+
+                                  return (
+                                    <tr key={st.id} className="hover:bg-emerald-50/10 transition-colors border-b border-slate-50 last:border-0">
+                                      <td className="px-8 py-4">
+                                        <div className="flex flex-col gap-1">
+                                          <div className="font-bold text-slate-700 text-sm">
+                                            {st.termMonths >= 12 && st.termMonths % 12 === 0 ? `අවුරුදු ${st.termMonths / 12}` : `මාස ${st.termMonths}`}
+                                          </div>
+                                          <div className="font-mono text-[11px] text-slate-400 font-bold">{st.code}</div>
+                                        </div>
+                                      </td>
+                                      <td className="px-8 py-4 text-center">
+                                        {isEditing ? (
+                                          <div className="flex justify-center items-center gap-1">
+                                            <input type="number" value={editRateValueMaturity} onChange={e => setEditRateValueMaturity(e.target.value)} step="0.1" autoFocus
+                                              className="w-20 border-2 border-emerald-400 rounded-lg px-2 py-1 text-sm font-bold text-center focus:outline-none focus:ring-4 focus:ring-emerald-400/20 shadow-sm" />
+                                            <span className="text-slate-400 font-bold">%</span>
+                                          </div>
+                                        ) : (
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMaturity).toFixed(4))} %</span>
+                                        )}
+                                      </td>
+                                      <td className="px-8 py-4 text-center">
+                                        {isEditing ? (
+                                          <div className="flex justify-center items-center gap-1">
+                                            <input type="number" value={editRateValueMonthly} onChange={e => setEditRateValueMonthly(e.target.value)} step="0.1"
+                                              className="w-20 border-2 border-emerald-400 rounded-lg px-2 py-1 text-sm font-bold text-center focus:outline-none focus:ring-4 focus:ring-emerald-400/20 shadow-sm" />
+                                            <span className="text-slate-400 font-bold">%</span>
+                                          </div>
+                                        ) : (
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMonthly).toFixed(4))} %</span>
+                                        )}
+                                      </td>
+                                      <td className="px-8 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          {isEditing ? (
+                                            <>
+                                              <button onClick={() => setEditingRateId(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
+                                              <button onClick={() => setConfirmRateChange({ category: 'fd', id: st.id, name: st.name, oldVal: st.interestRateMaturity, newVal: { maturity: Number(editRateValueMaturity), monthly: Number(editRateValueMonthly) }, unit: '%', fullObj: st })} className="p-1.5 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
+                                            </>
+                                          ) : (
+                                            <button onClick={() => { setEditingRateId(st.id); setEditRateValueMaturity(st.interestRateMaturity); setEditRateValueMonthly(st.interestRateMonthly); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
+                                              <Edit size={14} /> {t('Edit')}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </>
+                  ) : null}
+                  {rateCategory !== 'savings' && rateCategory !== 'fd' && ratesData[rateCategory as keyof typeof ratesData].map((item: any) => {
                     const isEditing = editingRateId === item.id;
                     const name = t(item.label);
                     
@@ -692,6 +861,32 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
             </div>
           )}
 
+          {showFdTypeForm && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 max-w-md w-full">
+                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Lock size={18} /> {t('Add FD Time Period')}</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">ප්‍රධාන වර්ගය (Main Category)</label>
+                    <select value={newFdType.category} onChange={e => setNewFdType(p => ({ ...p, category: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium">
+                      <option value="NORMAL">සාමාන්‍ය ස්ථාවර තැන්පතු</option>
+                      <option value="SENIOR">ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු</option>
+                      <option value="CHILD">ළමා ස්ථාවර තැන්පතු</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">කාල සීමාව (Term in Months)</label>
+                    <input type="number" value={newFdType.termMonths} onChange={e => setNewFdType(p => ({ ...p, termMonths: parseInt(e.target.value) }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button onClick={() => setShowFdTypeForm(false)} className="px-4 py-2 text-sm font-semibold text-slate-600">{t('Cancel')}</button>
+                  <button onClick={handleAddFdType} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold">{t('Save Time Period')}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden ring-1 ring-slate-900/5">
             {/* Tabs Header */}
             <div className="flex items-center gap-3 p-4 bg-slate-50/80 border-b border-slate-200 overflow-x-auto custom-scrollbar">
@@ -760,6 +955,69 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                           </td>
                         </tr>
                       ))
+                    )
+                  ) : accountCategory === 'fd' ? (
+                    fdTypes.length === 0 && false ? (
+                      <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-bold">{t('No fixed deposit types found.')}</td></tr>
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-0">
+                          {['NORMAL', 'SENIOR', 'CHILD'].map(cat => {
+                            const catPrefix = cat === 'NORMAL' ? 'FD_NRM' : cat === 'SENIOR' ? 'FD_SNR' : 'FD_CHD';
+                            const catName = cat === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : cat === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+                            const items = fdTypes.filter((t: any) => t.code.startsWith(catPrefix)).sort((a: any, b: any) => a.termMonths - b.termMonths);
+                            
+                            return (
+                              <div key={cat} className="border-b border-slate-100 last:border-0 bg-white">
+                                <div 
+                                  className="px-6 py-4 bg-slate-50/50 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 transition-colors"
+                                  onClick={() => toggleFdCategory(cat)}
+                                >
+                                  <div className="font-bold text-slate-800 flex items-center gap-2">
+                                    {expandedFdCategories.includes(cat) ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                                    <Lock size={16} className="text-blue-500 ml-1" />
+                                    {catName}
+                                  </div>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setNewFdType(p => ({ ...p, category: cat }));
+                                      setShowFdTypeForm(true);
+                                    }}
+                                    className="text-xs bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                                    <Plus size={14} /> {t('Add')}
+                                  </button>
+                                </div>
+                                {expandedFdCategories.includes(cat) && (
+                                  <div className="divide-y divide-slate-50">
+                                    {items.length === 0 ? (
+                                      <div className="px-8 py-4 text-xs font-semibold text-slate-400">
+                                        මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)
+                                      </div>
+                                    ) : (
+                                      items.map((st: any) => (
+                                        <div key={st.id} className="flex items-center justify-between px-8 py-3 hover:bg-slate-50 transition-colors">
+                                          <div className="flex items-center gap-6">
+                                            <div className="font-mono text-xs text-slate-400 font-bold w-24">{st.code}</div>
+                                            <div className="font-semibold text-slate-700">
+                                              {st.termMonths >= 12 && st.termMonths % 12 === 0 ? `අවුරුදු ${st.termMonths / 12}` : `මාස ${st.termMonths}`}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-8">
+                                            <button onClick={() => handleDeleteFdType(st.id)} className="text-rose-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded transition" title={t('Delete')}>
+                                              <Trash2 size={16}/>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </td>
+                      </tr>
                     )
                   ) : (
                     <tr>

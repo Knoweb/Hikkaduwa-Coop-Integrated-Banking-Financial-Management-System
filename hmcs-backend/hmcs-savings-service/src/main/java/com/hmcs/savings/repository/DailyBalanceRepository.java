@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface DailyBalanceRepository extends JpaRepository<DailyBalance, UUID> {
     List<DailyBalance> findByAccountIdAndRecordDateBetween(UUID accountId, LocalDate startDate, LocalDate endDate);
+    List<DailyBalance> findByAccountId(UUID accountId);
 }
+
