@@ -440,14 +440,14 @@ export default function Accounts() {
                             {passbookData.transactions.sort((a,b) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => (
                               <div key={tx.transactionId} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
                                 <div>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                    {tx.transactionType}
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType.includes('DEPOSIT') ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {tx.transactionType.replace('_', ' ')}
                                   </span>
                                   <p className="text-xs text-slate-400 mt-1">{new Date(tx.transactionTimestamp).toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className={`font-mono font-bold ${tx.transactionType === 'DEPOSIT' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {tx.transactionType === 'DEPOSIT' ? '+' : '-'} {tx.amount.toLocaleString()}
+                                  <p className={`font-mono font-bold ${tx.transactionType.includes('DEPOSIT') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {tx.transactionType.includes('DEPOSIT') ? '+' : '-'} {tx.amount.toLocaleString()}
                                   </p>
                                   <p className="text-xs text-slate-500 font-mono mt-0.5">Bal: {tx.balanceAfter.toLocaleString()}</p>
                                 </div>

@@ -12,6 +12,7 @@ import * as LoanService from '../services/loan.service';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import OpenAccountForm from '../components/OpenAccountForm';
+import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
 import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
@@ -34,6 +35,7 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Users, label: 'Members', key: 'members' }, 
     { isSection: true, label: 'Operations' },
     { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
+    { icon: CheckCircle, label: 'Approvals', key: 'approvals' },
     { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
     { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }
   ],
@@ -118,11 +120,17 @@ function QueueRow({ name, amount, status, date, onAction, actionLabel, actionCol
 function BranchManagerView({ activeTab }: { activeTab: string }) {
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  const loadData = () => {
     AccountService.getMembers().then(setMembers).catch(() => {});
-    AccountService.getAccounts().then(setAccounts).catch(() => {});
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
+    AccountService.getPendingApprovals().then(setPendingApprovals).catch(() => {});
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
@@ -244,6 +252,53 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+
+  const handleApprove = async (id: string) => {
+    try {
+      await AccountService.approveTransaction(id);
+      loadData();
+    } catch (e) {
+      alert("Failed to approve transaction.");
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await AccountService.rejectTransaction(id);
+      loadData();
+    } catch (e) {
+      alert("Failed to reject transaction.");
+    }
+  };
+
+  if (activeTab === 'approvals') return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} /> Pending Transaction Approvals</h3>
+      {pendingApprovals.length === 0 ? (
+        <div className="text-center py-8 text-slate-500">No pending approvals at the moment.</div>
+      ) : (
+        <div className="space-y-3">
+          {pendingApprovals.map((pa: any, i) => (
+            <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition gap-4">
+              <div>
+                <p className="text-sm font-bold text-slate-800">Rs. {Number(pa.amount).toLocaleString()} {pa.transactionType}</p>
+                <p className="text-xs text-slate-500 mt-1">Requested: {new Date(pa.createdAt).toLocaleString()}</p>
+                <p className="text-xs font-mono text-slate-400 mt-1">Request ID: {pa.approvalId}</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => handleApprove(pa.approvalId)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                  Approve
+                </button>
+                <button onClick={() => handleReject(pa.approvalId)} className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-lg shadow-sm transition">
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -443,6 +498,9 @@ function ValuerView() {
 
 function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const { t, language } = useLanguage();
+  const [showOpenAccountForm, setShowOpenAccountForm] = useState(false);
+  const [showOpenFdForm, setShowOpenFdForm] = useState(false);
+  const [showViewAccount, setShowViewAccount] = useState<{show: boolean, accountId: string|null}>({show: false, accountId: null});
   const user = AuthService.getCurrentUser();
   const navigate = useNavigate();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
@@ -470,6 +528,8 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [selectedGuardianData, setSelectedGuardianData] = useState<any>(null);
   const initialFormState = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: '' as number | string, photographUrl: '', digitalSignatureUrl: '' };
   const [form, setForm] = useState(initialFormState);
+  const [editingOriginalForm, setEditingOriginalForm] = useState<any>(null);
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, onConfirm: () => void, title: string, message: string}>({isOpen: false, onConfirm: () => {}, title: '', message: ''});
   const [accForm, setAccForm] = useState({ accountType: 'NORMAL', initialDeposit: 1000, childName: '', childBirthCertificate: '', childDateOfBirth: '' });
   const [accCustomerType, setAccCustomerType] = useState<'true' | 'false' | null>(null);
   const [savingsTab, setSavingsTab] = useState<'SOCIETY' | 'NON_SOCIETY'>('SOCIETY');
@@ -595,11 +655,24 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     return isMatch;
   });
 
+  const hasFormChanged = !form.memberId || JSON.stringify(form) !== JSON.stringify(editingOriginalForm);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault(); 
     if (form.memberId) {
-      if (!window.confirm(t("Are you sure you want to save changes to this profile?"))) return;
+      setConfirmModal({
+        isOpen: true,
+        title: "Confirm Changes",
+        message: "Are you sure you want to save the changes to this profile?",
+        onConfirm: processRegistration
+      });
+      return;
     }
+    processRegistration();
+  };
+
+  const processRegistration = async () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
     setRegError(''); setLoading(true);
     try {
       const payload = { 
@@ -687,13 +760,84 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   }
 
   if (activeTab === 'fds') {
+    const mockFDs = [
+      { id: 'FD-8991001', memberName: 'එස්.පී. කුමාර', principal: 500000, term: 12, rate: 8.5, maturityDate: '2027-01-15', status: 'ACTIVE' },
+      { id: 'FD-8991002', memberName: 'කේ.ඩී. පෙරේරා', principal: 100000, term: 6, rate: 7.0, maturityDate: '2026-06-15', status: 'MATURING_SOON' },
+      { id: 'FD-8991003', memberName: 'ආර්.එම්. ජයසිංහ', principal: 250000, term: 24, rate: 9.0, maturityDate: '2026-04-20', status: 'MATURED' },
+    ];
+    
     return (
-      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 text-blue-500">
-          <Lock size={40} />
+      <div className="space-y-6">
+        {/* Module Header */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-500 shadow-sm border border-blue-100">
+            <Lock size={32} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Fixed Deposits Module</h3>
+          <p className="text-slate-500 font-medium mb-6 max-w-lg">Manage term deposits, view maturity schedules, and process FD closures or renewals.</p>
+          
+          <button onClick={() => setShowOpenFdForm(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5">
+            <Lock size={18} /> Open Fixed Deposit
+          </button>
         </div>
-        <h3 className="text-2xl font-bold text-slate-800 mb-2">Fixed Deposits</h3>
-        <p className="text-slate-500">The Fixed Deposits management module is currently under development.</p>
+
+        {/* Data Table */}
+        <div className="bg-slate-50 rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
+          <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-100/80">
+            <h4 className="font-bold text-slate-700">Active Fixed Deposits</h4>
+            <div className="relative w-72">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input placeholder="Search FD number or name..." className="w-full pl-9 pr-4 py-2 border border-slate-300 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm transition-all" />
+            </div>
+          </div>
+
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr>
+                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">FD Number</th>
+                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Account Holder</th>
+                <th className="px-5 py-5 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Principal (Rs.)</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Term / Rate</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Maturity Date</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {mockFDs.map((fd, i) => (
+                <tr key={i} className="hover:bg-blue-50/30 transition-colors group">
+                  <td className="px-5 py-4 font-mono font-bold text-slate-700">{fd.id}</td>
+                  <td className="px-5 py-4 font-bold text-slate-800">{fd.memberName}</td>
+                  <td className="px-5 py-4 text-right font-mono font-bold text-slate-700">{fd.principal.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-center">
+                    <span className="block font-bold text-slate-700">{fd.term} Months</span>
+                    <span className="text-[10px] font-bold text-indigo-500">{fd.rate}% p.a.</span>
+                  </td>
+                  <td className="px-5 py-4 text-center font-medium text-slate-600">{fd.maturityDate}</td>
+                  <td className="px-5 py-4 text-center">
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border ${
+                      fd.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      fd.status === 'MATURING_SOON' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      {fd.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-100 transition-colors">
+                        View
+                      </button>
+                      <button onClick={() => setRowTxAction('CLOSE_FD')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1">
+                        <ArrowUpRight size={14} /> Release
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -881,15 +1025,15 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     return (
       <div className="space-y-6">
         {/* Module Header */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col items-center justify-center gap-5 text-center">
           <div>
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <PiggyBank className="text-blue-600" size={22} /> {t('Savings Accounts Module')}
+            <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
+              <PiggyBank className="text-blue-600" size={24} /> {t('Savings Accounts Module')}
             </h3>
-            <p className="text-sm text-slate-500 mt-1">Manage {filteredAccounts.length} accounts, view passbooks, and process transactions.</p>
+            <p className="text-sm text-slate-500 mt-1.5 font-medium">Manage {filteredAccounts.length} accounts, view passbooks, and process transactions.</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap justify-center items-center gap-3">
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
               <button 
                 onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
@@ -914,10 +1058,10 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         </div>
 
         {/* Unified Data Table Card */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
+        <div className="bg-slate-50 rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
           
           {/* Table Toolbar */}
-          <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50/80">
+          <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-100/80">
             
             {/* Compact Animated Tab Switcher */}
             <div className="relative flex bg-slate-200/50 p-1 rounded-xl w-full md:w-[320px] shadow-inner">
@@ -944,68 +1088,50 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             <div className="relative w-full md:w-72">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" />
+                className="w-full pl-9 pr-4 py-2 border border-slate-300 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm transition-all" />
             </div>
           </div>
 
           <table className="w-full text-sm">
-            <thead className="bg-blue-50/80 border-b border-blue-100">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Account No.')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Account Holder')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Type')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Balance')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Status')}</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-blue-900 uppercase tracking-wider">{t('Actions')}</th>
+                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[15%]">{t('Account No.')}</th>
+                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[25%]">{t('Account Holder')}</th>
+                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[15%]">{t('Type')}</th>
+                <th className="px-5 py-5 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[15%]">{t('Balance')}</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[10%]">{t('Status')}</th>
+                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[20%]">{t('Actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-blue-50 bg-white">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {filteredAccounts.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">{t('No accounts found')}</td></tr>
               ) : filteredAccounts.map(a => (
-                <tr key={a.accountId} className="hover:bg-blue-50/40 transition-colors group">
-                  <td className="px-6 py-4 font-bold text-blue-700 font-mono text-base">{a.accountNumber}</td>
-                  <td className="px-6 py-4 text-slate-700 font-semibold group-hover:text-blue-900 transition-colors">
+                <tr key={a.accountId} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-5 py-5 font-bold text-slate-800 font-mono text-base">{a.accountNumber}</td>
+                  <td className="px-5 py-5 text-slate-700 font-medium group-hover:text-blue-900 transition-colors">
                     {a.childName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || members.find(m => m.memberId === a.memberId)?.fullName || 'N/A'}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
+                  <td className="px-5 py-5">
+                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide inline-block">
                       {t(a.accountType)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-black text-slate-800 text-base">Rs. {Number(a.balance).toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border ${a.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                  <td className="px-5 py-5 font-black text-slate-800 text-base text-right">Rs. {Number(a.balance).toLocaleString()}</td>
+                  <td className="px-5 py-5 text-center">
+                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border inline-block ${a.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                       {t(a.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right flex justify-end gap-2">
+                  <td className="px-5 py-5">
+                    <div className="flex justify-center items-center gap-2">
                     <button onClick={() => setViewAccount(a)} className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition" title={t('View Account')}>
                       {t('View')}
                     </button>
                     <button onClick={() => handleViewPassbook(a.accountId!)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition flex items-center gap-1" title={t('View Passbook')}>
                       <BookOpen size={14} /> Passbook
                     </button>
-                    <button 
-                      onClick={() => {
-                        setRowTxAccount(a);
-                        setRowTxAction('DEPOSIT');
-                      }}
-                      className="bg-emerald-50 text-emerald-700 p-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
-                      title={t('Deposit')}
-                    >
-                      <ArrowDownLeft size={16} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setRowTxAccount(a);
-                        setRowTxAction('WITHDRAW');
-                      }}
-                      className="bg-red-50 text-red-700 p-1.5 rounded-lg hover:bg-red-100 transition-colors"
-                      title={t('Withdraw')}
-                    >
-                      <ArrowUpRight size={16} />
-                    </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1017,8 +1143,12 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         {rowTxAction && (
           <TransactionModal 
             accountNumber={rowTxAccount?.accountNumber || ''}
-            accountType={rowTxAccount?.accountType || 'SAVINGS'}
+            accountType={rowTxAccount?.accountType || ''}
+            balance={Number(rowTxAccount?.balance || 0)}
+            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || 'N/A'}
             action={rowTxAction}
+            allAccounts={accounts}
+            members={members}
             onClose={() => { setRowTxAction(null); setRowTxAccount(null); }}
             onSuccess={() => {
               setRowTxAction(null); setRowTxAccount(null);
@@ -1026,6 +1156,24 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
               AccountService.getAccounts().then(setAccounts).catch(() => {});
             }}
           />
+        )}
+
+        {/* Modal for Open Regular Account */}
+        {showOpenAccountForm && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full my-8">
+              <OpenAccountForm onClose={() => { setShowOpenAccountForm(false); fetchData(); }} />
+            </div>
+          </div>
+        )}
+
+        {/* Modal for Open FD */}
+        {showOpenFdForm && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full my-8">
+              <OpenFixedDepositForm onClose={() => { setShowOpenFdForm(false); fetchData(); }} />
+            </div>
+          </div>
         )}
 
         {/* Open Account Modal */}
@@ -1095,14 +1243,14 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                             {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => (
                               <div key={tx.transactionId} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
                                 <div>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                    {tx.transactionType}
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType.includes('DEPOSIT') ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {tx.transactionType.replace('_', ' ')}
                                   </span>
                                   <p className="text-xs text-slate-400 mt-1">{new Date(tx.transactionTimestamp).toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className={`font-mono font-bold ${tx.transactionType === 'DEPOSIT' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {tx.transactionType === 'DEPOSIT' ? '+' : '-'} {tx.amount.toLocaleString()}
+                                  <p className={`font-mono font-bold ${tx.transactionType.includes('DEPOSIT') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {tx.transactionType.includes('DEPOSIT') ? '+' : '-'} {tx.amount.toLocaleString()}
                                   </p>
                                   <p className="text-xs text-slate-500 font-mono mt-0.5">Bal: {tx.balanceAfter.toLocaleString()}</p>
                                 </div>
@@ -1123,11 +1271,11 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                               <div key={db.id} className="flex justify-between items-center p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
                                 <div>
                                   <p className="text-sm font-bold text-slate-700">{db.recordDate}</p>
-                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">Bal: {db.endOfDayBalance.toLocaleString()}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">Bal: Rs. {db.endOfDayBalance.toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interest Added</p>
-                                  <p className="font-mono font-bold text-blue-600">+{db.dailyInterestEarned.toLocaleString()}</p>
+                                  <p className="font-mono font-bold text-blue-600">+ Rs. {db.dailyInterestEarned.toLocaleString()}</p>
                                 </div>
                               </div>
                             ))}
@@ -1158,7 +1306,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> {isNonMembersTab ? t('Non-Members') : t('Branch Members')}</h3>
-          <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setShowRegModal(true); }}
+          <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setEditingOriginalForm(null); setShowRegModal(true); }}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
             <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
           </button>
@@ -1212,7 +1360,8 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { 
-                        setForm(m as any); 
+                        setForm(m as any);
+                        setEditingOriginalForm(m as any);
                         setIsChildReg(m.ageCategory === 'CHILD');
                         setGuardianNic(m.guardianNic || '');
                         setGuardianMemberNo(m.guardianMemberNo || '');
@@ -1485,11 +1634,39 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 <button type="button" onClick={() => setShowRegModal(false)} className="px-6 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 hover:text-slate-900 rounded-lg font-bold text-sm transition shadow-sm">
                   {t('Cancel')}
                 </button>
-                <button type="submit" disabled={loading} className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-60 transition flex items-center gap-2">
-                  {loading ? t('Processing...') : <><CheckCircle size={18}/> {form.memberId ? t('Save Changes') : t('Authorize & Register')}</>}
-                </button>
+                {hasFormChanged && (
+                  <button type="submit" disabled={loading} className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-60 transition flex items-center gap-2">
+                    {loading ? t('Processing...') : <><CheckCircle size={18}/> {form.memberId ? t('Save Changes') : t('Authorize & Register')}</>}
+                  </button>
+                )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MUI-style Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">{confirmModal.title}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">{confirmModal.message}</p>
+            </div>
+            <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+              <button 
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition"
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={confirmModal.onConfirm} 
+                className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition"
+              >
+                CONFIRM
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1762,11 +1939,6 @@ export default function BranchDashboard() {
             <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={toggleLanguage} className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition border border-slate-200 shadow-sm">
-              <span className={language === 'en' ? 'text-blue-700' : 'text-slate-500 hover:text-blue-700'}>EN</span>
-              <span className="text-slate-300">|</span>
-              <span className={language === 'si' ? 'text-blue-700' : 'text-slate-500 hover:text-blue-700'}>සිංහල</span>
-            </button>
             <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('Branch Online')}
             </span>

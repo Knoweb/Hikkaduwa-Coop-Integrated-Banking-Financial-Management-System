@@ -104,4 +104,20 @@ public class UserController {
         userRepository.deleteById(id);
         return ResponseEntity.ok().build();
     }
+
+    // GET /api/v1/auth/users/roles - Fetch all roles from DB dynamically
+    @GetMapping("/roles")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getAllRoles() {
+        List<java.util.Map<String, Object>> roles = roleRepository.findAll().stream()
+            .filter(r -> !r.getRoleName().equalsIgnoreCase("SYSTEM_ADMIN")) // exclude super-admin from assignment
+            .map(r -> {
+                java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+                map.put("roleId", r.getRoleId());
+                map.put("roleName", r.getRoleName());
+                map.put("description", r.getDescription());
+                return map;
+            })
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(roles);
+    }
 }

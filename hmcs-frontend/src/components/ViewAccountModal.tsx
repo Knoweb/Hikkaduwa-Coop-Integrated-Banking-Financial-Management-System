@@ -83,21 +83,7 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
           <h2 className="text-lg font-bold">ගිණුම් තොරතුරු (Account Details) - {account.accountNumber}</h2>
           
           <div className="flex items-center gap-4">
-            {/* Quick Action Buttons based on account generic categories */}
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setTxAction('DEPOSIT')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition shadow-sm border border-emerald-400"
-              >
-                <ArrowDownLeft size={16} /> Deposit Cash
-              </button>
-              <button 
-                onClick={() => setTxAction('WITHDRAW')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-lg transition shadow-sm border border-amber-400"
-              >
-                <ArrowUpRight size={16} /> Withdraw Cash
-              </button>
-            </div>
+            {/* Action Buttons Removed */}
             
             <div className="h-6 w-px bg-white/20"></div>
             
@@ -218,7 +204,7 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
             <div className="bg-[#025a4e]/5 border border-[#025a4e]/20 p-5 rounded-xl flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 font-medium">මූලික තැන්පතු මුදල (Initial Deposit Amount)</p>
-                <p className="text-2xl font-bold text-[#025a4e]">Rs. {(account.initialDeposit || account.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                <p className="text-2xl font-bold text-[#025a4e]">Rs. {(account.initialDeposit || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500 mb-1">ගිණුම විවෘත කළ දිනය</p>

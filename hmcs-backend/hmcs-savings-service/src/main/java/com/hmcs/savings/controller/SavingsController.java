@@ -2,12 +2,15 @@ package com.hmcs.savings.controller;
 
 import com.hmcs.savings.entity.Account;
 import com.hmcs.savings.entity.Transaction;
+import com.hmcs.savings.entity.PendingApproval;
 import com.hmcs.savings.repository.AccountRepository;
 import com.hmcs.savings.repository.TransactionRepository;
+import com.hmcs.savings.repository.PendingApprovalRepository;
 import com.hmcs.savings.security.BranchContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -22,27 +25,46 @@ public class SavingsController {
     private final BranchContext branchContext;
     private final com.hmcs.savings.repository.SavingsAccountTypeRepository savingsAccountTypeRepository;
     private final com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository;
+    private final RestTemplate restTemplate;
+    private final PendingApprovalRepository pendingApprovalRepository;
 
     public SavingsController(AccountRepository accountRepository,
                              TransactionRepository transactionRepository,
                              BranchContext branchContext,
                              com.hmcs.savings.repository.SavingsAccountTypeRepository savingsAccountTypeRepository,
-                             com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository) {
+                             com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository,
+                             RestTemplate restTemplate,
+                             PendingApprovalRepository pendingApprovalRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
         this.savingsAccountTypeRepository = savingsAccountTypeRepository;
         this.dailyBalanceRepository = dailyBalanceRepository;
+        this.restTemplate = restTemplate;
+        this.pendingApprovalRepository = pendingApprovalRepository;
     }
 
-    // 1. GET /api/v1/savings - Get all savings accounts (filtered by branch if applicable)
     @GetMapping("/savings")
-    public ResponseEntity<List<Account>> getAccounts(HttpServletRequest request) {
-        Integer branchId = branchContext.extractBranchId(request);
-        List<Account> accounts = accountRepository.findAll().stream()
-                .filter(a -> branchId == null || branchId.equals(a.getBranchId()))
-                .collect(Collectors.toList());
+    public ResponseEntity<List<Account>> getAccounts(
+            HttpServletRequest request,
+            @RequestParam(value = "branchOnly", defaultValue = "false") boolean branchOnly) {
+        List<Account> accounts;
+        if (branchOnly) {
+            Integer branchId = branchContext.extractBranchId(request);
+            accounts = accountRepository.findAll().stream()
+                    .filter(a -> branchId == null || branchId.equals(a.getBranchId()))
+                    .collect(Collectors.toList());
+        } else {
+            // Return all accounts - supports cross-branch banking
+            accounts = accountRepository.findAll();
+        }
         return ResponseEntity.ok(accounts);
+    }
+
+    // /savings/global - alias for cross-branch access via TransactionModal
+    @GetMapping("/savings/global")
+    public ResponseEntity<List<Account>> getGlobalAccounts() {
+        return ResponseEntity.ok(accountRepository.findAll());
     }
 
     // DTO for openAccount
@@ -122,7 +144,7 @@ public class SavingsController {
 
             Transaction tx = new Transaction();
             tx.setAccount(savedAccount);
-            tx.setTransactionType("DEPOSIT");
+            tx.setTransactionType("INITIAL_DEPOSIT");
             tx.setAmount(body.initialDeposit);
             tx.setBalanceAfter(body.initialDeposit);
             tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
@@ -136,6 +158,8 @@ public class SavingsController {
     public static class TransactionRequest {
         public String accountNumber;
         public BigDecimal amount;
+        public String reference;
+        public boolean requestApproval;
     }
 
     // 3. POST /api/v1/transactions/deposit - Process cash deposit
@@ -144,6 +168,10 @@ public class SavingsController {
         Account account = accountRepository.findByAccountNumber(body.accountNumber);
         if (account == null) {
             return ResponseEntity.badRequest().body("Account not found");
+        }
+        
+        if (!"ACTIVE".equalsIgnoreCase(account.getStatus())) {
+            return ResponseEntity.badRequest().body("Account is not ACTIVE. Cannot deposit.");
         }
 
         if (body.amount == null || body.amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -159,7 +187,8 @@ public class SavingsController {
         tx.setTransactionType("DEPOSIT");
         tx.setAmount(body.amount);
         tx.setBalanceAfter(newBalance);
-        tx.setProcessedBy(UUID.randomUUID());
+        tx.setReference(body.reference);
+        tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
         transactionRepository.save(tx);
 
         return ResponseEntity.ok(account);
@@ -172,14 +201,40 @@ public class SavingsController {
         if (account == null) {
             return ResponseEntity.badRequest().body("Account not found");
         }
+        
+        if (!"ACTIVE".equalsIgnoreCase(account.getStatus())) {
+            return ResponseEntity.badRequest().body("Account is not ACTIVE. Cannot withdraw.");
+        }
 
         if (body.amount == null || body.amount.compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.badRequest().body("Invalid withdrawal amount");
         }
-
-        if (account.getBalance().compareTo(body.amount) < 0) {
-            return ResponseEntity.badRequest().body("Insufficient balance");
+        
+        // Minor Account Check
+        String accType = account.getAccountType() != null ? account.getAccountType().toUpperCase() : "";
+        boolean isMinor = accType.contains("LAMA") || accType.contains("ARUNALU") || accType.contains("KEKULU") || accType.contains("CHILD");
+        
+        if (isMinor) {
+            if (body.requestApproval) {
+                PendingApproval pa = new PendingApproval();
+                pa.setAccount(account);
+                pa.setTransactionType("WITHDRAWAL");
+                pa.setAmount(body.amount);
+                pa.setRequestedBy(UUID.randomUUID()); // teller UUID (would come from token)
+                pendingApprovalRepository.save(pa);
+                return ResponseEntity.ok(Map.of("message", "APPROVAL_REQUESTED", "approvalId", pa.getApprovalId()));
+            } else {
+                return ResponseEntity.badRequest().body("Minor Account Withdrawal Requires Branch Manager Authorization.");
+            }
         }
+
+        // Minimum Balance Check (Must maintain 500)
+        BigDecimal minBalance = new BigDecimal("500.00");
+        BigDecimal availableBalance = account.getBalance().subtract(minBalance);
+        if (availableBalance.compareTo(body.amount) < 0) {
+            return ResponseEntity.badRequest().body("Insufficient available balance. Must maintain Rs.500 minimum balance.");
+        }
+        
 
         BigDecimal newBalance = account.getBalance().subtract(body.amount);
         account.setBalance(newBalance);
@@ -190,6 +245,7 @@ public class SavingsController {
         tx.setTransactionType("WITHDRAWAL");
         tx.setAmount(body.amount);
         tx.setBalanceAfter(newBalance);
+        tx.setReference(body.reference);
         tx.setProcessedBy(UUID.randomUUID());
         transactionRepository.save(tx);
 
@@ -256,5 +312,72 @@ public class SavingsController {
             "transactions", transactions,
             "dailyBalances", dailyBalancesList
         ));
+    }
+
+    // 7. GET /api/v1/savings/approvals - Fetch pending approvals (Manager Only)
+    @GetMapping("/approvals")
+    public ResponseEntity<?> getPendingApprovals() {
+        List<PendingApproval> pending = pendingApprovalRepository.findByStatusOrderByCreatedAtDesc("PENDING");
+        return ResponseEntity.ok(pending);
+    }
+
+    // 8. POST /api/v1/savings/approvals/{id}/approve - Approve transaction
+    @PostMapping("/approvals/{id}/approve")
+    public ResponseEntity<?> approveTransaction(@PathVariable UUID id) {
+        Optional<PendingApproval> approvalOpt = pendingApprovalRepository.findById(id);
+        if (approvalOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PendingApproval pa = approvalOpt.get();
+        if (!"PENDING".equals(pa.getStatus())) {
+            return ResponseEntity.badRequest().body("Approval is already processed.");
+        }
+
+        Account account = pa.getAccount();
+        BigDecimal newBalance;
+        if ("WITHDRAWAL".equals(pa.getTransactionType())) {
+            newBalance = account.getBalance().subtract(pa.getAmount());
+        } else {
+            newBalance = account.getBalance().add(pa.getAmount());
+        }
+
+        account.setBalance(newBalance);
+        accountRepository.save(account);
+
+        Transaction tx = new Transaction();
+        tx.setAccount(account);
+        tx.setTransactionType(pa.getTransactionType());
+        tx.setAmount(pa.getAmount());
+        tx.setBalanceAfter(newBalance);
+        tx.setReference("Approved Request");
+        tx.setManagerOverrideUsername("MANAGER_APPROVED");
+        tx.setProcessedBy(pa.getRequestedBy());
+        transactionRepository.save(tx);
+
+        pa.setStatus("APPROVED");
+        pa.setResolvedAt(java.time.LocalDateTime.now());
+        // pa.setManagerId(managerUuid) // If we extract from token
+        pendingApprovalRepository.save(pa);
+
+        return ResponseEntity.ok(Map.of("message", "Transaction Approved and Executed", "transactionId", tx.getTransactionId()));
+    }
+
+    // 9. POST /api/v1/savings/approvals/{id}/reject - Reject transaction
+    @PostMapping("/approvals/{id}/reject")
+    public ResponseEntity<?> rejectTransaction(@PathVariable UUID id) {
+        Optional<PendingApproval> approvalOpt = pendingApprovalRepository.findById(id);
+        if (approvalOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PendingApproval pa = approvalOpt.get();
+        if (!"PENDING".equals(pa.getStatus())) {
+            return ResponseEntity.badRequest().body("Approval is already processed.");
+        }
+
+        pa.setStatus("REJECTED");
+        pa.setResolvedAt(java.time.LocalDateTime.now());
+        pendingApprovalRepository.save(pa);
+
+        return ResponseEntity.ok(Map.of("message", "Transaction Rejected"));
     }
 }

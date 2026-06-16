@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
-      - "./documents/HMCS Integrated Banking & Financial Management SystemPostgreSQL Setup(1).sql:/docker-entrypoint-initdb.d/init.sql"
+      - "./init_db.sql:/docker-entrypoint-initdb.d/init.sql"
     restart: unless-stopped
 
   hmcs-api-gateway:

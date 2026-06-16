@@ -72,3 +72,14 @@ export const updateUser = async (userId: string, user: UserDTO): Promise<UserDTO
 export const deleteUser = async (userId: string): Promise<void> => {
   await axios.delete(API_URL + 'users/' + userId, { headers: authHeader() });
 };
+
+export interface RoleDTO {
+  roleId: number;
+  roleName: string;
+  description?: string;
+}
+
+export const getRoles = async (): Promise<RoleDTO[]> => {
+  const response = await axios.get(API_URL + 'users/roles', { headers: authHeader() });
+  return response.data;
+};

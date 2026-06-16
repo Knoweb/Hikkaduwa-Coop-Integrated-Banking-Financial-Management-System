@@ -8,11 +8,11 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "transactions", schema = "account_service")
-public class Transaction {
+@Table(name = "pending_approvals", schema = "account_service")
+public class PendingApproval {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID transactionId;
+    private UUID approvalId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
@@ -24,18 +24,17 @@ public class Transaction {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal balanceAfter;
-
     @Column(nullable = false)
-    private UUID processedBy;
+    private UUID requestedBy;
 
-    @Column(length = 255)
-    private String reference;
-
-    @Column(length = 100)
-    private String managerOverrideUsername;
+    @Column(length = 20)
+    private String status = "PENDING";
 
     @Column(updatable = false)
-    private LocalDateTime transactionTimestamp = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private UUID managerId;
+
+    private LocalDateTime resolvedAt;
 }
+

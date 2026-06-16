@@ -25,7 +25,7 @@ spring:
         - id: savings-service
           uri: http://hmcs-savings-service:8082
           predicates:
-            - Path=/api/v1/accounts/**, /api/v1/savings/**, /api/v1/transactions/**
+            - Path=/api/v1/accounts/**, /api/v1/savings/**, /api/v1/transactions/**, /api/v1/fixed-deposit-types/**, /api/v1/fixed-deposits/**
 
         - id: loan-service
           uri: http://hmcs-loan-service:8084
