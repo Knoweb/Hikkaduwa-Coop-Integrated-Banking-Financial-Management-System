@@ -7,6 +7,22 @@ const authHeader = () => {
   return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
 };
 
+// Add a global interceptor to handle expired tokens
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // If we get an unauthorized or forbidden response, the token is likely expired.
+      const currentUrl = window.location.pathname;
+      if (currentUrl !== '/' && currentUrl !== '/login') {
+        localStorage.removeItem('user');
+        window.location.href = '/login?expired=true';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const login = async (username: string, password: string) => {
   const response = await axios.post(API_URL + 'login', {
     username,
