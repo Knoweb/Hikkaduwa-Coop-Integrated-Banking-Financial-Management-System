@@ -8,10 +8,13 @@ import {
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
+import * as LoanService from '../services/loan.service';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import OpenAccountForm from '../components/OpenAccountForm';
 import ViewAccountModal from '../components/ViewAccountModal';
+import LoanApplicationModal from '../components/LoanApplicationModal';
+import LoanDetailModal from '../components/LoanDetailModal';
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
@@ -441,13 +444,18 @@ function ValuerView() {
 function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const { t, language } = useLanguage();
   const user = AuthService.getCurrentUser();
+  const navigate = useNavigate();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [loans, setLoans] = useState<LoanService.Loan[]>([]);
+  const [loanSearch, setLoanSearch] = useState('');
+  const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
   const [ageFilter, setAgeFilter] = useState('ALL');
   const [showRegModal, setShowRegModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
+  const [showLoanModal, setShowLoanModal] = useState(false);
   const [viewAccount, setViewAccount] = useState<AccountService.AccountData | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -539,6 +547,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const fetchData = () => {
     AccountService.getMembers().then(setMembers).catch(() => {});
     AccountService.getAccounts().then(setAccounts).catch(() => {});
+    LoanService.getLoans().then(setLoans).catch(() => {});
     AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
   };
   useEffect(() => { fetchData(); }, []);
@@ -690,13 +699,116 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   }
 
   if (activeTab === 'loans') {
+    const filteredLoans = loans.filter(l => {
+      const member = members.find(m => m.memberId === l.memberId);
+      const nameMatch = member ? (member.fullNameSinhala || member.fullName || '').toLowerCase().includes(loanSearch.toLowerCase()) : false;
+      const typeMatch = (l.loanType?.name || '').toLowerCase().includes(loanSearch.toLowerCase());
+      return nameMatch || typeMatch;
+    });
+
     return (
-      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-500">
-          <FileText size={40} />
+      <div className="space-y-6">
+        {/* Module Header */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileText className="text-indigo-600" size={22} /> {t('Loan Accounts Module')}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">Manage {filteredLoans.length} loan applications and active loans.</p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button onClick={() => setShowLoanModal(true)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
+              <FileText size={18} /> {t('Apply for Loan')}
+            </button>
+          </div>
         </div>
-        <h3 className="text-2xl font-bold text-slate-800 mb-2">Loan Accounts</h3>
-        <p className="text-slate-500">The Loan Accounts management module is currently under development.</p>
+
+        {/* Unified Data Table Card */}
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
+          
+          {/* Table Toolbar */}
+          <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-end gap-4 bg-slate-50/80">
+            {/* Search Bar */}
+            <div className="relative w-full md:w-72">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder={t('Search by member or type...')}
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all" />
+            </div>
+          </div>
+
+          <table className="w-full text-sm">
+            <thead className="bg-indigo-50/80 border-b border-indigo-100">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Date')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Member')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Loan Type')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Amount')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Stage')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Status')}</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-indigo-50 bg-white">
+              {filteredLoans.length === 0 ? (
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400">{t('No loans found')}</td></tr>
+              ) : filteredLoans.map(l => {
+                const member = members.find(m => m.memberId === l.memberId);
+                return (
+                <tr key={l.loanId} className="hover:bg-indigo-50/40 transition-colors group">
+                  <td className="px-6 py-4 text-slate-500 font-medium">{l.appliedDate || 'N/A'}</td>
+                  <td className="px-6 py-4 text-slate-800 font-bold">
+                    {member ? (member.fullNameSinhala || member.fullName) : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
+                      {l.loanType?.name || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-black text-slate-800 text-base">Rs. {Number(l.requestedAmount).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-indigo-600">{l.currentStage}</td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                      {t(l.status)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => setViewLoan(l)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition" title={t('View Loan')}>
+                      {t('View')}
+                    </button>
+                  </td>
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Loan Application Modal */}
+        {showLoanModal && (
+          <LoanApplicationModal 
+            onClose={() => {
+              setShowLoanModal(false);
+              LoanService.getLoans().then(setLoans).catch(() => {});
+            }} 
+          />
+        )}
+
+        {/* Loan Detail & Approval Modal */}
+        {viewLoan && (
+          <LoanDetailModal
+            loan={viewLoan}
+            memberName={(() => {
+              const m = members.find(m => m.memberId === viewLoan.memberId);
+              return m ? (m.fullNameSinhala || m.fullName) : 'Unknown Member';
+            })()}
+            onClose={() => setViewLoan(null)}
+            onUpdated={() => {
+              setViewLoan(null);
+              LoanService.getLoans().then(setLoans).catch(() => {});
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1489,6 +1601,8 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             onClose={() => setViewAccount(null)} 
           />
         )}
+
+
 
       </div>
     );

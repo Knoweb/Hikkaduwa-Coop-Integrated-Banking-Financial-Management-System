@@ -4,10 +4,11 @@ import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users,
   Settings, ChevronRight, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
-  Lock, Briefcase, Scale
+  Lock, Briefcase, Scale, AlertTriangle
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
+import * as LoanService from '../services/loan.service';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.jpg';
 
@@ -237,6 +238,127 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
   }, [savingsTypes]);
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [newType, setNewType] = useState({ code: '', nameEn: '', nameSi: '', isChildAccount: false });
+
+  // ── Loan Types state (inside Account Types → Loans tab) ──
+  const [loanTypes, setLoanTypes] = useState<LoanService.LoanType[]>([]);
+  const [loanTypesLoading, setLoanTypesLoading] = useState(false);
+  const [showLoanTypeForm, setShowLoanTypeForm] = useState(false);
+  const [editingLoanType, setEditingLoanType] = useState<LoanService.LoanType | null>(null);
+  const [loanTypeForm, setLoanTypeForm] = useState({
+    code: '', nameEn: '', nameSi: '', description: '',
+    maxAmount: '', maxTermMonths: '', category: 'SOCIETY',
+    eligibilityCriteria: '', isActive: true
+  });
+  const [loanTypeError, setLoanTypeError] = useState('');
+  const [loanTypeSaving, setLoanTypeSaving] = useState(false);
+  // Loan rates editing (Interest Rates tab)
+  const [editingLoanRateId, setEditingLoanRateId] = useState<string | null>(null);
+  const [editLoanRateValue, setEditLoanRateValue] = useState<string | number>(0);
+
+  const fetchLoanTypes = async () => {
+    setLoanTypesLoading(true);
+    try {
+      const data = await LoanService.getAllLoanTypes();
+      setLoanTypes(data);
+    } catch { /* silent */ } finally { setLoanTypesLoading(false); }
+  };
+
+  useEffect(() => { fetchLoanTypes(); }, []);
+
+  const openCreateLoanType = () => {
+    setEditingLoanType(null);
+    setLoanTypeForm({ code: '', nameEn: '', nameSi: '', description: '', maxAmount: '', maxTermMonths: '', category: 'SOCIETY', eligibilityCriteria: '', isActive: true });
+    setLoanTypeError('');
+    setShowLoanTypeForm(true);
+  };
+
+  const openEditLoanType = (lt: LoanService.LoanType) => {
+    const { code, nameSi, nameEn, category, cleanDesc } = parseLoanMeta(lt);
+    setEditingLoanType(lt);
+    setLoanTypeForm({
+      code: code || '',
+      nameEn: nameEn || '',
+      nameSi: nameSi || '',
+      description: cleanDesc || '',
+      maxAmount: String(lt.maxAmount || ''),
+      maxTermMonths: String(lt.maxTermMonths || ''),
+      category: category || 'SOCIETY',
+      eligibilityCriteria: lt.eligibilityCriteria || '',
+      isActive: lt.isActive,
+    });
+    setLoanTypeError('');
+    setShowLoanTypeForm(true);
+  };
+
+  const handleSaveLoanType = async () => {
+    if (!loanTypeForm.nameEn || !loanTypeForm.maxAmount) { setLoanTypeError('Name (English) and Max Amount are required.'); return; }
+    setLoanTypeSaving(true); setLoanTypeError('');
+    try {
+      const payload: Partial<LoanService.LoanType> = {
+        name: loanTypeForm.nameEn,
+        description: loanTypeForm.description,
+        maxAmount: Number(loanTypeForm.maxAmount),
+        maxTermMonths: Number(loanTypeForm.maxTermMonths),
+        // interest rate set from Interest Rates tab; default 14%
+        interestRate: editingLoanType?.interestRate || 14,
+        eligibilityCriteria: loanTypeForm.eligibilityCriteria,
+        isActive: loanTypeForm.isActive,
+        ...(loanTypeForm.code && { name: loanTypeForm.nameEn }),
+      };
+      // Attach extra fields via applicationData workaround (stored in description)
+      (payload as any).description = [
+        loanTypeForm.description,
+        loanTypeForm.nameSi ? `[SI:${loanTypeForm.nameSi}]` : '',
+        loanTypeForm.code ? `[CODE:${loanTypeForm.code}]` : '',
+        loanTypeForm.category ? `[CAT:${loanTypeForm.category}]` : '',
+      ].filter(Boolean).join(' | ');
+
+      if (editingLoanType) { await LoanService.updateLoanType(editingLoanType.loanTypeId, payload); }
+      else { await LoanService.createLoanType(payload); }
+      setShowLoanTypeForm(false);
+      fetchLoanTypes();
+    } catch (err: any) { setLoanTypeError(err.response?.data || 'Save failed'); } finally { setLoanTypeSaving(false); }
+  };
+
+  // Parse embedded metadata from description
+  // Also detects old records where lt.name contains Sinhala text
+  const isSinhala = (str: string) => /[\u0D80-\u0DFF]/.test(str);
+
+  const parseLoanMeta = (lt: LoanService.LoanType) => {
+    const desc = lt.description || '';
+    const hasMetadata = desc.includes('[CODE:') || desc.includes('[SI:');
+    const cleanDesc = desc.replace(/\s*\|?\s*\[(SI|CODE|CAT):[^\]]+\]/g, '').trim();
+
+    // For old records (no metadata), detect if name is Sinhala
+    const nameIsSinhala = isSinhala(lt.name || '');
+
+    const code = desc.match(/\[CODE:([^\]]+)\]/)?.[1]
+      || (hasMetadata ? '' : (nameIsSinhala ? cleanDesc.replace(/\s+/g, '_').toUpperCase().substring(0, 15) : lt.name?.replace(/\s+/g, '_').toUpperCase().substring(0, 15) || ''));
+      
+    const nameSi = desc.match(/\[SI:([^\]]+)\]/)?.[1]
+      || (nameIsSinhala && !hasMetadata ? lt.name : '');
+      
+    const nameEn = hasMetadata ? lt.name : (nameIsSinhala ? cleanDesc : lt.name);
+    
+    return { code, nameSi, nameEn, cleanDesc };
+  };
+
+  const handleUpdateLoanRate = async (lt: LoanService.LoanType, newRate: number) => {
+    try {
+      await LoanService.updateLoanType(lt.loanTypeId, { ...lt, interestRate: newRate });
+      fetchLoanTypes();
+      setEditingLoanRateId(null);
+    } catch { alert('Failed to update rate.'); }
+  };
+
+  const handleDeleteLoanType = async (id: string) => {
+    if (!confirm('Delete this loan type?')) return;
+    try { await LoanService.deleteLoanType(id); fetchLoanTypes(); } catch { alert('Failed to delete.'); }
+  };
+
+  const handleToggleLoanTypeActive = async (lt: LoanService.LoanType) => {
+    try { await LoanService.updateLoanType(lt.loanTypeId, { ...lt, isActive: !lt.isActive }); fetchLoanTypes(); } catch { alert('Failed.'); }
+  };
 
   const fetchSavingsTypes = async () => {
     try {
@@ -570,7 +692,60 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
                     <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold">{t('No savings account types found.')}</td></tr>
                   )}
 
-                  {rateCategory !== 'savings' && ratesData[rateCategory as keyof typeof ratesData].map((item: any) => {
+                  {/* Interest Rates → Loans: load from backend loan types */}
+                  {rateCategory === 'loans' && (
+                    loanTypesLoading ? (
+                      <tr><td colSpan={4} className="py-12 text-center"><div className="w-6 h-6 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                    ) : loanTypes.length === 0 ? (
+                      <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold">No loan types found. Add them from Account Types → Loans.</td></tr>
+                    ) : (
+                      loanTypes.map(lt => {
+                        const isEditing = editingLoanRateId === lt.loanTypeId;
+                        const { code, nameSi, category } = parseLoanMeta(lt);
+                        return (
+                          <tr key={lt.loanTypeId} className="hover:bg-amber-50/30 transition-colors">
+                            <td className="px-8 py-5">
+                              <p className="font-bold text-slate-800">{lt.name}</p>
+                              {nameSi && <p className="text-xs text-slate-400 mt-0.5">{nameSi}</p>}
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest ${
+                                category === 'SOCIETY' ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'
+                              }`}>
+                                {category === 'SOCIETY' ? 'සමාජ' : 'සමාජ නොවන'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              {isEditing ? (
+                                <div className="flex justify-end items-center gap-2">
+                                  <input type="number" value={editLoanRateValue} onChange={e => setEditLoanRateValue(e.target.value)}
+                                    step="0.1" autoFocus
+                                    className="w-24 border-2 border-amber-400 rounded-lg px-3 py-1.5 text-sm font-bold text-right focus:outline-none focus:ring-4 focus:ring-amber-400/20 shadow-sm" />
+                                  <span className="text-slate-400 font-bold">%</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono font-bold text-slate-700 text-base">{lt.interestRate} %</span>
+                              )}
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              {isEditing ? (
+                                <div className="flex justify-end items-center gap-2">
+                                  <button onClick={() => setEditingLoanRateId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
+                                  <button onClick={() => handleUpdateLoanRate(lt, Number(editLoanRateValue))} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
+                                </div>
+                              ) : (
+                                <button onClick={() => { setEditingLoanRateId(lt.loanTypeId); setEditLoanRateValue(lt.interestRate); }}
+                                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition">
+                                  <Edit size={14} /> {t('Edit')}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )
+                  )}
+                  {rateCategory !== 'savings' && rateCategory !== 'loans' && ratesData[rateCategory as keyof typeof ratesData].map((item: any) => {
                     const isEditing = editingRateId === item.id;
                     const name = t(item.label);
                     
@@ -714,70 +889,193 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
 
             {/* Tab Content */}
             <div className="p-0">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
-                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                  <Database size={16} className="text-slate-400" />
-                  {t('Manage')} {t(accountCategory === 'savings' ? 'Savings' : accountCategory === 'fd' ? 'Fixed Deposits' : accountCategory === 'loans' ? 'Loans' : 'Pawning')} {t('Account Types')}
-                </h3>
-                {accountCategory === 'savings' && (
-                  <button 
-                    onClick={() => setShowTypeForm(true)}
-                    className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
-                    <Plus size={14} /> {t('Add Type')}
-                  </button>
-                )}
-              </div>
-              
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-widest">
-                  <tr>
-                    <th className="px-6 py-4">{t('Code')}</th>
-                    <th className="px-6 py-4">{t('Target')}</th>
-                    <th className="px-6 py-4">{t('English')}</th>
-                    <th className="px-6 py-4">{t('Sinhala')}</th>
-                    <th className="px-6 py-4 text-right">{t('Action')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {accountCategory === 'savings' ? (
-                    savingsTypes.length === 0 ? (
-                      <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-bold">{t('No savings account types found.')}</td></tr>
-                    ) : (
-                      savingsTypes.map(st => (
-                        <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600">{st.code}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-slate-800">{st.nameEn}</td>
-                          <td className="px-6 py-4 text-slate-600">{st.nameSi}</td>
-                          <td className="px-6 py-4 text-right">
-                            <button onClick={() => handleDeleteSavingsType(st.id!)} className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
-                              <Trash2 size={16}/>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-8 py-16 text-center">
-                        <Database size={48} className="mx-auto text-slate-200 mb-4" />
-                        <p className="text-slate-500 font-medium text-lg">{t('Global Category Types')} - {t('Read Only')}</p>
-                        <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto">
-                          {t('This banking product relies on standard static categories across the network. Dynamic custom account types are not enabled for this product module.')}
-                        </p>
-                      </td>
-                    </tr>
+              {/* Hide general header for loans — loans section has its own header with Add button */}
+              {accountCategory !== 'loans' && (
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <Database size={16} className="text-slate-400" />
+                    {t('Manage')} {t(accountCategory === 'savings' ? 'Savings' : accountCategory === 'fd' ? 'Fixed Deposits' : 'Pawning')} {t('Account Types')}
+                  </h3>
+                  {accountCategory === 'savings' && (
+                    <button
+                      onClick={() => setShowTypeForm(true)}
+                      className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
+                      <Plus size={14} /> {t('Add Type')}
+                    </button>
                   )}
-                </tbody>
-              </table>
+                </div>
+              )}
+              
+              {accountCategory !== 'loans' && (
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                    <tr>
+                      <th className="px-6 py-4">{t('Code')}</th>
+                      <th className="px-6 py-4">{t('Target')}</th>
+                      <th className="px-6 py-4">{t('English')}</th>
+                      <th className="px-6 py-4">{t('Sinhala')}</th>
+                      <th className="px-6 py-4 text-right">{t('Action')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {accountCategory === 'savings' ? (
+                      savingsTypes.length === 0 ? (
+                        <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-bold">{t('No savings account types found.')}</td></tr>
+                      ) : (
+                        savingsTypes.map(st => (
+                          <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600">{st.code}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-800">{st.nameEn}</td>
+                            <td className="px-6 py-4 text-slate-600">{st.nameSi}</td>
+                            <td className="px-6 py-4 text-right">
+                              <button onClick={() => handleDeleteSavingsType(st.id!)} className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
+                                <Trash2 size={16}/>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    ) : null}
+                  </tbody>
+                </table>
+              )}
+
+              {/* Account Types → Loans tab: savings-style CODE|TARGET|ENGLISH|SINHALA|ACTION table */}
+              {accountCategory === 'loans' && (
+                <div>
+                  {/* Add/Edit Loan Type Modal */}
+                  {showLoanTypeForm && (
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                      <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-amber-600 to-orange-600 p-5 text-white">
+                          <h3 className="text-lg font-black">{editingLoanType ? t('Edit Loan Type') : t('New Loan Type')}</h3>
+                          <p className="text-amber-100 text-xs mt-0.5">{t('Add a loan product — interest rates are set under Interest Rates → Loans')}</p>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          {loanTypeError && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-xl flex items-center gap-2">
+                              <AlertTriangle size={14} /> {loanTypeError}
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Code')} *</label>
+                              <input value={loanTypeForm.code} onChange={e => setLoanTypeForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                                placeholder="e.g. NORMAL_LOAN" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('English Name')} *</label>
+                              <input value={loanTypeForm.nameEn} onChange={e => setLoanTypeForm(p => ({ ...p, nameEn: e.target.value }))}
+                                placeholder="e.g. Normal Loan" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Sinhala Name')}</label>
+                              <input value={loanTypeForm.nameSi} onChange={e => setLoanTypeForm(p => ({ ...p, nameSi: e.target.value }))}
+                                placeholder="e.g. සාමාන්‍ය ණය" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Max Amount')} (Rs.) *</label>
+                              <input type="number" value={loanTypeForm.maxAmount} onChange={e => setLoanTypeForm(p => ({ ...p, maxAmount: e.target.value }))}
+                                placeholder="500000" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Max Term')} ({t('Months')})</label>
+                              <input type="number" value={loanTypeForm.maxTermMonths} onChange={e => setLoanTypeForm(p => ({ ...p, maxTermMonths: e.target.value }))}
+                                placeholder="60" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Description')}</label>
+                              <textarea value={loanTypeForm.description} onChange={e => setLoanTypeForm(p => ({ ...p, description: e.target.value }))}
+                                rows={2} placeholder="Short description..."
+                                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <input type="checkbox" id="lt_isActive" checked={loanTypeForm.isActive} onChange={e => setLoanTypeForm(p => ({ ...p, isActive: e.target.checked }))}
+                                className="w-4 h-4 text-amber-600 rounded" />
+                              <label htmlFor="lt_isActive" className="text-sm font-semibold text-slate-700">{t('Active')}</label>
+                            </div>
+                            <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
+                              💡 Interest rate is configured separately under <strong>Interest Rates → Loans</strong> tab.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-3 p-5 border-t border-slate-100 bg-slate-50">
+                          <button onClick={() => setShowLoanTypeForm(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">{t('Cancel')}</button>
+                          <button onClick={handleSaveLoanType} disabled={loanTypeSaving}
+                            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-sm transition disabled:opacity-60 shadow-md shadow-amber-200">
+                            {loanTypeSaving ? `${t('Saving')}...` : editingLoanType ? t('Save Changes') : t('Create Type')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Header bar with Add button */}
+                  <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <Database size={15} className="text-slate-400" /> {t('Manage Loans Account Types')}
+                    </h3>
+                    <button onClick={openCreateLoanType}
+                      className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
+                      <Plus size={14} /> {t('Add Type')}
+                    </button>
+                  </div>
+
+                  {/* Savings-style table */}
+                  {loanTypesLoading ? (
+                    <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" /></div>
+                  ) : (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                        <tr>
+                          <th className="px-6 py-4">{t('Code')}</th>
+                          <th className="px-6 py-4">{t('English')}</th>
+                          <th className="px-6 py-4">{t('Sinhala')}</th>
+                          <th className="px-6 py-4 text-right">{t('Action')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {loanTypes.length === 0 ? (
+                          <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold">
+                            {t('No loan types configured.')} Click "Add Type" to create one.
+                          </td></tr>
+                        ) : loanTypes.map(lt => {
+                          const { code, nameSi, nameEn, cleanDesc } = parseLoanMeta(lt);
+                          return (
+                            <tr key={lt.loanTypeId} className="hover:bg-amber-50/20 transition-colors">
+                              <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600">{code}</td>
+                              <td className="px-6 py-4 font-bold text-slate-800">{nameEn || '—'}</td>
+                              <td className="px-6 py-4 text-slate-600">{nameSi || '—'}</td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button onClick={() => openEditLoanType(lt)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition">
+                                    <Edit size={12} className="text-slate-500" /> {t('Edit')}
+                                  </button>
+                                  <button onClick={() => handleDeleteLoanType(lt.loanTypeId)}
+                                    className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
+                                    <Trash2 size={15}/>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* ── Branch Config Tab ── */}
       {innerTab === 'config' && (
@@ -816,6 +1114,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
     </div>
   );
 }
+
 
 export default function SystemAdminDashboard() {
   const navigate  = useNavigate();
@@ -862,7 +1161,7 @@ export default function SystemAdminDashboard() {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-          <button onClick={() => { setActiveBranch(null); setActiveTab('users'); }}
+          <button onClick={() => { setActiveBranch(null); }}
             className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${!activeBranch ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <LayoutDashboard size={18} className="mr-3" />{t('Overview')}
           </button>
@@ -934,10 +1233,10 @@ export default function SystemAdminDashboard() {
         </header>
 
         <div className="p-8">
-          {!activeBranch ? (
-            <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} />
-          ) : (
+          {activeBranch ? (
             <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => setActiveBranch(null)} innerTab={activeTab} />
+          ) : (
+            <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} />
           )}
         </div>
       </main>
