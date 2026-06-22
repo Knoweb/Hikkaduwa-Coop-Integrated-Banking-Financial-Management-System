@@ -38,11 +38,18 @@ public class FixedDepositController {
 
     public static class OpenFdRequest {
         public UUID memberId;
+        public UUID memberId2;
+        public UUID memberId3;
         public UUID typeId;
+        public String fdNumber;
         public BigDecimal principalAmount;
         public UUID linkedSavingsAccountId;
         public String interestPayoutMethod; // "MONTHLY" or "AT_MATURITY"
         public String maturityInstruction; // "REINVEST_PRINCIPAL_AND_INTEREST", "REINVEST_PRINCIPAL_PAY_INTEREST", "CLOSE_ACCOUNT"
+        public String receiptNumber;
+        public Boolean isOfficerApproved;
+        public String depositorSignature;
+        public Boolean hasSubmittedTaxForm;
     }
 
     @PostMapping
@@ -51,21 +58,36 @@ public class FixedDepositController {
             return ResponseEntity.badRequest().body("Missing required fields");
         }
 
-        Optional<FixedDepositType> typeOpt = typeRepository.findById(request.typeId);
-        if (typeOpt.isEmpty()) {
+        FixedDepositType type = typeRepository.findById(request.typeId).orElse(null);
+        if (type == null) {
             return ResponseEntity.badRequest().body("Invalid FD Type");
         }
-        FixedDepositType type = typeOpt.get();
 
         FixedDeposit fd = new FixedDeposit();
         fd.setMemberId(request.memberId);
-        fd.setFdNumber("FD-" + (100000 + new Random().nextInt(900000)));
+        fd.setMemberId2(request.memberId2);
+        fd.setMemberId3(request.memberId3);
+        fd.setTypeId(type.getId());
+        if (request.fdNumber != null && !request.fdNumber.trim().isEmpty()) {
+            fd.setFdNumber(request.fdNumber.trim());
+        } else {
+            fd.setFdNumber("FD-" + (100000 + new Random().nextInt(900000)));
+        }
         fd.setPrincipalAmount(request.principalAmount);
         fd.setTermMonths(type.getTermMonths());
+        fd.setOpenedDate(LocalDate.now());
+        fd.setLastInterestPayoutDate(LocalDate.now());
+        fd.setAccumulatedInterest(BigDecimal.ZERO);
         fd.setMaturityDate(LocalDate.now().plusMonths(type.getTermMonths()));
         
         String payoutMethod = request.interestPayoutMethod != null ? request.interestPayoutMethod : "AT_MATURITY";
         fd.setInterestPayoutMethod(payoutMethod);
+
+        if (request.hasSubmittedTaxForm != null) {
+            fd.setHasSubmittedTaxForm(request.hasSubmittedTaxForm);
+        } else {
+            fd.setHasSubmittedTaxForm(false);
+        }
 
         if (request.maturityInstruction != null) {
             fd.setMaturityInstruction(request.maturityInstruction);
@@ -80,6 +102,18 @@ public class FixedDepositController {
         }
 
         fd.setLinkedSavingsAccountId(request.linkedSavingsAccountId);
+        if (request.receiptNumber != null) {
+            fd.setReceiptNumber(request.receiptNumber);
+        }
+
+        if (request.isOfficerApproved != null) {
+            fd.setIsOfficerApproved(request.isOfficerApproved);
+        }
+        
+        if (request.depositorSignature != null) {
+            fd.setDepositorSignature(request.depositorSignature);
+        }
+
         fd.setStatus("ACTIVE");
 
         FixedDeposit savedFd = fdRepository.save(fd);

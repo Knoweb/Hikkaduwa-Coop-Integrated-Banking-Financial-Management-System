@@ -14,14 +14,26 @@ public class FixedDeposit {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID fdId;
 
+    @Column(name = "type_id")
+    private UUID typeId;
+
     @Column(nullable = false)
     private UUID memberId;
+
+    @Column(name = "member_id_2")
+    private UUID memberId2;
+
+    @Column(name = "member_id_3")
+    private UUID memberId3;
 
     @Column(nullable = false, unique = true, length = 50)
     private String fdNumber;
 
     @Column
     private UUID linkedSavingsAccountId;
+
+    @Column(length = 50)
+    private String receiptNumber;
 
     @Column(length = 20)
     private String interestPayoutMethod = "AT_MATURITY";
@@ -39,8 +51,26 @@ public class FixedDeposit {
     private Integer termMonths;
 
     @Column(nullable = false)
+    private LocalDate openedDate = LocalDate.now();
+
+    @Column
+    private LocalDate lastInterestPayoutDate;
+
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal accumulatedInterest = BigDecimal.ZERO;
+
+    @Column(nullable = false)
     private LocalDate maturityDate;
+
+    @Column(name = "is_officer_approved")
+    private Boolean isOfficerApproved = false;
+
+    @Column(columnDefinition = "TEXT", name = "depositor_signature")
+    private String depositorSignature;
 
     @Column(length = 20)
     private String status = "ACTIVE";
+
+    @Column(name = "has_submitted_tax_form")
+    private Boolean hasSubmittedTaxForm = false;
 }

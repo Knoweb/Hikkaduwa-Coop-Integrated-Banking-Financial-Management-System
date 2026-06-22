@@ -56,7 +56,7 @@ export default function TransactionModal({ accountNumber, accountType, balance =
       import('../services/account.service').then(m => {
         m.getMemberById(matched.memberId)
           .then(member => {
-             setFetchedMemberName(member.fullNameSinhala || member.fullName || 'N/A');
+             setFetchedMemberName(member.fullName || member.fullNameSinhala || 'N/A');
              setFetchedMemberSig(member.digitalSignatureUrl || '');
           })
           .catch(() => {
@@ -84,11 +84,11 @@ export default function TransactionModal({ accountNumber, accountType, balance =
   }
 
   // Business Logic Variables
-  const isMinorAccount = currentType?.toUpperCase().includes('LAMA') || 
-                         currentType?.toUpperCase().includes('ARUNALU') || 
-                         currentType?.toUpperCase().includes('RANTHILINA') || 
-                         currentType?.toUpperCase().includes('KEKULU') || 
-                         currentType?.toUpperCase().includes('CHILD');
+  const isMinorAccount = (currentType || '').toUpperCase().includes('LAMA') || 
+                         (currentType || '').toUpperCase().includes('ARUNALU') || 
+                         (currentType || '').toUpperCase().includes('RANTHILINA') || 
+                         (currentType || '').toUpperCase().includes('KEKULU') || 
+                         (currentType || '').toUpperCase().includes('CHILD');
                          
   const MINIMUM_BALANCE = 500;
   const availableBalance = currentBalance - MINIMUM_BALANCE;

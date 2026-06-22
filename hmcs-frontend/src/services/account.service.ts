@@ -24,6 +24,7 @@ export interface MemberData {
   isMember?: boolean;
   registeredBranchId?: number;
   shareAmount?: number;
+  numberOfShares?: number;
   belongsToOtherSociety?: boolean;
   otherSocietyName?: string;
   status?: string;
@@ -199,5 +200,11 @@ export const deleteFixedDepositType = async (id: string): Promise<void> => {
 
 export const updateFixedDepositType = async (id: string, data: any): Promise<any> => {
   const response = await axios.put(`${API_URL}fixed-deposit-types/${id}`, data, { headers: authHeader() });
+  return response.data;
+};
+
+// --- Fixed Deposits API ---
+export const getFixedDeposits = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}fixed-deposits`, { headers: authHeader() });
   return response.data;
 };

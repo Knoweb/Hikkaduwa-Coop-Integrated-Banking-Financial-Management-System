@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -69,8 +70,11 @@ public class MemberController {
             return ResponseEntity.badRequest().body("NIC must be provided");
         }
 
-        if (memberRepository.findByNic(member.getNic()).isPresent()) {
-            return ResponseEntity.badRequest().body("NIC already registered");
+        Optional<Member> existing = memberRepository.findByNic(member.getNic());
+        if (existing.isPresent()) {
+            if (member.getMemberId() == null || !existing.get().getMemberId().equals(member.getMemberId())) {
+                return ResponseEntity.badRequest().body("NIC already registered");
+            }
         }
 
         Integer branchId = branchContext.extractBranchId(request);

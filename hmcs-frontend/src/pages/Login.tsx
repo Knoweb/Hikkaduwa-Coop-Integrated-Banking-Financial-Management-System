@@ -45,7 +45,7 @@ export default function Login() {
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message || 'Login failed. Please check your credentials.'
+        err.response?.data?.message || 'පිවිසීම අසාර්ථකයි. කරුණාකර ඔබගේ පරිශීලක නාමය සහ මුරපදය පරීක්ෂා කරන්න.'
       );
     } finally {
       setLoading(false);
@@ -53,35 +53,46 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-950 to-slate-900 flex items-center justify-center p-4">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-red-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-40 -left-40 w-96 h-96 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 right-20 w-96 h-96 bg-orange-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div>
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat relative overflow-hidden"
+      style={{ backgroundImage: "url('/images/banking_bg.png')" }}
+    >
+      {/* Dynamic Overlay */}
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[4px]"></div>
+      
+      {/* Decorative Glows */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"></div>
 
-      <div className="relative w-full max-w-md">
-        <div className="backdrop-blur-xl bg-white/10 p-8 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] border border-white/20">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-lg mb-4 overflow-hidden border-2 border-white/10">
-              <img src={logo} alt="HMCS Logo" className="w-full h-full object-cover" />
+      <div className="relative z-10 w-full max-w-[440px]">
+        {/* Glassmorphism Card */}
+        <div className="backdrop-blur-xl bg-white/[0.03] border border-white/10 p-10 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex flex-col items-center">
+          
+          {/* Logo Section */}
+          <div className="relative mb-8 group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-yellow-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-2xl overflow-hidden border border-white/20 bg-white/10 backdrop-blur-sm p-1">
+              <img src={logo} alt="HMCS Logo" className="w-full h-full object-cover rounded-xl" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">HMCS Banking</h1>
-            <p className="text-red-200/80 text-sm">Sign in to your dashboard</p>
+          </div>
+          
+          <div className="text-center mb-10 w-full">
+            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 mb-2 tracking-tight">
+              HMCS බැංකුව
+            </h1>
+            <p className="text-yellow-500/80 text-sm font-medium tracking-wide uppercase">සුරක්ෂිත පිවිසුම</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/50 text-red-200 text-sm text-center backdrop-blur-sm">
+            <div className="w-full mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center font-medium backdrop-blur-md">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="w-full space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-red-200/90 ml-1">Username</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">පරිශීලක නාමය</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-red-300 group-focus-within:text-yellow-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-yellow-500 transition-colors">
                   <User size={18} />
                 </div>
                 <input
@@ -89,16 +100,16 @@ export default function Login() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-red-200/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-transparent transition-all backdrop-blur-sm"
-                  placeholder="Enter your username"
+                  className="w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/5 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 focus:border-yellow-500/50 transition-all backdrop-blur-md font-medium"
+                  placeholder="පරිශීලක නාමය ඇතුළත් කරන්න"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-red-200/90 ml-1">Password</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">මුරපදය</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-red-300 group-focus-within:text-yellow-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-yellow-500 transition-colors">
                   <Lock size={18} />
                 </div>
                 <input
@@ -106,13 +117,13 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-11 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-red-200/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-transparent transition-all backdrop-blur-sm"
+                  className="w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/5 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 focus:border-yellow-500/50 transition-all backdrop-blur-md font-medium"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-red-300 hover:text-yellow-400 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-yellow-500 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -122,27 +133,24 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="relative w-full py-3 px-4 bg-gradient-to-r from-red-600 to-yellow-500 hover:from-red-500 hover:to-yellow-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-yellow-500/25 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group"
+              className="relative w-full py-3.5 px-4 bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-400 hover:to-yellow-500 text-slate-900 font-bold rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)] focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group bg-[length:200%_auto] hover:bg-right"
             >
-              {/* Shine effect */}
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
-              
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2 relative z-10">
                 {loading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Authenticating...</span>
+                    <span>තහවුරු කරමින්...</span>
                   </>
                 ) : (
-                  <span>Sign In</span>
+                  <span>පද්ධතියට ඇතුළු වන්න</span>
                 )}
               </div>
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-red-200/50">
-            <p>Hikkaduwa Multi-Purpose Co-operative Society Ltd.</p>
-            <p className="mt-1">© 2026 Integrated Banking System</p>
+          <div className="mt-10 text-center w-full">
+            <p className="text-xs text-slate-500 font-medium">හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය</p>
+            <p className="text-[10px] text-slate-600 mt-1 uppercase tracking-widest">© 2026 ඒකාබද්ධ බැංකු පද්ධතිය</p>
           </div>
         </div>
       </div>
