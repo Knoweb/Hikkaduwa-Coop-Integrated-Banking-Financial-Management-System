@@ -36,6 +36,9 @@ public class Transaction {
     @Column(length = 100)
     private String managerOverrideUsername;
 
+    @Column(name = "branch_id")
+    private Integer branchId;
+
     @Column(updatable = false)
     private LocalDateTime transactionTimestamp = LocalDateTime.now();
 }

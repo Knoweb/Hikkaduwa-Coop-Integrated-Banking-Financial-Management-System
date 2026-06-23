@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import * as AccountService from '../services/account.service';
 import { getCurrentUser } from '../services/auth.service';
@@ -9,6 +9,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
   const [searchResults, setSearchResults] = useState<AccountService.MemberData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
+  const [memberAccounts, setMemberAccounts] = useState<any[]>([]);
 
   useEffect(() => {
     // Fetch FD Types from Backend via Gateway
@@ -75,6 +76,22 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
     receiptNumber: '',
     hasSubmittedTaxForm: false
   });
+
+  useEffect(() => {
+    if (formData.memberId) {
+      AccountService.getAccounts()
+        .then(data => {
+          setMemberAccounts(data.filter(a => 
+            a.memberId === formData.memberId || 
+            a.memberId2 === formData.memberId || 
+            a.memberId3 === formData.memberId
+          ));
+        })
+        .catch(err => console.error("Failed to fetch member accounts", err));
+    } else {
+      setMemberAccounts([]);
+    }
+  }, [formData.memberId]);
 
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,6 +196,14 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
     }
   }, [formConfig.category, formConfig.term, fdTypes]);
 
+  const availableTerms = useMemo(() => {
+    if (!formConfig.category) return [];
+    const terms = fdTypes
+      .filter(t => t.code.startsWith(formConfig.category))
+      .map(t => t.termMonths);
+    return Array.from(new Set(terms)).sort((a, b) => a - b);
+  }, [formConfig.category, fdTypes]);
+
   const [isOfficerApproved, setIsOfficerApproved] = useState(false);
 
   return (
@@ -248,14 +273,12 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     value={formConfig.term}
                     onChange={(e) => setFormConfig({...formConfig, term: e.target.value})}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                    disabled={!formConfig.category}
                   >
                     <option value="">-- තෝරන්න --</option>
-                    <option value="1">මාස 1</option>
-                    <option value="3">මාස 3</option>
-                    <option value="6">මාස 6</option>
-                    <option value="12">මාස 12</option>
-                    <option value="24">මාස 24</option>
-                    <option value="60">මාස 60</option>
+                    {availableTerms.map(term => (
+                      <option key={term} value={term}>මාස {term}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -299,7 +322,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                           className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b last:border-0"
                         >
                           <p className="font-semibold text-slate-800">{member.fullNameSinhala || member.fullName}</p>
-                          <p className="text-xs text-slate-500">NIC: {member.nic} | Member No: {member.memberNo || 'නැත (Non-Member)'}</p>
+                          <p className="text-xs text-slate-500">NIC: {member.nic} | Member No: {member.membershipNumber || 'නැත (Non-Member)'}</p>
                         </button>
                       ))}
                     </div>

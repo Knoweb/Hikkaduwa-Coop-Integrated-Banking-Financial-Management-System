@@ -154,6 +154,7 @@ public class SavingsController {
             tx.setTransactionType("INITIAL_DEPOSIT");
             tx.setAmount(body.initialDeposit);
             tx.setBalanceAfter(body.initialDeposit);
+            tx.setBranchId(branchId);
             tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
             transactionRepository.save(tx);
         }
@@ -189,12 +190,16 @@ public class SavingsController {
         account.setBalance(newBalance);
         accountRepository.save(account);
 
+        Integer currentBranchId = branchContext.extractBranchId(request);
+        if (currentBranchId == null) currentBranchId = 1;
+
         Transaction tx = new Transaction();
         tx.setAccount(account);
         tx.setTransactionType("DEPOSIT");
         tx.setAmount(body.amount);
         tx.setBalanceAfter(newBalance);
         tx.setReference(body.reference);
+        tx.setBranchId(currentBranchId);
         tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
         transactionRepository.save(tx);
 
@@ -247,12 +252,16 @@ public class SavingsController {
         account.setBalance(newBalance);
         accountRepository.save(account);
 
+        Integer currentBranchId = branchContext.extractBranchId(request);
+        if (currentBranchId == null) currentBranchId = 1;
+
         Transaction tx = new Transaction();
         tx.setAccount(account);
         tx.setTransactionType("WITHDRAWAL");
         tx.setAmount(body.amount);
         tx.setBalanceAfter(newBalance);
         tx.setReference(body.reference);
+        tx.setBranchId(currentBranchId);
         tx.setProcessedBy(UUID.randomUUID());
         transactionRepository.save(tx);
 
@@ -330,26 +339,31 @@ public class SavingsController {
 
     // 8. POST /api/v1/savings/approvals/{id}/approve - Approve transaction
     @PostMapping("/approvals/{id}/approve")
-    public ResponseEntity<?> approveTransaction(@PathVariable UUID id) {
+    public ResponseEntity<?> approveTransaction(@PathVariable UUID id, HttpServletRequest request) {
         Optional<PendingApproval> approvalOpt = pendingApprovalRepository.findById(id);
         if (approvalOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
         PendingApproval pa = approvalOpt.get();
         if (!"PENDING".equals(pa.getStatus())) {
-            return ResponseEntity.badRequest().body("Approval is already processed.");
+            return ResponseEntity.badRequest().body("Request is already processed.");
         }
 
         Account account = pa.getAccount();
-        BigDecimal newBalance;
+        BigDecimal newBalance = account.getBalance();
+
         if ("WITHDRAWAL".equals(pa.getTransactionType())) {
-            newBalance = account.getBalance().subtract(pa.getAmount());
-        } else {
-            newBalance = account.getBalance().add(pa.getAmount());
+            newBalance = newBalance.subtract(pa.getAmount());
+        } else if ("DEPOSIT".equals(pa.getTransactionType())) {
+            newBalance = newBalance.add(pa.getAmount());
         }
 
         account.setBalance(newBalance);
         accountRepository.save(account);
+
+        Integer currentBranchId = branchContext.extractBranchId(request);
+        if (currentBranchId == null) currentBranchId = 1;
 
         Transaction tx = new Transaction();
         tx.setAccount(account);
@@ -357,6 +371,7 @@ public class SavingsController {
         tx.setAmount(pa.getAmount());
         tx.setBalanceAfter(newBalance);
         tx.setReference("Approved Request");
+        tx.setBranchId(currentBranchId);
         tx.setManagerOverrideUsername("MANAGER_APPROVED");
         tx.setProcessedBy(pa.getRequestedBy());
         transactionRepository.save(tx);

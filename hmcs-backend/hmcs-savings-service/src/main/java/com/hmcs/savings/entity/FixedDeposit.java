@@ -73,4 +73,7 @@ public class FixedDeposit {
 
     @Column(name = "has_submitted_tax_form")
     private Boolean hasSubmittedTaxForm = false;
+
+    @Column(name = "branch_id")
+    private Integer branchId;
 }

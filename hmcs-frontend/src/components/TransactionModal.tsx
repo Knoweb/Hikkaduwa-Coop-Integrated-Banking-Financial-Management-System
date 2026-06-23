@@ -5,6 +5,7 @@ import * as AccountService from '../services/account.service';
 export type TransactionAction = 'DEPOSIT' | 'WITHDRAW' | 'CLOSE_FD' | 'PAY_INSTALLMENT';
 
 interface Props {
+  accountId?: string;
   accountNumber: string;
   accountType: string;
   balance?: number;
@@ -16,8 +17,9 @@ interface Props {
   members?: any[];
 }
 
-export default function TransactionModal({ accountNumber, accountType, balance = 0, accountHolder = 'N/A', action, onClose, onSuccess, allAccounts = [], members = [] }: Props) {
+export default function TransactionModal({ accountId, accountNumber, accountType, balance = 0, accountHolder = 'N/A', action, onClose, onSuccess, allAccounts = [], members = [] }: Props) {
   const [internalAccNo, setInternalAccNo] = useState(accountNumber || '');
+  const [internalAccId, setInternalAccId] = useState(accountId || '');
   const [amount, setAmount] = useState<number | ''>('');
   const [reference, setReference] = useState('');
   
@@ -137,8 +139,21 @@ export default function TransactionModal({ accountNumber, accountType, balance =
       } else if (action === 'PAY_INSTALLMENT') {
         result = await AccountService.deposit({ accountNumber: internalAccNo, amount: Number(amount), reference });
       } else if (action === 'CLOSE_FD') {
-        await new Promise(r => setTimeout(r, 1000));
-        result = { data: { message: 'FD Closed Successfully' } };
+        result = await AccountService.releaseFixedDeposit(internalAccId);
+        setReceiptData({
+          transactionId: `TXN${Math.floor(Math.random() * 1000000)}`,
+          date: new Date().toLocaleString(),
+          accountNumber: internalAccNo,
+          accountHolder: currentHolder,
+          amount: result.netAmountCredited,
+          type: action,
+          deductedInterest: result.deductedInterest,
+          balanceAfter: 0
+        });
+        setIsSuccess(true);
+        onSuccess();
+        setLoading(false);
+        return;
       }
       
       // Store mock receipt data for demonstration
@@ -215,12 +230,23 @@ export default function TransactionModal({ accountNumber, accountType, balance =
           <p className="text-slate-500 font-medium mb-8">
             {receiptData.type === 'PENDING_APPROVAL' 
               ? `Request sent to Branch Manager to withdraw Rs. ${Number(receiptData.amount).toLocaleString()} from the account.` 
+              : receiptData.type === 'CLOSE_FD'
+              ? `FD closed. Rs. ${Number(receiptData.amount).toLocaleString()} credited to savings account.`
               : `Rs. ${Number(receiptData.amount).toLocaleString()} has been ${action === 'DEPOSIT' ? 'deposited to' : 'withdrawn from'} the account.`}
           </p>
           
           <div className="bg-slate-50 rounded-xl p-4 text-left mb-6 border border-slate-100 space-y-2">
             <div className="flex justify-between text-sm"><span className="text-slate-500">{receiptData.type === 'PENDING_APPROVAL' ? 'Request ID:' : 'Txn ID:'}</span> <span className="font-mono font-bold text-slate-700">{receiptData.transactionId}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">{receiptData.type === 'PENDING_APPROVAL' ? 'Current Balance:' : 'New Balance:'}</span> <span className="font-bold text-slate-800">Rs. {receiptData.balanceAfter.toLocaleString()}</span></div>
+            {receiptData.type === 'CLOSE_FD' ? (
+              <>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Credited Amount:</span> <span className="font-bold text-slate-800">Rs. {receiptData.amount.toLocaleString()}</span></div>
+                {receiptData.deductedInterest > 0 && (
+                  <div className="flex justify-between text-sm"><span className="text-red-500">Deducted Interest:</span> <span className="font-bold text-red-600">Rs. {receiptData.deductedInterest.toLocaleString()}</span></div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between text-sm"><span className="text-slate-500">{receiptData.type === 'PENDING_APPROVAL' ? 'Current Balance:' : 'New Balance:'}</span> <span className="font-bold text-slate-800">Rs. {receiptData.balanceAfter.toLocaleString()}</span></div>
+            )}
           </div>
 
           <div className="flex gap-3">
@@ -316,6 +342,16 @@ export default function TransactionModal({ accountNumber, accountType, balance =
                         <p className="text-xs text-amber-700 mt-1 font-medium mb-3">
                           ළමා ගිණුමකින් මුදල් ආපසු ගැනීම සඳහා ශාඛා කළමනාකරුගේ අනුමැතිය අවශ්‍ය වේ. අනුමැතිය සඳහා ඉල්ලීමක් යැවීමට පහත බොත්තම භාවිතා කරන්න.
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {action === 'CLOSE_FD' && (
+                    <div className="p-4 bg-red-50 rounded-xl border border-red-200 mb-6 flex gap-3 text-red-800 text-sm">
+                      <AlertTriangle size={24} className="shrink-0 text-red-500" />
+                      <div>
+                        <p className="font-bold mb-1">කරුණාකර මෙය අවධානයෙන් කියවන්න!</p>
+                        <p>මෙම ස්ථාවර තැන්පතුව කල් පිරෙන්නට පෙර අවලංගු කරන්නේ නම්, මාසිකව දැනටමත් ගිණුමට බැර කර ඇති පොලී මුදල මුල් මුදලින් හර කර ඉතිරිය ගිණුමට බැර කරනු ඇත. ඔබ මෙය ස්ථිර කරන්නේද?</p>
                       </div>
                     </div>
                   )}

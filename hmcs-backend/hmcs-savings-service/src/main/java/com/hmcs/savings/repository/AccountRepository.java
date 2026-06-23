@@ -7,4 +7,5 @@ import java.util.List;
 public interface AccountRepository extends JpaRepository<Account, UUID> {
     List<Account> findByMemberId(UUID memberId);
     Account findByAccountNumber(String accountNumber);
+    List<Account> findByBranchIdOrderByCreatedAtDesc(Integer branchId, org.springframework.data.domain.Pageable pageable);
 }

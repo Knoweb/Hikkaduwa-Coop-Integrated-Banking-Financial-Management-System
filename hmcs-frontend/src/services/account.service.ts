@@ -208,3 +208,14 @@ export const getFixedDeposits = async (): Promise<any[]> => {
   const response = await axios.get(`${API_URL}fixed-deposits`, { headers: authHeader() });
   return response.data;
 };
+
+export const releaseFixedDeposit = async (id: string): Promise<any> => {
+  const response = await axios.post(`${API_URL}fixed-deposits/${id}/release`, {}, { headers: authHeader() });
+  return response.data;
+};
+
+// --- Branch Activities ---
+export const getBranchActivities = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}branch/activities`, { headers: authHeader() });
+  return response.data;
+};

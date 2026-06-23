@@ -379,9 +379,11 @@ function TellerView() {
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     AccountService.getAccounts().then(setAccounts).catch(() => {});
+    AccountService.getBranchActivities().then(setActivities).catch(() => {});
   }, []);
 
   const handleTx = async () => {
@@ -395,6 +397,7 @@ function TellerView() {
       setResult({ ok: true, msg: `✓ ${txType === 'deposit' ? 'Deposited' : 'Withdrawn'} Rs. ${amt.toLocaleString()}. New balance: Rs. ${(res as any).balance?.toLocaleString()}` });
       setAmount(''); setAccNo('');
       AccountService.getAccounts().then(setAccounts).catch(() => {});
+      AccountService.getBranchActivities().then(setActivities).catch(() => {});
     } catch (e: any) {
       setResult({ ok: false, msg: e.response?.data || 'Transaction failed' });
     } finally { setLoading(false); }
@@ -402,62 +405,48 @@ function TellerView() {
 
   const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={Banknote}   label="Total Branch Balance" value={`Rs. ${totalBalance.toLocaleString()}`} color="text-green-600" />
-        <StatCard icon={CreditCard} label="Active Accounts"      value={accounts.length.toString()}            color="text-blue-600" />
-        <StatCard icon={TrendingUp} label="Account Types"        value={[...new Set(accounts.map(a => a.accountType))].length.toString()} color="text-purple-600" />
-      </div>
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6">
 
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Banknote size={16} /> Cash Transaction</h3>
-          <div className="flex rounded-xl overflow-hidden border border-slate-200 mb-4">
-            <button onClick={() => setTxType('deposit')}  className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'deposit'  ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Deposit</button>
-            <button onClick={() => setTxType('withdraw')} className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'withdraw' ? 'bg-red-600 text-white'   : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Withdraw</button>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Account Number</label>
-              <input value={accNo} onChange={e => setAccNo(e.target.value)} placeholder="e.g. ACC-123456"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Amount (Rs.)</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-            </div>
-            {result && (
-              <div className={`p-3 rounded-xl text-sm font-medium ${result.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {result.msg}
-              </div>
-            )}
-            <button onClick={handleTx} disabled={loading}
-              className={`w-full py-3 rounded-xl text-white font-semibold transition disabled:opacity-60 ${txType === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
-              {loading ? 'Processing...' : `Process ${txType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
-            </button>
-          </div>
-        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-[400px]">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+          <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+            {activities.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-6">No recent activities</p>
+            ) : activities.map((act, idx) => {
+              let icon = <Activity size={16} />;
+              let colorClass = "bg-slate-100 text-slate-600";
+              let label = act.type;
+              
+              if (act.type === 'DEPOSIT') {
+                icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "Deposit";
+              } else if (act.type === 'WITHDRAWAL') {
+                icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "Withdrawal";
+              } else if (act.type === 'NEW_SAVINGS') {
+                icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "New Savings";
+              } else if (act.type === 'NEW_FD') {
+                icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "New FD";
+              }
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16} /> Branch Accounts</h3>
-          <div className="space-y-2 max-h-72 overflow-y-auto">
-            {accounts.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">No accounts found</p>
-            ) : accounts.map(a => (
-              <div key={a.accountId} onClick={() => setAccNo(a.accountNumber)}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{a.accountNumber}</p>
-                  <p className="text-xs text-slate-400">{a.accountType}</p>
+              return (
+                <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition" onClick={() => setAccNo(act.reference)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-bold text-slate-800 truncate">{label}</p>
+                      <p className="text-sm font-black text-slate-800 whitespace-nowrap">Rs. {Number(act.amount).toLocaleString()}</p>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-xs font-mono text-slate-500">{act.reference || 'N/A'}</p>
+                      <p className="text-[10px] font-semibold text-slate-400">{new Date(act.timestamp).toLocaleString()}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${a.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{a.status}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -563,6 +552,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [viewingFd, setViewingFd] = useState<any>(null);
   const [monitoringFd, setMonitoringFd] = useState<any>(null);
   const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
   const [fdSearch, setFdSearch] = useState('');
   const [fdLoading, setFdLoading] = useState(false);
@@ -629,6 +619,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
     setFdLoading(true);
     AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}).finally(() => setFdLoading(false));
+    AccountService.getBranchActivities().then(setActivities).catch(() => {});
   };
   useEffect(() => { fetchData(); }, []);
 
@@ -1010,6 +1001,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         {/* Row Transaction Modal */}
         {rowTxAction && (
           <TransactionModal 
+            accountId={rowTxAccount?.accountId || ''}
             accountNumber={rowTxAccount?.accountNumber || ''}
             accountType={rowTxAccount?.accountType || ''}
             balance={Number(rowTxAccount?.balance || 0)}
@@ -1177,62 +1169,47 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   }
 
   if (activeTab === 'transactions') {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard icon={Banknote}   label="Total Branch Balance" value={`Rs. ${totalBranchBalance.toLocaleString()}`} color="text-green-600" />
-          <StatCard icon={CreditCard} label="Active Accounts"      value={accounts.length.toString()}            color="text-blue-600" />
-          <StatCard icon={TrendingUp} label="Account Types"        value={[...new Set(accounts.map(a => a.accountType))].length.toString()} color="text-purple-600" />
-        </div>
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-[400px]">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+            <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+              {activities.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">No recent activities</p>
+              ) : activities.map((act, idx) => {
+                let icon = <Activity size={16} />;
+                let colorClass = "bg-slate-100 text-slate-600";
+                let label = act.type;
+                
+                if (act.type === 'DEPOSIT') {
+                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "Deposit";
+                } else if (act.type === 'WITHDRAWAL') {
+                  icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "Withdrawal";
+                } else if (act.type === 'NEW_SAVINGS') {
+                  icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "New Savings";
+                } else if (act.type === 'NEW_FD') {
+                  icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "New FD";
+                }
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Banknote size={16} /> Cash Transaction</h3>
-            <div className="flex rounded-xl overflow-hidden border border-slate-200 mb-4">
-              <button onClick={() => setTxType('deposit')}  className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'deposit'  ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Deposit</button>
-              <button onClick={() => setTxType('withdraw')} className={`flex-1 py-2.5 text-sm font-semibold transition ${txType === 'withdraw' ? 'bg-red-600 text-white'   : 'bg-white text-slate-600 hover:bg-slate-50'}`}>Withdraw</button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Account Number</label>
-                <input value={txAccNo} onChange={e => setTxAccNo(e.target.value)} placeholder="e.g. 89905789"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-300" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Amount (Rs.)</label>
-                <input type="number" min="1" value={txAmount} onChange={e => setTxAmount(e.target.value)} placeholder="0.00"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-300" />
-              </div>
-              {txResult && (
-                <div className={`p-3 rounded-xl text-sm font-medium ${txResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                  {txResult.msg}
-                </div>
-              )}
-              <button onClick={handleGlobalTx} disabled={txLoading}
-                className={`w-full py-3 rounded-xl text-white font-semibold transition disabled:opacity-60 ${txType === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
-                {txLoading ? 'Processing...' : `Process ${txType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16} /> Recent Accounts Directory</h3>
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-              {accounts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">No accounts found</p>
-              ) : accounts.map(a => (
-                <div key={a.accountId} onClick={() => setTxAccNo(a.accountNumber)}
-                  className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">{a.accountNumber}</p>
-                    <p className="text-xs font-semibold text-slate-500 mt-0.5">{a.accountType}</p>
+                return (
+                  <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm font-bold text-slate-800 truncate">{label}</p>
+                        <p className="text-sm font-black text-slate-800 whitespace-nowrap">Rs. {Number(act.amount).toLocaleString()}</p>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className="text-xs font-mono text-slate-500">{act.reference || 'N/A'}</p>
+                        <p className="text-[10px] font-semibold text-slate-400">{new Date(act.timestamp).toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-slate-800">Rs. {Number(a.balance).toLocaleString()}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${a.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{a.status}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1361,6 +1338,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         {/* Row Transaction Modal */}
         {rowTxAction && (
           <TransactionModal 
+            accountId={rowTxAccount?.accountId || ''}
             accountNumber={rowTxAccount?.accountNumber || ''}
             accountType={rowTxAccount?.accountType || ''}
             balance={Number(rowTxAccount?.balance || 0)}
