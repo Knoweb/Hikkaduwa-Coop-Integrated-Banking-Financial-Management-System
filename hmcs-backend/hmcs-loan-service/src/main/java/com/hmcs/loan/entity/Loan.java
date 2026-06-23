@@ -30,6 +30,9 @@ public class Loan {
     @JoinColumn(name = "loan_type_id", referencedColumnName = "loan_type_id")
     private LoanType loanType;
 
+    @Column(name = "loan_type")
+    private String loanTypeStr;
+
     @Column(name = "requested_amount", precision = 15, scale = 2)
     private BigDecimal requestedAmount;
 
@@ -46,7 +49,7 @@ public class Loan {
     private Integer branchId;
 
     @Column(name = "current_stage", length = 50)
-    private String currentStage = "STAGE_1_APPLICATION_SUBMITTED";
+    private String currentStage = "STAGE_1_MANAGER_APPROVAL";
 
     @Column(name = "status", length = 20)
     private String status = "PENDING"; 
@@ -54,10 +57,21 @@ public class Loan {
     @Column(name = "applied_date")
     private LocalDate appliedDate;
 
-    // JSONB Column for Dynamic Application Forms
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "application_data", columnDefinition = "jsonb")
     private Map<String, Object> applicationData;
+
+    @Column(name = "account_number", length = 50, unique = true)
+    private String accountNumber;
+
+    @Column(name = "disbursement_date")
+    private LocalDateTime disbursementDate;
+
+    @Column(name = "disbursed_amount", precision = 15, scale = 2)
+    private BigDecimal disbursedAmount;
+
+    @Column(name = "disbursed_by", length = 100)
+    private String disbursedBy;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

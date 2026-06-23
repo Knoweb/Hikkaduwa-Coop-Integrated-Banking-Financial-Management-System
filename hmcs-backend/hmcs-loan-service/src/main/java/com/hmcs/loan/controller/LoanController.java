@@ -112,6 +112,27 @@ public class LoanController {
     }
 
     /**
+     * Disburse an approved loan.
+     * Body: { "amount": 100000, "actorUsername": "mgr_hkw" }
+     */
+    @PostMapping("/{id}/disburse")
+    public ResponseEntity<Loan> disburseLoan(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            BigDecimal amount = body.containsKey("amount") ? new BigDecimal(body.get("amount").toString()) : null;
+            String actorUsername = body.getOrDefault("actorUsername", "system").toString();
+            String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
+            String savingsAccountNumber = body.getOrDefault("savingsAccountNumber", "").toString();
+            
+            Loan updated = loanService.disburseLoan(id, amount, actorUsername, paymentMethod, savingsAccountNumber);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    /**
      * Get full approval history for a loan.
      */
     @GetMapping("/{id}/history")
