@@ -132,10 +132,13 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <p className="text-[9px] text-emerald-600/70 font-semibold">පොලී අනුපාතය: {intRate.toFixed(2)}% ({payoutMethodText})</p>
-                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${hasTaxForm ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600'}`}>
-                    {hasTaxForm ? 'No WHT' : '10% WHT Deducted'}
-                  </span>
                 </div>
+              </div>
+              
+              <div className={`mt-3 p-2 rounded-lg border ${hasTaxForm ? 'bg-emerald-100/50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                <p className={`text-[10px] font-bold text-center ${hasTaxForm ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  {hasTaxForm ? '✓ බදු ආකෘති පත්‍රය ලබා දී ඇත (No WHT)' : '⚠️ බදු ආකෘති පත්‍රය ලබා දී නැත (10% WHT අය කෙරේ)'}
+                </p>
               </div>
             </div>
 
