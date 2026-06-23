@@ -30,7 +30,7 @@ spring:
         - id: loan-service
           uri: http://hmcs-loan-service:8084
           predicates:
-            - Path=/api/v1/loans/**
+            - Path=/api/v1/loans/**, /api/v1/ledger/**
 
         - id: pawning-service
           uri: http://hmcs-pawning-service:8085
