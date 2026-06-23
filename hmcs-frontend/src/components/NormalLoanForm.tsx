@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Shield, Landmark, ClipboardCheck, ChevronRight, ChevronLeft, Save } from 'lucide-react';
 import { applyForLoan } from '../services/loan.service';
-import { searchMembers } from '../services/account.service';
+import { searchMembers, getAccounts } from '../services/account.service';
+import * as AuthService from '../services/auth.service';
 
 interface NormalLoanFormProps {
   loanTypeId: string;
@@ -63,8 +64,8 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     existingLoansOther: '',
 
     // Step 4: ඇපකරුවන්ගේ විස්තර
-    guarantor1: { name: '', address: '', nic: '', dob: '', memberNo: '', job: '', phone: '', family: [{ name: '', age: '', relation: '', job: '' }], assets: { land: '', vehicles: '', animals: '', other: '' }, bank: { dhanaYojana: '', savings: '', fixed: '' }, incomePrimary: '', incomeOther: '' },
-    guarantor2: { name: '', address: '', nic: '', dob: '', memberNo: '', job: '', phone: '', family: [{ name: '', age: '', relation: '', job: '' }], assets: { land: '', vehicles: '', animals: '', other: '' }, bank: { dhanaYojana: '', savings: '', fixed: '' }, incomePrimary: '', incomeOther: '' },
+    guarantor1: { name: '', address: '', nic: '', dob: '', memberNo: '', job: '', phone: '', family: [{ name: '', age: '', relation: '', job: '' }], assets: { land: '', vehicles: '', animals: '', other: '' }, bank: { dhanaYojana: '', savings: '', fixed: '' }, incomePrimary: '', incomeOther: '', digitalSignatureUrl: '' },
+    guarantor2: { name: '', address: '', nic: '', dob: '', memberNo: '', job: '', phone: '', family: [{ name: '', age: '', relation: '', job: '' }], assets: { land: '', vehicles: '', animals: '', other: '' }, bank: { dhanaYojana: '', savings: '', fixed: '' }, incomePrimary: '', incomeOther: '', digitalSignatureUrl: '' },
   });
 
   const handleInputChange = (e: any, section: string | null = null, subSection: string | null = null) => {
@@ -96,7 +97,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 4));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   useEffect(() => {
@@ -118,12 +119,26 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     return () => clearTimeout(timer);
   }, [searchQuery, showDropdown]);
 
-  const selectMember = (member: any) => {
+  // Auto-calculate total annual expense when primary and other incomes change
+  useEffect(() => {
+    const primary = Number(formData.annualIncomePrimary || 0);
+    const other = Number(formData.annualIncomeOther || 0);
+    const total = primary + other;
+    setFormData(prev => {
+      if (Number(prev.annualExpense) !== total) {
+        return { ...prev, annualExpense: total.toString() };
+      }
+      return prev;
+    });
+  }, [formData.annualIncomePrimary, formData.annualIncomeOther]);
+
+  const selectMember = async (member: any) => {
     setSearchQuery(member.membershipNumber || member.nic || '');
     setShowDropdown(false);
-    setMemberId(member.memberId || '00000000-0000-0000-0000-000000000000');
-    setFormData(prev => ({
-      ...prev,
+    const mid = member.memberId || '00000000-0000-0000-0000-000000000000';
+    setMemberId(mid);
+
+    const baseUpdate: any = {
       applicantName: member.fullName || '',
       addressLine1: member.address || '',
       dob: member.dateOfBirth || '',
@@ -134,7 +149,46 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
       memberNo: member.membershipNumber || '',
       isMemberOfOtherCoop: member.belongsToOtherSociety ? 'ඔව්' : 'නැත',
       otherCoopDetails: member.otherSocietyName || '',
-    }));
+    };
+
+    // Auto-populate savings account details from savings-service
+    try {
+      const allAccounts = await getAccounts();
+      const memberAccounts = allAccounts.filter(
+        (acc: any) => acc.memberId === mid && acc.status === 'ACTIVE'
+      );
+      const savingsAcc = memberAccounts.find(
+        (a: any) => ['NORMAL', 'JANASETHA', 'VANDANA', 'ARUNALU', 'RANTHILINA'].includes((a.accountType || '').toUpperCase())
+      );
+      const dyAcc = memberAccounts.find(
+        (a: any) => (a.accountType || '').toUpperCase() === 'DHANA_YOJANA'
+      );
+
+      baseUpdate.bankAccounts = {
+        current:     { branch: '', accNo: '', balance: '' },
+        dhanaYojana: {
+          branch:  dyAcc ? 'ශාඛාව' : '',
+          accNo:   dyAcc?.accountNumber || '',
+          balance: dyAcc ? String(dyAcc.balance) : ''
+        },
+        savings: {
+          branch:  savingsAcc ? 'ශාඛාව' : '',
+          accNo:   savingsAcc?.accountNumber || '',
+          balance: savingsAcc ? String(savingsAcc.balance) : ''
+        },
+        fixed: { branch: '', accNo: '', balance: '' },
+      };
+    } catch {
+      // silently skip if accounts fetch fails
+    }
+
+    setFormData(prev => ({ ...prev, ...baseUpdate }));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,10 +196,12 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     setLoading(true);
     try {
         const totalAmount = Number(formData.requiredLoanCash || 0) + Number(formData.requiredLoanGoods || 0);
+        const currentUser = AuthService.getCurrentUser();
         const payload = {
             memberId: memberId,
             requestedAmount: totalAmount,
             termMonths: parseInt(formData.repaymentPeriodMonths || '12'),
+            branchId: currentUser?.branchId || 1,
             applicationData: formData
         };
 
@@ -176,8 +232,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
             { step: 1, label: 'මූලික තොරතුරු', icon: User },
             { step: 2, label: 'ණය සහ ආර්ථිකය', icon: Landmark },
             { step: 3, label: 'වත්කම් සහ වියදම්', icon: ClipboardCheck },
-            { step: 4, label: 'ඇපකරුවන්ගේ විස්තර', icon: Shield },
-            { step: 5, label: 'නිලධාරී නිර්දේශ', icon: ClipboardCheck }
+            { step: 4, label: 'ඇපකරුවන්ගේ විස්තර', icon: Shield }
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -188,7 +243,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   </div>
                   <span className={`text-xs font-medium ${currentStep === s.step ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>{s.label}</span>
                 </div>
-                {s.step < 5 && <div className={`flex-1 h-[2px] mx-4 ${currentStep > s.step ? 'bg-emerald-500' : 'bg-slate-300'}`} />}
+                {s.step < 4 && <div className={`flex-1 h-[2px] mx-4 ${currentStep > s.step ? 'bg-emerald-500' : 'bg-slate-300'}`} />}
               </div>
             );
           })}
@@ -197,12 +252,12 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
       {/* Mobile Step Indicator */}
       <div className="sm:hidden p-4 bg-slate-100 text-center font-semibold text-emerald-700 text-sm border-b border-slate-200 shrink-0">
-        පියවර {currentStep} න් 5 : {['මූලික තොරතුරු', 'ණය සහ ආර්ථිකය', 'වත්කම් සහ වියදම්', 'ඇපකරුවන්ගේ විස්තර', 'නිලධාරී නිර්දේශ'][currentStep - 1]}
+        පියවර {currentStep} න් 4 : {['මූලික තොරතුරු', 'ණය සහ ආර්ථිකය', 'වත්කම් සහ වියදම්', 'ඇපකරුවන්ගේ විස්තර'][currentStep - 1]}
       </div>
 
       {/* Form Content */}
       <div className="flex-1 overflow-y-auto">
-        <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8 max-w-5xl mx-auto">
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="p-6 sm:p-10 space-y-8 max-w-5xl mx-auto">
           
           {/* STEP 1: මූලික තොරතුරු */}
           {currentStep === 1 && (
@@ -412,28 +467,28 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
               {/* බැංකු ගිණුම් විස්තර */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-slate-700">මූල්ය වත්කම් (බැංකු සහ ආයතන ගිණුම් විස්තර)</h3>
-                <div className="overflow-x-auto border rounded-xl">
+                <div className="overflow-x-auto border border-slate-300 rounded-xl">
                   <table className="w-full text-left border-collapse bg-white text-sm">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-semibold border-b">
-                        <th className="p-3">ගිණුම් වර්ගය</th>
-                        <th className="p-3">ආයතනය</th>
-                        <th className="p-3">ගිණුම් අංකය</th>
+                      <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-300">
+                        <th className="p-3 border-r border-slate-300">ගිණුම් වර්ගය</th>
+                        <th className="p-3 border-r border-slate-300">ආයතනය</th>
+                        <th className="p-3 border-r border-slate-300">ගිණුම් අංකය</th>
                         <th className="p-3">ශේෂය (රු.)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y divide-slate-300">
                       {[
                         { key: 'current', label: 'ජංගම ගිණුම්' },
                         { key: 'dhanaYojana', label: 'ධන යෝජනා ගිණුම්' },
                         { key: 'savings', label: 'ඉතිරි කිරීමේ ගිණුම්' },
                         { key: 'fixed', label: 'ස්ථාවර තැන්පත්' }
                       ].map((acc) => (
-                        <tr key={acc.key}>
-                          <td className="p-3 font-medium bg-slate-50">{acc.label}</td>
-                          <td className="p-2"><input type="text" name="branch" value={(formData.bankAccounts as any)[acc.key].branch} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border-0 p-1 bg-transparent focus:ring-0" /></td>
-                          <td className="p-2"><input type="text" name="accNo" value={(formData.bankAccounts as any)[acc.key].accNo} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border-0 p-1 bg-transparent focus:ring-0" /></td>
-                          <td className="p-2"><input type="number" name="balance" value={(formData.bankAccounts as any)[acc.key].balance} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border-0 p-1 bg-transparent focus:ring-0" /></td>
+                        <tr key={acc.key} className="border-b border-slate-300 last:border-b-0">
+                          <td className="p-3 font-medium bg-slate-50 border-r border-slate-300">{acc.label}</td>
+                          <td className="p-2 border-r border-slate-300"><input type="text" name="branch" value={(formData.bankAccounts as any)[acc.key]?.branch || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
+                          <td className="p-2 border-r border-slate-300"><input type="text" name="accNo" value={(formData.bankAccounts as any)[acc.key]?.accNo || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
+                          <td className="p-2"><input type="number" name="balance" value={(formData.bankAccounts as any)[acc.key]?.balance || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -452,8 +507,8 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   <input type="number" name="annualIncomeOther" value={formData.annualIncomeOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1=1">මුළු වාර්ෂික වියදම් එකතුව (රු.)</label>
-                  <input type="number" name="annualExpense" value={formData.annualExpense} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
+                  <label className="block text-sm font-medium mb-1">මුළු වාර්ෂික වියදම් එකතුව (රු.)</label>
+                  <input type="number" name="annualExpense" value={formData.annualExpense} disabled className="w-full rounded-lg border-slate-300 p-2.5 border bg-slate-100 font-bold cursor-not-allowed" />
                 </div>
               </div>
 
@@ -469,6 +524,15 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                     <label className="block text-xs font-medium mb-1">2. වෙනත් මූල්ය ආයතනවලට ඇති ණය (රු.)</label>
                     <input type="number" name="existingLoansOther" value={formData.existingLoansOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border" />
                   </div>
+                </div>
+              </div>
+
+              {/* Supporting Documents */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-semibold text-slate-700 flex items-center gap-2">08. අතිරේක ලියකියවිලි (Supporting Documents)</h3>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <label className="block text-sm font-medium mb-2 text-slate-600">ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න</label>
+                  <input type="file" multiple className="w-full rounded-lg border-slate-300 p-2 bg-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
                 </div>
               </div>
             </div>
@@ -521,20 +585,25 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
                     <div>
                       <label className="font-medium text-slate-600">ඉඩම්/ගොඩනැගිලි වටිනාකම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey].assets.land} onChange={(e) => handleGuarantorChange(gKey, 'land', e.target.value, 'assets')} className="w-full border-slate-300 rounded p-1.5 mt-1" />
+                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.assets?.land || ''} onChange={(e) => handleGuarantorChange(gKey, 'land', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
                       <label className="font-medium text-slate-600">රථ වාහන වටිනාකම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey].assets.vehicles} onChange={(e) => handleGuarantorChange(gKey, 'vehicles', e.target.value, 'assets')} className="w-full border-slate-300 rounded p-1.5 mt-1" />
+                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.assets?.vehicles || ''} onChange={(e) => handleGuarantorChange(gKey, 'vehicles', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
                       <label className="font-medium text-slate-600">ඉතිරි කිරීම් ශේෂය</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey].bank.savings} onChange={(e) => handleGuarantorChange(gKey, 'savings', e.target.value, 'bank')} className="w-full border-slate-300 rounded p-1.5 mt-1" />
+                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.bank?.savings || ''} onChange={(e) => handleGuarantorChange(gKey, 'savings', e.target.value, 'bank')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
                       <label className="font-medium text-slate-600">වාර්ෂික මුළු ආදායම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey].incomePrimary} onChange={(e) => handleGuarantorChange(gKey, 'incomePrimary', e.target.value)} className="w-full border-slate-300 rounded p-1.5 mt-1" />
+                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.incomePrimary || ''} onChange={(e) => handleGuarantorChange(gKey, 'incomePrimary', e.target.value)} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
+                  </div>
+
+                  <div className="pt-3 border-t text-sm mt-3">
+                    <label className="block font-medium text-slate-600 mb-2">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature Placeholder)</label>
+                    <input type="text" placeholder="Pending Touchpad Integration - Enter URL or ID manually" value={(formData as any)[gKey]?.digitalSignatureUrl || ''} onChange={(e) => handleGuarantorChange(gKey, 'digitalSignatureUrl', e.target.value)} className="w-full rounded-lg border-slate-400 p-2 border bg-white focus:ring-2 focus:ring-emerald-500" />
                   </div>
                 </div>
               ))}
@@ -548,70 +617,19 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
             </div>
           )}
 
-          {/* STEP 5: නිලධාරී නිර්දේශ සහ අනුමැතිය (කාර්යාලීය භාවිතය සඳහා) */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><ClipboardCheck size={22}/> 05. නිලධාරී නිර්දේශ සහ කමිටු තීරණ (කාර්යාලීය භාවිතය සඳහා)</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                
-                {/* 10. ප්රාදේශික කාරක සභා නිර්දේශය */}
-                <div className="p-4 border rounded-xl bg-slate-50 space-y-2">
-                  <h3 className="font-bold text-emerald-800">10. ප්රාදේශික කාරක සභා නිර්දේශය</h3>
-                  <p className="text-xs text-slate-600">පැවති කාරක සභා රැස්වීමේදී මෙම ණය ඉල්ලුම්කරු වෙත ණය මුදලක් ලබා දීම සුදුසු යැයි නිර්දේශ කරන ලදී.</p>
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <input type="text" placeholder="සභාපති අත්සන" className="border rounded p-2 bg-white" disabled />
-                    <input type="text" placeholder="ලේකම් අත්සන" className="border rounded p-2 bg-white" disabled />
-                  </div>
-                </div>
-
-                {/* 11. ග්රාමීය බැංකු කළමණාකරුගේ නිර්දේශය */}
-                <div className="p-4 border rounded-xl bg-slate-50 space-y-2">
-                  <h3 className="font-bold text-emerald-800">11. ග්රාමීය බැංකු කළමණාකරුගේ / ක්ෂේත්ර නිළධාරීගේ නිර්දේශය</h3>
-                  <select className="w-full border rounded p-2 bg-white text-xs">
-                    <option>ණය මුදලක් නිර්දේශ කරමි</option>
-                    <option>ණය මුදලක් නිර්දේශ නොකරමි</option>
-                  </select>
-                  <input type="text" placeholder="නොකරන්නේ නම් හේතු..." className="w-full border rounded p-2 bg-white text-xs" />
-                </div>
-
-                {/* 13. ණය කමිටුවේ නිර්දේශය */}
-                <div className="p-4 border rounded-xl bg-slate-50 space-y-3 md:col-span-2">
-                  <h3 className="font-bold text-emerald-800">13. ණය කමිටුවේ නිර්දේශය සහ 14. අධ්යක්ෂ මණ්ඩල තීරණය</h3>
-                  <p className="text-xs">අනුමත කළ මුළු මුදල, වාර්ෂික පොළී අනුපාතය සහ වාරික ගෙවීමේ පදනම මෙහි සටහන් වේ.</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <input type="number" placeholder="මුදලින් (රු.)" className="border rounded p-2 bg-white text-xs" disabled />
-                    <input type="number" placeholder="ද්රව්ය වලින් (රු.)" className="border rounded p-2 bg-white text-xs" disabled />
-                    <input type="text" placeholder="වාර්ෂික පොළිය %" className="border rounded p-2 bg-white text-xs" disabled />
-                    <input type="text" placeholder="කාලය (අවුරුදු)" className="border rounded p-2 bg-white text-xs" disabled />
-                  </div>
-                  <div className="flex gap-4 pt-2">
-                    <label className="flex items-center gap-1 text-xs font-semibold text-emerald-700">
-                      <input type="radio" name="boardDecision" disabled /> අනුමත කරන ලදී
-                    </label>
-                    <label className="flex items-center gap-1 text-xs font-semibold text-rose-600">
-                      <input type="radio" name="boardDecision" disabled /> ප්රතික්ෂේප කරන ලදී
-                    </label>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
           {/* Navigation Footer */}
           <div className="flex justify-between items-center py-6 mt-4 border-t border-slate-200">
             <button type="button" onClick={prevStep} disabled={currentStep === 1} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-300 font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-sm">
               <ChevronLeft size={16}/> පෙර පියවර (Back)
             </button>
             
-            {currentStep < 5 ? (
+            {currentStep < 4 ? (
               <button type="button" onClick={nextStep} className="flex items-center gap-1 px-5 py-2.5 rounded-lg bg-emerald-600 font-medium text-white hover:bg-emerald-700 transition-colors shadow-sm text-sm ml-auto">
                 මීළඟ පියවර (Next) <ChevronRight size={16}/>
               </button>
             ) : (
               <button type="submit" disabled={loading} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-700 font-bold text-white hover:bg-emerald-800 transition-all shadow-md ml-auto text-sm disabled:opacity-70">
-                {loading ? 'Processing...' : <><Save size={18}/> ඉල්ලුම්පත්රය ඉදිරිපත් කරන්න (Submit)</>}
+                {loading ? 'Processing...' : <><Save size={18}/> කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)</>}
               </button>
             )}
           </div>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import * as LoanService from '../services/loan.service';
 import * as AuthService from '../services/auth.service';
+import { printLoanAgreement } from '../utils/print';
 
 interface Props {
   loan: LoanService.Loan;
@@ -15,26 +16,16 @@ interface Props {
 }
 
 const STAGE_ORDER = [
-  'STAGE_1_APPLICATION_SUBMITTED',
-  'STAGE_2_FIELD_OFFICER_VERIFICATION',
-  'STAGE_3_REGIONAL_COMMITTEE',
-  'STAGE_4_BRANCH_MANAGER_RECOMMENDATION',
-  'STAGE_5_BANK_SERVICE_MANAGER',
-  'STAGE_6_LOAN_COMMITTEE_VOTE',
-  'STAGE_7_CHAIRMAN_SECRETARY_SIGNATURE',
-  'STAGE_8_DISBURSEMENT',
+  'STAGE_1_MANAGER_APPROVAL',
+  'STAGE_2_LOAN_COMMITTEE_APPROVAL',
+  'STAGE_3_APPROVED',
 ];
 
 // Which roles can advance each stage
 const STAGE_ROLE_MAP: Record<string, string[]> = {
-  STAGE_1_APPLICATION_SUBMITTED:          ['FIELD_OFFICER', 'SENIOR_OFFICER'],
-  STAGE_2_FIELD_OFFICER_VERIFICATION:     ['SENIOR_OFFICER', 'BRANCH_MANAGER'],
-  STAGE_3_REGIONAL_COMMITTEE:             ['BRANCH_MANAGER'],
-  STAGE_4_BRANCH_MANAGER_RECOMMENDATION:  ['BANK_SERVICE_MANAGER'],
-  STAGE_5_BANK_SERVICE_MANAGER:           ['LOAN_COMMITTEE'],
-  STAGE_6_LOAN_COMMITTEE_VOTE:            ['BRANCH_MANAGER', 'GENERAL_MANAGER'],
-  STAGE_7_CHAIRMAN_SECRETARY_SIGNATURE:   ['SENIOR_OFFICER', 'BRANCH_MANAGER'],
-  STAGE_8_DISBURSEMENT:                   [],
+  STAGE_1_MANAGER_APPROVAL:        ['BRANCH_MANAGER'],
+  STAGE_2_LOAN_COMMITTEE_APPROVAL: ['LOAN_COMMITTEE'],
+  STAGE_3_APPROVED:                [],
 };
 
 export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }: Props) {
@@ -102,6 +93,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
     ? LoanService.STAGE_LABELS[STAGE_ORDER[currentIdx + 1]]?.label
     : 'Final Stage';
 
+  const ad = loan.applicationData || {};
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -133,36 +126,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           </div>
         </div>
 
-        {/* Workflow Progress */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 overflow-x-auto">
-          <div className="flex items-center gap-0 min-w-max">
-            {STAGE_ORDER.map((stage, idx) => {
-              const info = LoanService.STAGE_LABELS[stage];
-              const isDone = idx < currentIdx;
-              const isCurrent = idx === currentIdx;
-              const isPending = idx > currentIdx;
-              return (
-                <React.Fragment key={stage}>
-                  <div className={`flex flex-col items-center ${isCurrent ? 'opacity-100' : isDone ? 'opacity-100' : 'opacity-40'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      isDone ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' :
-                      isCurrent ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-4 ring-indigo-100' :
-                      'bg-slate-200 text-slate-500'
-                    }`}>
-                      {isDone ? <CheckCircle size={14} /> : idx + 1}
-                    </div>
-                    <p className={`text-[9px] mt-1 font-bold text-center max-w-14 leading-tight ${
-                      isCurrent ? 'text-indigo-700' : isDone ? 'text-emerald-700' : 'text-slate-400'
-                    }`}>{info?.label?.split(' ').slice(0, 2).join(' ')}</p>
-                  </div>
-                  {idx < STAGE_ORDER.length - 1 && (
-                    <div className={`h-0.5 w-8 mx-1 rounded ${isDone ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
+
 
         {/* Tabs */}
         <div className="flex border-b border-slate-100 bg-white">
@@ -256,23 +220,109 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 </div>
               )}
 
-              {/* Application Data */}
+              {/* Application Data (Sinhala + Sections) */}
               {loan.applicationData && Object.keys(loan.applicationData).length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
-                    <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                      <FileText size={14} /> Application Form Data
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                    <h4 className="font-bold text-indigo-900 text-base flex items-center gap-2">
+                      <FileText size={18} className="text-indigo-600" /> අයදුම්පත් දත්ත (Application Form Data)
                     </h4>
                   </div>
-                  <div className="p-4 grid grid-cols-2 gap-3">
-                    {Object.entries(loan.applicationData).map(([key, val]) => (
-                      typeof val !== 'object' && (
-                        <div key={key} className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <span className="text-sm font-semibold text-slate-700">{String(val)}</span>
-                        </div>
-                      )
-                    ))}
+                  <div className="p-6 space-y-8">
+                    {(() => {
+                      const data = loan.applicationData as Record<string, any>;
+                      
+                      const FIELD_LABELS_SI: Record<string, string> = {
+                        applicantName: 'අයදුම්කරුගේ නම (Applicant Name)',
+                        memberNo: 'සාමාජික අංකය (Member No)',
+                        nic: 'ජාතික හැඳුනුම්පත් අංකය (NIC)',
+                        dob: 'උපන් දිනය (DOB)',
+                        gender: 'ස්ත්‍රී / පුරුෂ භාවය (Gender)',
+                        civilStatus: 'සිවිල් තත්ත්වය (Civil Status)',
+                        phone: 'දුරකථන අංකය (Phone)',
+                        addressLine1: 'ලිපිනය - පේළිය 1 (Address Line 1)',
+                        addressLine2: 'ලිපිනය - පේළිය 2 (Address Line 2)',
+                        residencePeriod: 'පදිංචි කාලය (Residence Period)',
+                        primaryJob: 'ප්‍රධාන රැකියාව (Primary Job)',
+                        employerDetails: 'සේවායෝජක විස්තර (Employer Details)',
+                        annualExpense: 'වාර්ෂික වියදම (Annual Expense)',
+                        dependentsCount: 'යැපෙන්නන් ගණන (Dependents)',
+                        spouseJobTitle: 'කලත්‍රයාගේ රැකියාව (Spouse Job)',
+                        loanPurpose: 'ණයෙහි අරමුණ (Loan Purpose)',
+                        branch: 'ශාඛාව (Branch)',
+                        sharesObtained: 'ලබාගත් කොටස් ගණන (Shares Obtained)'
+                      };
+
+                      const SECTIONS = [
+                        {
+                          title: 'සාමාජික විස්තර (Personal Details)',
+                          icon: <User size={18} className="text-indigo-500" />,
+                          keys: ['applicantName', 'memberNo', 'nic', 'dob', 'gender', 'civilStatus']
+                        },
+                        {
+                          title: 'සම්බන්ධතා සහ පදිංචිය (Contact & Residence)',
+                          icon: <FileText size={18} className="text-indigo-500" />,
+                          keys: ['phone', 'addressLine1', 'addressLine2', 'residencePeriod']
+                        },
+                        {
+                          title: 'රැකියාව සහ ආදායම් (Employment & Income)',
+                          icon: <TrendingDown size={18} className="text-indigo-500" />,
+                          keys: ['primaryJob', 'employerDetails', 'annualExpense', 'dependentsCount', 'spouseJobTitle']
+                        },
+                        {
+                          title: 'ණය විස්තර (Loan Details)',
+                          icon: <FileText size={18} className="text-indigo-500" />,
+                          keys: ['loanPurpose', 'branch', 'sharesObtained']
+                        }
+                      ];
+
+                      const processedKeys = new Set<string>();
+                      const elements: JSX.Element[] = [];
+
+                      SECTIONS.forEach((section, idx) => {
+                        const activeKeys = section.keys.filter(k => data[k] !== undefined && data[k] !== null && data[k] !== '');
+                        if (activeKeys.length === 0) return;
+
+                        activeKeys.forEach(k => processedKeys.add(k));
+
+                        elements.push(
+                          <div key={section.title} className={idx !== 0 ? 'pt-6 border-t border-slate-100' : ''}>
+                            <h5 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                              {section.icon} {section.title}
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                              {activeKeys.map(k => (
+                                <div key={k} className="flex flex-col bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-sm">
+                                  <span className="text-sm font-semibold text-slate-500 mb-1">{FIELD_LABELS_SI[k] || k.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                  <span className="text-base font-bold text-slate-900 break-words">{String(data[k]) || '—'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      });
+
+                      const otherKeys = Object.keys(data).filter(k => !processedKeys.has(k) && typeof data[k] !== 'object' && data[k] !== null && data[k] !== '');
+                      if (otherKeys.length > 0) {
+                        elements.push(
+                          <div key="other" className="pt-6 border-t border-slate-100">
+                            <h5 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                              <Info size={18} className="text-indigo-500" /> වෙනත් විස්තර (Other Details)
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                              {otherKeys.map(k => (
+                                <div key={k} className="flex flex-col bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-sm">
+                                  <span className="text-sm font-semibold text-slate-500 mb-1">{FIELD_LABELS_SI[k] || k.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                  <span className="text-base font-bold text-slate-900 break-words">{String(data[k]) || '—'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return elements;
+                    })()}
                   </div>
                 </div>
               )}
@@ -373,8 +423,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           )}
         </div>
 
-        {/* Footer Actions — only show if user can approve/reject */}
-        {(canAdvance || canReject) && loan.status === 'PENDING' && (
+        {/* Footer Actions */}
+        {((canAdvance || canReject) && loan.status === 'PENDING') ? (
           <div className="p-5 border-t border-slate-100 bg-slate-50/80 space-y-3">
             {actionError && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-xl">
@@ -409,7 +459,14 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               )}
             </div>
           </div>
-        )}
+        ) : (loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED') ? (
+          <div className="p-5 border-t border-slate-100 bg-slate-50/80 flex justify-end">
+            <button onClick={() => printLoanAgreement(loan, ad)}
+              className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition flex items-center gap-2">
+              <FileText size={16} /> 🖨 ගිවිසුම මුද්‍රණය (Print Agreement)
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

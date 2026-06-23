@@ -22,8 +22,10 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     // Guarantors
     guarantor1Name: '',
     guarantor1Address: '',
+    guarantor1DigitalSignatureUrl: '',
     guarantor2Name: '',
     guarantor2Address: '',
+    guarantor2DigitalSignatureUrl: '',
     
     // Office Use Fields
     officeMemberNo: '',
@@ -104,8 +106,10 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 
                 guarantor1Name: formData.guarantor1Name,
                 guarantor1Address: formData.guarantor1Address,
+                guarantor1DigitalSignatureUrl: formData.guarantor1DigitalSignatureUrl,
                 guarantor2Name: formData.guarantor2Name,
                 guarantor2Address: formData.guarantor2Address,
+                guarantor2DigitalSignatureUrl: formData.guarantor2DigitalSignatureUrl,
                 
                 officeMemberNo: formData.officeMemberNo,
                 stockShortages: formData.stockShortages,
@@ -246,6 +250,8 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 <div className="space-y-3">
                   <input type="text" name="guarantor1Name" placeholder="නම" value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   <textarea name="guarantor1Address" placeholder="ලිපිනය" value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature Placeholder)</label>
+                  <input type="text" name="guarantor1DigitalSignatureUrl" placeholder="Pending Touchpad Integration - Enter URL or ID manually" value={formData.guarantor1DigitalSignatureUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
                 </div>
               </div>
 
@@ -255,75 +261,21 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 <div className="space-y-3">
                   <input type="text" name="guarantor2Name" placeholder="නම" value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   <textarea name="guarantor2Address" placeholder="ලිපිනය" value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature Placeholder)</label>
+                  <input type="text" name="guarantor2DigitalSignatureUrl" placeholder="Pending Touchpad Integration - Enter URL or ID manually" value={formData.guarantor2DigitalSignatureUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Office Use Only */}
-          <div className="bg-amber-50/50 p-6 rounded-xl border border-amber-200 shadow-sm">
-            <h3 className="text-lg font-bold text-amber-800 mb-4 border-l-4 border-amber-600 pl-3">3. කාර්යාලීය ප්‍රයෝජනයට පමණි</h3>
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">1. සාමාජික අංකය (කාර්යාලීය සත්‍යාපනය)</label>
-                  <input type="text" name="officeMemberNo" value={formData.officeMemberNo} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">2. අයවීමට ඇති බඩු අඩුවීමේ විස්තර</label>
-                  <input type="text" name="stockShortages" value={formData.stockShortages} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500" />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">3. වැටුප් රහිත නිවාඩු ගැනීම්</label>
-                  <input type="text" name="noPayLeave" value={formData.noPayLeave} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">4. වැටුපින් අඩුකිරීම් 40% ඉක්මවන්නේද?</label>
-                  <select name="exceeds40Percent" value={formData.exceeds40Percent} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500">
-                    <option value="">තෝරන්න</option>
-                    <option value="ඔව්">ඔව්</option>
-                    <option value="නැත">නැත</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">5. ග්‍රාමීය බැංකුවෙන් ගත් ණය තිබේද?</label>
-                  <input type="text" name="ruralBankLoans" value={formData.ruralBankLoans} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500" />
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">6. කල් පසු වූ ණය කරුවෙක්ද?</label>
-                <select name="isOverdueDebtor" value={formData.isOverdueDebtor} onChange={handleChange} className="w-full md:w-1/3 border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500">
-                  <option value="">තෝරන්න</option>
-                  <option value="ඔව්">ඔව්</option>
-                  <option value="නැත">නැත</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Approvals */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">බැංකු සේවා කළමණාකරුගේ නිර්දේශය</label>
-              <select name="managerRecommendation" value={formData.managerRecommendation} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-50 mb-2 focus:ring-2 focus:ring-indigo-500">
-                <option value="">තෝරන්න</option>
-                <option value="නිර්දේශ කරමි">නිර්දේශ කරමි</option>
-                <option value="නිර්දේශ නොකරමි">නිර්දේශ නොකරමි</option>
-              </select>
-              <span className="text-xs text-gray-400 block text-right mt-1">කළමණාකරුගේ විද්‍යුත් අත්සන</span>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">සාමාන්‍යාධිකාරීගේ තීරණය</label>
-              <select name="generalManagerApproval" value={formData.generalManagerApproval} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-50 mb-2 focus:ring-2 focus:ring-indigo-500">
-                <option value="">තෝරන්න</option>
-                <option value="අනුමත කරමි">අනුමත කරමි</option>
-                <option value="ප්‍රතික්ෂේප කරමි">ප්‍රතික්ෂේප කරමි</option>
-              </select>
-              <span className="text-xs text-gray-400 block text-right mt-1">සාමාන්‍යාධිකාරීගේ විද්‍යුත් අත්සන</span>
+          {/* Supporting Documents */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">අතිරේක ලියකියවිලි (Supporting Documents)</h3>
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න</label>
+              <input type="file" multiple className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
             </div>
           </div>
 
@@ -334,7 +286,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 disabled={loading}
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#025a4e] hover:bg-[#01443b] text-white font-bold rounded-xl shadow-lg transition duration-200 disabled:opacity-50 text-base"
             >
-              {loading ? 'Processing...' : 'ඉල්ලුම්පත ඇතුළත් කරන්න (Submit)'}
+              {loading ? 'Processing...' : 'කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)'}
             </button>
           </div>
 
