@@ -26,6 +26,7 @@ const translations: Translations = {
   'Savings Accounts': { en: 'Savings Accounts', si: 'ඉතුරුම් ගිණුම්' },
   'Fixed Deposits': { en: 'Fixed Deposits', si: 'ස්ථාවර තැන්පතු' },
   'Loan Accounts': { en: 'Loan Accounts', si: 'ණය ගිණුම්' },
+  'Pawning (Gold Loans)': { en: 'Pawning (Gold Loans)', si: 'උකස් (රන් ණය)' },
   'Loan Queue': { en: 'Loan Queue', si: 'ණය පෝලිම' },
   'Loan Committee Approved': { en: 'Loan Committee Approved', si: 'කමිටුව අනුමත කළ ණය' },
   'Manager Approved': { en: 'Manager Approved', si: 'කළමනාකරු අනුමත කළ' },

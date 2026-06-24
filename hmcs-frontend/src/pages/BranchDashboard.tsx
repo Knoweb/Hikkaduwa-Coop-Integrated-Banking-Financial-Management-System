@@ -19,6 +19,7 @@ import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
+import PawningModule from '../components/PawningModule';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
@@ -30,16 +31,24 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gr
   VALUER:               { label: 'Valuer',               color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900' },
 };
 
-const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSection?: boolean }[]> = {
+const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSection?: boolean; subItems?: { icon?: any; label: string; key: string }[] }[]> = {
   BRANCH_MANAGER:       [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
     { isSection: true, label: 'People' },
     { icon: Users, label: 'Members', key: 'members' }, 
     { isSection: true, label: 'Operations' },
     { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
-    { icon: CheckCircle, label: 'Manager Approved', key: 'manager-approved' },
-    { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
-    { icon: CheckCircle, label: 'Loan Committee Approved', key: 'committee-approved' },
+    { 
+      icon: FileText, 
+      label: 'ණය (Loans)', 
+      key: 'loans-menu',
+      subItems: [
+        { icon: FileText, label: 'ණය පෝලිම', key: 'loans' },
+        { icon: CheckCircle, label: 'කළමනාකරු අනුමත කළ', key: 'manager-approved' },
+        { icon: CheckCircle, label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' },
+      ]
+    },
+    { icon: Gem, label: 'උකස් (රන් ණය)', key: 'pawning' },
     { isSection: true, label: 'Finance' },
     { icon: BookOpen, label: 'General Ledger', key: 'gl' },
     { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }
@@ -56,17 +65,17 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
   ],
   SENIOR_OFFICER:       [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' },
-    { isSection: true, label: 'People Management' },
+    { isSection: true, label: 'Customer Relations' },
     { icon: UserPlus, label: 'Members', key: 'members' },
     { icon: Users, label: 'Non-Members', key: 'non-members' },
-    { isSection: true, label: 'Financial Accounts' },
+    { isSection: true, label: 'Core Banking Facilities' },
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
     { icon: FileText, label: 'Loan Accounts', key: 'loans' },
-    { isSection: true, label: 'Finance' },
+    { icon: Gem, label: 'Pawning (Gold Loans)', key: 'pawning' },
+    { isSection: true, label: 'Daily Operations' },
+    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
     { icon: BookOpen, label: 'General Ledger', key: 'gl' },
-    { isSection: true, label: 'Operations' },
-    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' }
   ],
   FIELD_OFFICER:        [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
@@ -394,6 +403,10 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 
   const loans = loanQueue;
   const managerPendingLoans = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
+
+  if (activeTab === 'pawning') {
+    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
+  }
 
   if (activeTab === 'overview') return (
     <div className="space-y-6">
@@ -1146,6 +1159,10 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     );
   }
 
+  if (activeTab === 'pawning') {
+    return <PawningModule branchId={user?.branchId || 1} />;
+  }
+
   if (activeTab === 'loans') {
     const filteredLoans = loans.filter(l => {
       if (loanFilter === 'COMMITTEE_APPROVED' && l.status !== 'APPROVED' && l.status !== 'ACTIVE') return false;
@@ -1223,7 +1240,9 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 <tr key={l.loanId} className="hover:bg-indigo-50/40 transition-colors group">
                   <td className="px-6 py-4 text-slate-500 font-medium">{l.appliedDate || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-800 font-bold">
-                    {member ? (member.fullNameSinhala || member.fullName) : 'N/A'}
+                    {member 
+                      ? (member.fullNameSinhala || member.fullName)
+                      : (l.applicationData?.applicantName || l.applicationData?.name || l.memberId || 'N/A')}
                   </td>
                   <td className="px-6 py-4">
                     <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
@@ -1617,6 +1636,10 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         )}
       </div>
     );
+  }
+
+  if (activeTab === 'pawning') {
+    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
   }
 
   return (
@@ -2408,6 +2431,30 @@ export default function BranchDashboard() {
                 <div key={`sec-${idx}`} className={idx === 0 ? "mb-2 px-3" : "mt-6 mb-2 px-3"}>
                   {idx !== 0 && <div className="h-px w-full bg-white/10 mb-3"></div>}
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t(item.label)}</p>
+                </div>
+              );
+            }
+            if (item.subItems) {
+              return (
+                <div key={item.key} className="relative group">
+                  <button className="flex items-center w-full px-3 py-3 mb-2 rounded-xl text-sm font-bold transition-all border text-left leading-tight bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white">
+                    <item.icon size={18} className="mr-3 shrink-0 text-white/70" />
+                    <span className="flex-1">{t(item.label)}</span>
+                    <ChevronRight size={16} className="text-white/50 group-hover:rotate-90 transition-transform" />
+                  </button>
+                  <div className="hidden group-hover:block pl-8 space-y-1 mb-2">
+                    {item.subItems.map((sub: any) => (
+                      <button key={sub.key} onClick={() => setTab(sub.key)}
+                        className={`flex items-center w-full px-3 py-2 rounded-xl text-sm font-semibold transition-all border text-left leading-tight ${
+                          tab === sub.key 
+                            ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)]' 
+                            : 'bg-transparent border-transparent text-white/60 hover:text-white hover:bg-white/10'
+                        }`}>
+                        {sub.icon && <sub.icon size={16} className={`mr-2 shrink-0 ${tab === sub.key ? config.color : 'text-white/60'}`} />}
+                        <span className="flex-1">{t(sub.label)}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               );
             }

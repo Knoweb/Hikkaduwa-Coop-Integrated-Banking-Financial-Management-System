@@ -28,8 +28,8 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
       { id: 'ln_bus', label: 'Business Loan', value: 15.0, unit: '%' },
     ],
     pawning: [
-      { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: 13.0, unit: '%' },
-      { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: 120000, unit: 'Rs.' },
+      { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: Number(localStorage.getItem('pawning_interest_rate') || 13.0), unit: '%' },
+      { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: Number(localStorage.getItem('pawning_advance') || 120000), unit: 'Rs.' },
     ]
   });
   const handleConfirmRateUpdate = async () => {
@@ -49,6 +49,10 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
         await AccountService.updateFixedDepositType(payload.id, payload);
         await fetchFdTypes();
       } else {
+        if (category === 'pawning') {
+          if (id === 'pw_int') localStorage.setItem('pawning_interest_rate', newVal.toString());
+          if (id === 'pw_adv') localStorage.setItem('pawning_advance', newVal.toString());
+        }
         setRatesData(prev => ({
           ...prev,
           [category]: (prev[category as keyof typeof prev] as any[]).map(item => item.id === id ? { ...item, value: newVal } : item)

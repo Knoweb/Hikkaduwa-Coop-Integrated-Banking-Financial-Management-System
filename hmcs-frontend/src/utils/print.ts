@@ -256,3 +256,48 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
   printWindow.document.close();
 };
 
+export const printPawnTicket = (ticket: any) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const date = new Date(ticket.issueDate).toLocaleDateString();
+  const html = `<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <title>Pawn Ticket - ${ticket.ticketNumber}</title>
+  <style>
+    body { font-family: 'Arial', sans-serif; padding: 20px; }
+    h1 { text-align: center; font-size: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+    .footer { margin-top: 50px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Co-op Rural Bank - Pawn Ticket</h1>
+  <p>Ticket No: ${ticket.ticketNumber}</p>
+  <p>Date: ${date}</p>
+  <table>
+    <tr><th>Article Description</th><td>${ticket.articleDescription}</td></tr>
+    <tr><th>Gross Weight</th><td>${ticket.grossWeightGrams} g</td></tr>
+    <tr><th>Net Weight</th><td>${ticket.netWeightGrams} g</td></tr>
+    <tr><th>Purity</th><td>${ticket.purityKarat} Karat</td></tr>
+    <tr><th>Assessed Value</th><td>Rs. ${ticket.assessedValue}</td></tr>
+    <tr><th>Advance Amount</th><td>Rs. ${ticket.advanceAmount}</td></tr>
+    <tr><th>Interest Rate</th><td>${ticket.interestRate}% p.a.</td></tr>
+  </table>
+  <div class="footer">
+    <p>Please surrender this ticket to redeem the articles.</p>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 500);
+    };
+  </script>
+</body>
+</html>`;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+};
