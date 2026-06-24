@@ -33,3 +33,19 @@ export const redeemTicket = async (ticketId: string) => {
   });
   return res.data;
 };
+
+export const getAllSettings = async () => {
+  const token = localStorage.getItem('hmcs_token');
+  const res = await axios.get(`${API_URL.replace('/tickets', '/settings')}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const updateSetting = async (key: string, value: string, description?: string) => {
+  const token = localStorage.getItem('hmcs_token');
+  const res = await axios.put(`${API_URL.replace('/tickets', '/settings')}/${key}`, { settingValue: value, description }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};

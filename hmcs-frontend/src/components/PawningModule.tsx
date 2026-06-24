@@ -11,6 +11,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   const [loading, setLoading] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [interestRate, setInterestRate] = useState('13');
 
   const loadTickets = async () => {
     setLoading(true);
@@ -50,6 +51,10 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   useEffect(() => {
     loadTickets();
     AccountService.getMembers().then(setMembers).catch(() => {});
+    PawningService.getAllSettings().then((settings: any[]) => {
+      const int = settings.find(s => s.settingKey === 'pw_int')?.settingValue || '13.00';
+      setInterestRate(int);
+    }).catch(console.error);
   }, [branchId]);
 
   return (
@@ -75,7 +80,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">භාණ්ඩ විස්තරය</th>
             <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">බර (ග්‍රෑම්)</th>
             <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">අත්තිකාරම් මුදල</th>
-            <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">පොලිය ({localStorage.getItem('pawning_interest_rate') || '13'}%)</th>
+            <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">පොලිය ({interestRate}%)</th>
             <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">තත්ත්වය</th>
             <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">ක්‍රියාව</th>
           </tr>

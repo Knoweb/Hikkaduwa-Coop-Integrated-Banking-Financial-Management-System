@@ -15,12 +15,17 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
     netWeightGrams: '',
     purityKarat: '22',
     assessedValue: '',
-    advanceAmount: localStorage.getItem('pawning_advance') || '120000',
-    interestRate: localStorage.getItem('pawning_interest_rate') || '13.00'
+    advanceAmount: '',
+    interestRate: ''
   });
 
   useEffect(() => {
     AccountService.getMembers().then(setMembers).catch(() => {});
+    PawningService.getAllSettings().then((settings: any[]) => {
+      const int = settings.find(s => s.settingKey === 'pw_int')?.settingValue || '13.00';
+      const adv = settings.find(s => s.settingKey === 'pw_adv')?.settingValue || '120000';
+      setForm(prev => ({ ...prev, advanceAmount: adv, interestRate: int }));
+    }).catch(console.error);
   }, []);
 
   const handleIssue = async (e: React.FormEvent) => {
