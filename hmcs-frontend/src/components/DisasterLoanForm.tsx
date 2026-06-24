@@ -86,8 +86,18 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.requestedAmount || !formData.termMonths || !formData.guarantor1Name || !formData.guarantor2Name) {
+      alert("කරුණාකර සියලුම අත්‍යවශ්‍ය තොරතුරු (නම, ණය මුදල, මාස ගණන සහ ඇපකරුවන්) පුරවන්න. (Please fill all essential fields)");
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -145,7 +155,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
       {/* Form Details with Scroll */}
       <div className="flex-1 overflow-y-auto bg-slate-50 p-6 sm:p-8">
-        <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
+        <div onKeyDown={handleKeyDown} className="space-y-8 max-w-4xl mx-auto">
           
           {/* Search Section */}
           <div className="bg-teal-50 p-5 rounded-xl border border-teal-100 flex flex-col items-start shadow-sm relative">
@@ -282,7 +292,8 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           {/* Submit Button */}
           <div className="flex justify-end pt-4 pb-8">
             <button 
-                type="submit" 
+                type="button" 
+                onClick={handleSubmit}
                 disabled={loading}
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#025a4e] hover:bg-[#01443b] text-white font-bold rounded-xl shadow-lg transition duration-200 disabled:opacity-50 text-base"
             >
@@ -290,7 +301,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             </button>
           </div>
 
-        </form>
+        </div>
       </div>
     </div>
   );

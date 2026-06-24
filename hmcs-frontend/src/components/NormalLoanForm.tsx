@@ -97,7 +97,41 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 4));
+  const validateStep = (step: number) => {
+    if (step === 1) {
+      if (!formData.applicantName || !formData.nic || !formData.phone || !formData.memberNo) {
+        alert('කරුණාකර සියලුම අත්‍යවශ්‍ය මූලික තොරතුරු පුරවන්න. (Please fill all essential basic details - Name, NIC, Phone, Member No)');
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!formData.requiredLoanCash && !formData.requiredLoanGoods) {
+        alert('කරුණාකර ණය මුදල ඇතුළත් කරන්න. (Please enter the required loan amount)');
+        return false;
+      }
+      if (!formData.repaymentPeriodMonths) {
+        alert('කරුණාකර ආපසු ගෙවීමේ කාලය ඇතුළත් කරන්න. (Please enter the repayment period)');
+        return false;
+      }
+      if (!formData.loanPurpose) {
+        alert('කරුණාකර ණය ලබාගන්නා අරමුණ ඇතුළත් කරන්න. (Please enter loan purpose)');
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (!formData.annualIncomePrimary && !formData.annualIncomeOther) {
+        alert('කරුණාකර වාර්ෂික ආදායම ඇතුළත් කරන්න. (Please enter at least one annual income source)');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 4));
+    }
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   useEffect(() => {
@@ -185,14 +219,21 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     setFormData(prev => ({ ...prev, ...baseUpdate }));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+       return;
+    }
+    if (!formData.guarantor1.name || !formData.guarantor1.nic || !formData.guarantor2.name || !formData.guarantor2.nic) {
+        alert('කරුණාකර ඇපකරුවන් දෙදෙනාගේම අත්‍යවශ්‍ය විස්තර පුරවන්න. (Please fill essential details for both guarantors)');
+        return;
+    }
+    
     setLoading(true);
     try {
         const totalAmount = Number(formData.requiredLoanCash || 0) + Number(formData.requiredLoanGoods || 0);
@@ -257,7 +298,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
       {/* Form Content */}
       <div className="flex-1 overflow-y-auto">
-        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="p-6 sm:p-10 space-y-8 max-w-5xl mx-auto">
+        <div onKeyDown={handleKeyDown} className="p-6 sm:p-10 space-y-8 max-w-5xl mx-auto">
           
           {/* STEP 1: මූලික තොරතුරු */}
           {currentStep === 1 && (
@@ -628,13 +669,13 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                 මීළඟ පියවර (Next) <ChevronRight size={16}/>
               </button>
             ) : (
-              <button type="submit" disabled={loading} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-700 font-bold text-white hover:bg-emerald-800 transition-all shadow-md ml-auto text-sm disabled:opacity-70">
+              <button type="button" onClick={handleSubmit} disabled={loading} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-700 font-bold text-white hover:bg-emerald-800 transition-all shadow-md ml-auto text-sm disabled:opacity-70">
                 {loading ? 'Processing...' : <><Save size={18}/> කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)</>}
               </button>
             )}
           </div>
 
-        </form>
+        </div>
       </div>
     </div>
   );
