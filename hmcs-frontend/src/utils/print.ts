@@ -125,12 +125,12 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
-  const date     = new Date().toLocaleDateString('si-LK');
-  const time     = new Date().toLocaleTimeString();
+  const date     = new Date().toLocaleDateString('en-GB');
+  const time     = new Date().toLocaleTimeString('en-US', { hour12: false });
   const printed  = new Date().toLocaleString();
   const accNo    = loan.accountNumber || 'N/A';
   const amount   = Number(loan.disbursedAmount || loan.requestedAmount || 0)
-                    .toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    .toLocaleString('en-US', { minimumFractionDigits: 2 });
   const loanType = (loan.loanType && loan.loanType.name) || loan.loanTypeStr || 'N/A';
   const name     = ad.applicantName || ad.name || 'N/A';
   const nic      = ad.nic || 'N/A';
@@ -142,82 +142,111 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
   <meta charset="UTF-8">
   <title>Loan Disbursement Receipt</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;800&family=Inter:wght@400;600;800&display=swap');
-    @page { size: 80mm auto; margin: 5mm; }
-    body { font-family: 'Inter', 'Noto Sans Sinhala', sans-serif; width: 72mm; margin: 0 auto; color: #1e293b; font-size: 12px; }
-    .center { text-align: center; }
-    .bold   { font-weight: 700; }
-    .divider { border-top: 1px dashed #94a3b8; margin: 8px 0; }
-    .bank-name { font-size: 15px; font-weight: 800; color: #1e3a8a; }
-    .receipt-title { font-size: 13px; font-weight: 700; margin: 6px 0; background: #1e3a8a; color: white; padding: 5px 8px; text-align: center; }
-    .acc-block { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px; margin: 8px 0; text-align: center; }
-    .acc-label { font-size: 10px; color: #3b82f6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .acc-number { font-size: 20px; font-weight: 800; color: #1e3a8a; letter-spacing: 2px; margin-top: 4px; }
-    .row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 11px; }
-    .row-label { color: #64748b; }
-    .row-value { font-weight: 600; text-align: right; max-width: 55%; }
-    .amount-block { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 10px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-    .amount-label { font-size: 11px; color: #166534; }
-    .amount-value { font-size: 16px; font-weight: 800; color: #15803d; }
-    .footer { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 12px; }
-    .stamp-area { margin-top: 30px; border-top: 1px dashed #94a3b8; padding-top: 8px; text-align: center; font-size: 10px; color: #64748b; }
-    @media print { body { margin: 0; } }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;800&display=swap');
+    @page { size: 80mm auto; margin: 0; }
+    body { font-family: 'Inter', 'Noto Sans Sinhala', sans-serif; width: 76mm; margin: 2mm auto; color: #000; font-size: 11px; line-height: 1.4; }
+    .slip-container { border: 1px solid #000; padding: 4mm; position: relative; }
+    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; }
+    .logo-text { font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; margin-bottom: 2px; color: #000; }
+    .branch-text { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; }
+    .title { text-align: center; font-weight: 800; font-size: 11px; background: #000; color: #fff; padding: 4px 0; margin: 8px 0; letter-spacing: 1px; }
+    
+    .meta-row { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 9px; margin-bottom: 3px; font-weight: 600; }
+    
+    .table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    .table th, .table td { border-bottom: 1px dotted #444; padding: 5px 0; vertical-align: top; }
+    .table th { text-align: left; font-weight: 600; width: 45%; font-size: 10px; color: #222; }
+    .table td { text-align: right; font-weight: 700; font-size: 11px; }
+    
+    .acc-number { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; padding-top: 2px; display: block; letter-spacing: 0.5px; }
+    
+    .amount-box { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 8px 0; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+    .amount-label { font-weight: 800; font-size: 11px; text-transform: uppercase; }
+    .amount-value { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 800; }
+    
+    .signatures { display: flex; justify-content: space-between; margin-top: 35px; }
+    .sig-block { text-align: center; width: 45%; }
+    .sig-line { border-top: 1px dashed #000; padding-top: 4px; font-size: 9px; font-weight: 700; }
+    
+    .footer { text-align: center; font-size: 8px; margin-top: 15px; border-top: 1px solid #000; padding-top: 5px; font-family: 'Space Mono', monospace; }
+    
+    .barcode { text-align: center; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; margin-top: 10px; }
+    
+    @media print { 
+      body { margin: 0; padding: 0; }
+      .slip-container { border: none; padding: 0; }
+    }
   </style>
 </head>
 <body>
-  <div class="center">
-    <div class="bank-name">Hikkaduwa Co-operative<br>Society Bank</div>
-    <div style="font-size: 10px; color: #64748b;">හික්කඩුව ශාඛාව &bull; Hikkaduwa Branch</div>
-  </div>
+  <div class="slip-container">
+    <div class="header">
+      <div class="logo-text">HIKKADUWA CO-OP BANK</div>
+      <div class="branch-text">හික්කඩුව ශාඛාව &bull; HIKKADUWA BRANCH</div>
+    </div>
+    
+    <div class="meta-row">
+      <span>DATE: ${date}</span>
+      <span>TIME: ${time}</span>
+    </div>
+    <div class="meta-row">
+      <span>TRX: ${loan.loanId.substring(0,8).toUpperCase()}</span>
+      <span>CSH: ${officerName.toUpperCase()}</span>
+    </div>
 
-  <div class="receipt-title">ණය නිකුත් කිරීමේ රිසිට්පත<br>LOAN DISBURSEMENT RECEIPT</div>
+    <div class="title">LOAN DISBURSEMENT SLIP</div>
 
-  <div class="acc-block">
-    <div class="acc-label">ණය ගිණුම් අංකය / Loan Account No.</div>
-    <div class="acc-number">${accNo}</div>
-  </div>
+    <table class="table">
+      <tr>
+        <th>Loan Account No.<br><span style="font-size:8px;">ණය ගිණුම් අංකය</span></th>
+        <td><span class="acc-number">${accNo}</span></td>
+      </tr>
+      <tr>
+        <th>Customer Name<br><span style="font-size:8px;">පාරිභෝගික නම</span></th>
+        <td>${name.toUpperCase()}</td>
+      </tr>
+      <tr>
+        <th>Member No / NIC<br><span style="font-size:8px;">සාමාජික අංකය/ජා.හැ.ප</span></th>
+        <td style="font-family: 'Space Mono', monospace;">${memberNo} <br> ${nic}</td>
+      </tr>
+      <tr>
+        <th>Loan Type<br><span style="font-size:8px;">ණය වර්ගය</span></th>
+        <td>${loanType.toUpperCase()}</td>
+      </tr>
+      <tr>
+        <th>Interest / Term<br><span style="font-size:8px;">පොලිය / කාලය</span></th>
+        <td style="font-family: 'Space Mono', monospace;">${loan.interestRate}% p.a. <br> ${loan.termMonths} Months</td>
+      </tr>
+    </table>
 
-  <div class="divider"></div>
+    <div class="amount-box">
+      <div class="amount-label">AMOUNT DISBURSED<br><span style="font-size:9px;">නිකුත් කළ මුදල</span></div>
+      <div class="amount-value">LKR ${amount}</div>
+    </div>
 
-  <div class="row"><span class="row-label">දිනය / Date</span><span class="row-value">${date}</span></div>
-  <div class="row"><span class="row-label">වේලාව / Time</span><span class="row-value">${time}</span></div>
+    <div class="signatures">
+      <div class="sig-block">
+        <div class="sig-line">Officer Signature<br><span style="font-size:8px;">නිලධාරී අත්සන</span></div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line">Customer Signature<br><span style="font-size:8px;">පාරිභෝගික අත්සන</span></div>
+      </div>
+    </div>
 
-  <div class="divider"></div>
+    <div class="barcode">
+      ||| |||| || ||| || ||| |||<br>
+      *${accNo.replace(/[^a-zA-Z0-9]/g, '')}*
+    </div>
 
-  <div class="row"><span class="row-label">ණය ලබාගන්නා (ගෙවන්නා)</span><span class="row-value bold">${name}</span></div>
-  <div class="row"><span class="row-label">ජා.හැ.ප. / NIC</span><span class="row-value">${nic}</span></div>
-  <div class="row"><span class="row-label">සාමාජික අංකය</span><span class="row-value">${memberNo}</span></div>
-
-  <div class="divider"></div>
-
-  <div class="row"><span class="row-label">ණය වර්ගය</span><span class="row-value">${loanType}</span></div>
-  <div class="row"><span class="row-label">ගෙවීමේ කාලය</span><span class="row-value">${loan.termMonths} Months</span></div>
-  <div class="row"><span class="row-label">පොලී අනුපාතය</span><span class="row-value">${loan.interestRate}% p.a.</span></div>
-
-  <div class="divider"></div>
-
-  <div class="amount-block">
-    <span class="amount-label">නිකුත් කළ මුදල<br>Amount Disbursed</span>
-    <span class="amount-value">Rs. ${amount}</span>
-  </div>
-
-  <div class="divider"></div>
-
-  <div class="row"><span class="row-label">නිකුත් කළ නිලධාරී</span><span class="row-value">${officerName}</span></div>
-
-  <div class="stamp-area">
-    නිලධාරී අත්සන / Officer Signature<br><br><br>
-    &bull; HMCS Banking System &bull;
-  </div>
-
-  <div class="footer">
-    Printed: ${printed}<br>
-    This is a computer generated receipt.
+    <div class="footer">
+      PRINTED: ${printed}<br>
+      THANK YOU FOR BANKING WITH US
+    </div>
   </div>
 
   <script>
     window.onload = function() {
-      setTimeout(function() { window.print(); }, 400);
+      setTimeout(function() { window.print(); }, 500);
     };
   </script>
 </body>
