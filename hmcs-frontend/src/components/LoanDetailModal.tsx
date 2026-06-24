@@ -31,12 +31,20 @@ const STAGE_ROLE_MAP: Record<string, string[]> = {
 export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }: Props) {
   const [tab, setTab] = useState<'overview' | 'schedule' | 'history'>('overview');
   const [history, setHistory] = useState<LoanService.LoanApprovalAction[]>([]);
-  const [schedule, setSchedule] = useState<LoanService.EmiScheduleRow[]>([]);
+  const [schedule, setSchedule] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [comments, setComments] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+
+  // Repayment State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'SAVINGS_TRANSFER'>('CASH');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
 
   const user = AuthService.getCurrentUser();
   const userRole = user?.role || '';
@@ -54,7 +62,18 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
         .finally(() => setLoadingHistory(false));
     }
     if (tab === 'schedule') {
-      setLoadingSchedule(true);
+      loadSchedule();
+    }
+  }, [tab]);
+
+  const loadSchedule = () => {
+    setLoadingSchedule(true);
+    if (loan.status === 'ACTIVE' || loan.status === 'COMPLETED') {
+      LoanService.getSavedSchedule(loan.loanId)
+        .then(setSchedule)
+        .catch(() => {})
+        .finally(() => setLoadingSchedule(false));
+    } else {
       LoanService.getRepaymentSchedule(
         loan.requestedAmount,
         loan.termMonths || 36,
@@ -64,7 +83,33 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
         .catch(() => {})
         .finally(() => setLoadingSchedule(false));
     }
-  }, [tab]);
+  };
+
+  const handleRepay = async () => {
+    if (!paymentAmount || isNaN(Number(paymentAmount))) {
+      alert("Invalid payment amount");
+      return;
+    }
+    setPaymentLoading(true);
+    try {
+      await LoanService.repayInstallment(
+        loan.loanId,
+        Number(paymentAmount),
+        paymentMethod,
+        paymentRef,
+        user?.username || 'system',
+        user?.branchId || 1
+      );
+      setShowPaymentModal(false);
+      setPaymentAmount('');
+      loadSchedule(); // Refresh schedule to show ticks
+      onUpdated();
+    } catch (e: any) {
+      alert(e.response?.data?.error || "Payment failed");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   const handleAdvance = async () => {
     setActionLoading(true); setActionError('');
@@ -277,7 +322,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       ];
 
                       const processedKeys = new Set<string>();
-                      const elements: JSX.Element[] = [];
+                      const elements: React.ReactNode[] = [];
 
                       SECTIONS.forEach((section, idx) => {
                         const activeKeys = section.keys.filter(k => data[k] !== undefined && data[k] !== null && data[k] !== '');
@@ -349,19 +394,51 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                           {['#', 'Due Date', 'Principal', 'Interest', 'EMI', 'Balance'].map(h => (
                             <th key={h} className="px-4 py-3 text-left text-xs font-bold text-indigo-900 uppercase tracking-wide">{h}</th>
                           ))}
+                          {(loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
+                             <th className="px-4 py-3 text-right text-xs font-bold text-indigo-900 uppercase tracking-wide">Status / Action</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {schedule.map(row => (
-                          <tr key={row.installmentNo} className="hover:bg-slate-50 transition">
-                            <td className="px-4 py-3 font-bold text-slate-500 text-center w-10">{row.installmentNo}</td>
+                        {schedule.map((row: any) => {
+                           const expectedAmount = row.totalExpectedAmount || row.emi;
+                           const principal = row.expectedPrincipal || row.principalPortion;
+                           const interest = row.expectedInterest || row.interestPortion;
+                           return (
+                          <tr key={row.installmentNumber || row.installmentNo} className="hover:bg-slate-50 transition">
+                            <td className="px-4 py-3 font-bold text-slate-500 text-center w-10">{row.installmentNumber || row.installmentNo}</td>
                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">{row.dueDate}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-800">Rs. {Number(row.principalPortion).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-rose-600 font-semibold">Rs. {Number(row.interestPortion).toLocaleString()}</td>
-                            <td className="px-4 py-3 font-black text-indigo-700">Rs. {Number(row.emi).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-slate-500 font-mono">Rs. {Number(row.outstandingBalance).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">Rs. {Number(principal).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-rose-600 font-semibold">Rs. {Number(interest).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-black text-indigo-700">Rs. {Number(expectedAmount).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-slate-500 font-mono">Rs. {Number(row.outstandingBalance || 0).toLocaleString()}</td>
+                            {(loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
+                              <td className="px-4 py-3 text-right">
+                                {row.status === 'PAID' ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs font-bold">
+                                    <CheckCircle size={14} /> PAID
+                                  </span>
+                                ) : (
+                                  userRole === 'SENIOR_OFFICER' && row.status === 'PENDING' ? (
+                                    <button 
+                                      onClick={() => {
+                                        setSelectedInstallment(row);
+                                        setPaymentAmount(expectedAmount.toString());
+                                        setShowPaymentModal(true);
+                                      }}
+                                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition">
+                                      Pay Installment
+                                    </button>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-xs font-bold">
+                                      {row.status}
+                                    </span>
+                                  )
+                                )}
+                              </td>
+                            )}
                           </tr>
-                        ))}
+                        )})}
                       </tbody>
                     </table>
                   </div>
@@ -468,6 +545,60 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           </div>
         ) : null}
       </div>
+
+      {/* Payment Overlay Modal */}
+      {showPaymentModal && selectedInstallment && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
+              <h4 className="font-bold text-white flex items-center gap-2 text-lg">
+                <BadgeCheck size={20} className="text-indigo-200" /> Process Repayment
+              </h4>
+              <button onClick={() => setShowPaymentModal(false)} className="text-white/70 hover:text-white transition">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-5 text-center">
+                <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">Installment #{selectedInstallment.installmentNumber || selectedInstallment.installmentNo}</div>
+                <div className="text-3xl font-black text-indigo-700">Rs. {Number(selectedInstallment.totalExpectedAmount || selectedInstallment.emi).toLocaleString()}</div>
+                <div className="text-xs font-semibold text-indigo-600/70 mt-1">Due: {selectedInstallment.dueDate}</div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Amount to Pay (Rs.)</label>
+                  <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} 
+                    className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 transition outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Payment Method</label>
+                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)} 
+                    className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm font-bold bg-white text-slate-800 transition outline-none">
+                    <option value="CASH">Cash Payment</option>
+                    <option value="SAVINGS_TRANSFER">Savings Transfer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Reference Note</label>
+                  <input type="text" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} 
+                    className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm transition outline-none" placeholder="e.g. Receipt #123 or Transfer ID" />
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+              <button onClick={() => setShowPaymentModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-200 rounded-xl transition">Cancel</button>
+              <button onClick={handleRepay} disabled={paymentLoading} className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-2">
+                {paymentLoading ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> Processing...</>
+                ) : 'Confirm Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ package com.hmcs.loan.controller;
 
 import com.hmcs.loan.entity.Loan;
 import com.hmcs.loan.entity.LoanApprovalAction;
+import com.hmcs.loan.entity.LoanSchedule;
+import com.hmcs.loan.entity.LoanRepayment;
 import com.hmcs.loan.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -171,5 +173,46 @@ public class LoanController {
                 "interest", interest,
                 "formula", "(" + principal + " × " + days + " × " + rate + "%) ÷ 36,500"
         ));
+    }
+
+    /**
+     * Get the saved repayment schedule for a specific loan.
+     */
+    @GetMapping("/{id}/saved-schedule")
+    public ResponseEntity<List<LoanSchedule>> getSavedSchedule(@PathVariable UUID id) {
+        return ResponseEntity.ok(loanService.getLoanSchedules(id));
+    }
+
+    /**
+     * Get the repayment history for a specific loan.
+     */
+    @GetMapping("/{id}/repayments")
+    public ResponseEntity<List<LoanRepayment>> getRepayments(@PathVariable UUID id) {
+        return ResponseEntity.ok(loanService.getLoanRepayments(id));
+    }
+
+    /**
+     * Process a loan installment repayment.
+     * Body: { "amount": 10500, "paymentMethod": "CASH", "reference": "Ref123", "actorUsername": "mgr_hkw", "paymentBranchId": 2 }
+     */
+    @PostMapping("/{id}/repay")
+    public ResponseEntity<?> repayInstallment(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
+            String reference = body.getOrDefault("reference", "").toString();
+            String actorUsername = body.getOrDefault("actorUsername", "system").toString();
+            Long paymentBranchId = null;
+            if (body.containsKey("paymentBranchId") && body.get("paymentBranchId") != null) {
+                paymentBranchId = Long.valueOf(body.get("paymentBranchId").toString());
+            }
+
+            LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId);
+            return ResponseEntity.ok(repayment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

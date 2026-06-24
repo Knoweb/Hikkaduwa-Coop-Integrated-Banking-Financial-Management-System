@@ -194,6 +194,34 @@ export const calculateInterest = async (
   return response.data;
 };
 
+// ── Repayments & Live Schedule ────────────────────────────────────────────────
+
+export const getSavedSchedule = async (loanId: string): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/${loanId}/saved-schedule`, { headers: authHeader() });
+  return response.data;
+};
+
+export const getRepayments = async (loanId: string): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/${loanId}/repayments`, { headers: authHeader() });
+  return response.data;
+};
+
+export const repayInstallment = async (
+  loanId: string,
+  amount: number,
+  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER',
+  reference: string,
+  actorUsername: string,
+  paymentBranchId: number
+): Promise<any> => {
+  const response = await axios.post(
+    `${API_URL}/${loanId}/repay`,
+    { amount, paymentMethod, reference, actorUsername, paymentBranchId },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
 // ── Stage Labels (for UI display) ─────────────────────────────────────────────
 
 export const STAGE_LABELS: Record<string, { label: string; labelSi: string; role: string; color: string }> = {

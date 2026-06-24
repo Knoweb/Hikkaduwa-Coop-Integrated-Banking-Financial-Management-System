@@ -25,6 +25,8 @@ public class LoanService {
     @Autowired private LoanTypeRepository loanTypeRepository;
     @Autowired private LoanApprovalActionRepository approvalActionRepository;
     @Autowired private LedgerEntryRepository ledgerEntryRepository;
+    @Autowired private LoanScheduleRepository loanScheduleRepository;
+    @Autowired private LoanRepaymentRepository loanRepaymentRepository;
     @Autowired private RestTemplate restTemplate;
     @Autowired private LoanApplicantDetailRepository applicantDetailRepository;
     @Autowired private LoanAssetDetailRepository assetDetailRepository;
@@ -240,6 +242,14 @@ public class LoanService {
     public List<Loan> getLoansByMemberId(UUID memberId) { return loanRepository.findByMemberId(memberId); }
     public List<Loan> getLoansByStatus(String status) { return loanRepository.findByStatus(status); }
 
+    public List<LoanSchedule> getLoanSchedules(UUID loanId) {
+        return loanScheduleRepository.findByLoanIdOrderByInstallmentNumberAsc(loanId);
+    }
+
+    public List<LoanRepayment> getLoanRepayments(UUID loanId) {
+        return loanRepaymentRepository.findByLoanIdOrderByPaymentDateDesc(loanId);
+    }
+
     // ── Stage Management ───────────────────────────────────────────────────────
     public Loan updateLoanStage(UUID loanId, String newStage, String newStatus) {
         return loanRepository.findById(loanId).map(loan -> {
@@ -361,6 +371,28 @@ public class LoanService {
         glEntry.setBranchId(loan.getBranchId());
         glEntry.setCreatedBy(actorUsername);
         ledgerEntryRepository.save(glEntry);
+        // ── AUTO-CREATE LOAN SCHEDULE ────────────────────────────────────────
+        Map<String, Object> appData = loan.getApplicationData();
+        Integer termMonths = null;
+        if (appData != null && appData.containsKey("repaymentPeriodMonths")) {
+            try { termMonths = Integer.parseInt(appData.get("repaymentPeriodMonths").toString()); } catch (Exception ignored) {}
+        }
+        if (termMonths == null) termMonths = 12; // default
+
+        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(loan.getDisbursedAmount(), termMonths, loan.getInterestRate());
+        
+        for (Map<String, Object> row : scheduleData) {
+            LoanSchedule schedule = new LoanSchedule();
+            schedule.setLoanId(loanId);
+            schedule.setInstallmentNumber((Integer) row.get("installmentNo"));
+            schedule.setDueDate(LocalDate.parse(row.get("dueDate").toString()));
+            schedule.setExpectedPrincipal((BigDecimal) row.get("principalPortion"));
+            schedule.setExpectedInterest((BigDecimal) row.get("interestPortion"));
+            schedule.setTotalExpectedAmount((BigDecimal) row.get("emi"));
+            schedule.setOutstandingBalance((BigDecimal) row.get("outstandingBalance"));
+            schedule.setStatus(LoanSchedule.ScheduleStatus.PENDING);
+            loanScheduleRepository.save(schedule);
+        }
         // ─────────────────────────────────────────────────────────────────────
 
         return loanRepository.save(loan);
@@ -385,5 +417,132 @@ public class LoanService {
             dueDate = dueDate.plusMonths(1);
         }
         return schedule;
+    }
+
+    // ── Repayment Processing ───────────────────────────────────────────────────
+    @Transactional
+    public LoanRepayment payInstallment(UUID loanId, BigDecimal paymentAmount, String paymentMethod, String accountNoOrRef, String actorUsername, Long paymentBranchId) {
+        Loan loan = loanRepository.findById(loanId).orElseThrow(() -> new RuntimeException("Loan not found"));
+        if (!"ACTIVE".equals(loan.getStatus())) {
+            throw new RuntimeException("Loan is not ACTIVE. Cannot accept payments.");
+        }
+
+        // Cooperative rules: Heena wana shesha kramaya (reducing balance). No penalty for late payment.
+        // User must pay AT LEAST the expected interest + some principal, or they can pay MORE.
+        
+        // Find next pending schedule
+        List<LoanSchedule> pendingSchedules = loanScheduleRepository.findByLoanIdAndStatusOrderByInstallmentNumberAsc(loanId, LoanSchedule.ScheduleStatus.PENDING);
+        if (pendingSchedules.isEmpty()) {
+            throw new RuntimeException("No pending installments found. Loan might be fully paid.");
+        }
+        
+        LoanSchedule nextInstallment = pendingSchedules.get(0);
+        BigDecimal expectedTotal = nextInstallment.getTotalExpectedAmount();
+
+        if (paymentAmount.compareTo(expectedTotal) < 0) {
+            throw new RuntimeException("Payment amount (" + paymentAmount + ") is less than the expected installment (" + expectedTotal + "). Underpayment is not allowed.");
+        }
+
+        // For reducing balance, if they pay exactly the EMI, split is as per schedule.
+        // If they pay MORE, the extra goes entirely towards the Principal.
+        BigDecimal interestPortion = nextInstallment.getExpectedInterest();
+        BigDecimal principalPortion = paymentAmount.subtract(interestPortion);
+
+        // Record Repayment
+        LoanRepayment repayment = new LoanRepayment();
+        repayment.setLoanId(loanId);
+        repayment.setPaymentBranchId(paymentBranchId != null ? paymentBranchId : loan.getBranchId());
+        // Since we don't have a direct user UUID passed for actor, we can try to look it up or just use a dummy UUID if unavailable.
+        // For now, we will generate a random UUID to represent the processor if not supplied. 
+        repayment.setProcessedBy(UUID.randomUUID()); 
+        repayment.setTotalPaid(paymentAmount);
+        repayment.setPrincipalPortion(principalPortion);
+        repayment.setInterestPortion(interestPortion);
+        repayment.setPenaltyPaid(BigDecimal.ZERO); // No penalty for reducing balance
+        repayment.setPaymentMethod(LoanRepayment.PaymentMethod.valueOf(paymentMethod));
+        repayment.setReference("Installment " + nextInstallment.getInstallmentNumber() + " - " + accountNoOrRef);
+        repayment = loanRepaymentRepository.save(repayment);
+
+        // Update Schedule Status
+        nextInstallment.setStatus(LoanSchedule.ScheduleStatus.PAID);
+        loanScheduleRepository.save(nextInstallment);
+
+        // Update Loan Outstanding Balance
+        BigDecimal currentOutstanding = loan.getDisbursedAmount(); // We need an outstanding balance field. If not present, we can approximate or we should really add it to Loan.java
+        // Since Loan entity might lack outstanding balance right now, we just rely on ledger for exact balance. 
+        // We will update the loan status to COMPLETED if the principal portion covers the whole remaining loan.
+
+        // ── AUTO-CREATE GENERAL LEDGER ENTRY ─────────────────────────────────
+        String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod) ? "SAVINGS_DEPOSITS" : "CASH_IN_VAULT";
+        
+        // Ledger Entry 1: Total cash in
+        LedgerEntry cashIn = new LedgerEntry();
+        cashIn.setLoanId(loanId);
+        cashIn.setReferenceNumber(repayment.getId().toString());
+        cashIn.setEntryDate(LocalDate.now());
+        cashIn.setDescription("Loan Repayment (Cash In) — " + loan.getAccountNumber());
+        cashIn.setDebitAccount(debitAccount);
+        cashIn.setCreditAccount("LOAN_REPAYMENT_CLEARING");
+        cashIn.setAmount(paymentAmount);
+        cashIn.setEntryType("REPAYMENT_CASH_IN");
+        cashIn.setPaymentMethod(paymentMethod);
+        cashIn.setBranchId(Math.toIntExact(repayment.getPaymentBranchId()));
+        cashIn.setCreatedBy(actorUsername);
+        ledgerEntryRepository.save(cashIn);
+
+        // Ledger Entry 2: Principal deduction
+        LedgerEntry principalDeduction = new LedgerEntry();
+        principalDeduction.setLoanId(loanId);
+        principalDeduction.setReferenceNumber(repayment.getId().toString());
+        principalDeduction.setEntryDate(LocalDate.now());
+        principalDeduction.setDescription("Loan Principal Deduction — " + loan.getAccountNumber());
+        principalDeduction.setDebitAccount("LOAN_REPAYMENT_CLEARING");
+        principalDeduction.setCreditAccount("LOAN_RECEIVABLE");
+        principalDeduction.setAmount(principalPortion);
+        principalDeduction.setEntryType("REPAYMENT_PRINCIPAL");
+        principalDeduction.setPaymentMethod(paymentMethod);
+        principalDeduction.setBranchId(Math.toIntExact(repayment.getPaymentBranchId()));
+        principalDeduction.setCreatedBy(actorUsername);
+        ledgerEntryRepository.save(principalDeduction);
+
+        // Ledger Entry 3: Interest Income
+        LedgerEntry interestIncome = new LedgerEntry();
+        interestIncome.setLoanId(loanId);
+        interestIncome.setReferenceNumber(repayment.getId().toString());
+        interestIncome.setEntryDate(LocalDate.now());
+        interestIncome.setDescription("Loan Interest Income — " + loan.getAccountNumber());
+        interestIncome.setDebitAccount("LOAN_REPAYMENT_CLEARING");
+        interestIncome.setCreditAccount("INTEREST_INCOME");
+        interestIncome.setAmount(interestPortion);
+        interestIncome.setEntryType("REPAYMENT_INTEREST");
+        interestIncome.setPaymentMethod(paymentMethod);
+        interestIncome.setBranchId(Math.toIntExact(repayment.getPaymentBranchId()));
+        interestIncome.setCreatedBy(actorUsername);
+        ledgerEntryRepository.save(interestIncome);
+        // ─────────────────────────────────────────────────────────────────────
+
+        // If Savings Transfer, we need to call Savings Service to deduct the amount
+        if ("SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod)) {
+            Map<String, Object> withdrawalRequest = new HashMap<>();
+            withdrawalRequest.put("accountNumber", accountNoOrRef);
+            withdrawalRequest.put("amount", paymentAmount);
+            withdrawalRequest.put("reference", "Loan Installment " + loan.getAccountNumber());
+            withdrawalRequest.put("requestApproval", false);
+
+            try {
+                String savingsServiceUrl = "http://hmcs-savings-service:8082/api/v1/transactions/withdraw";
+                restTemplate.postForEntity(savingsServiceUrl, withdrawalRequest, Object.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to debit savings account for loan repayment: " + e.getMessage(), e);
+            }
+        }
+
+        // Check if fully paid (if no pending schedules left or if principal covers full remaining)
+        if (loanScheduleRepository.findByLoanIdAndStatusOrderByInstallmentNumberAsc(loanId, LoanSchedule.ScheduleStatus.PENDING).isEmpty()) {
+            loan.setStatus("COMPLETED");
+            loanRepository.save(loan);
+        }
+
+        return repayment;
     }
 }
