@@ -257,7 +257,6 @@ public class LoanService {
 
     public List<LoanSchedule> getLoanSchedules(UUID loanId) {
         return loanScheduleRepository.findByLoanIdOrderByInstallmentNumberAsc(loanId);
->>>>>>> 5299b6347d5d9b02bfbc7fd3e12b6e7b88787bb1
     }
 
     public List<LoanRepayment> getLoanRepayments(UUID loanId) {
