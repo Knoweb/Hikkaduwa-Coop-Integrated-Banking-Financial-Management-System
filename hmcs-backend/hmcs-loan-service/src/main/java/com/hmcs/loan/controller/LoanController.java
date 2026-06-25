@@ -2,6 +2,8 @@ package com.hmcs.loan.controller;
 
 import com.hmcs.loan.entity.Loan;
 import com.hmcs.loan.entity.LoanApprovalAction;
+import com.hmcs.loan.entity.LoanSchedule;
+import com.hmcs.loan.entity.LoanRepayment;
 import com.hmcs.loan.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -112,6 +114,27 @@ public class LoanController {
     }
 
     /**
+     * Disburse an approved loan.
+     * Body: { "amount": 100000, "actorUsername": "mgr_hkw" }
+     */
+    @PostMapping("/{id}/disburse")
+    public ResponseEntity<Loan> disburseLoan(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            BigDecimal amount = body.containsKey("amount") ? new BigDecimal(body.get("amount").toString()) : null;
+            String actorUsername = body.getOrDefault("actorUsername", "system").toString();
+            String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
+            String savingsAccountNumber = body.getOrDefault("savingsAccountNumber", "").toString();
+            
+            Loan updated = loanService.disburseLoan(id, amount, actorUsername, paymentMethod, savingsAccountNumber);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    /**
      * Get full approval history for a loan.
      */
     @GetMapping("/{id}/history")
@@ -129,8 +152,9 @@ public class LoanController {
     public ResponseEntity<List<Map<String, Object>>> getRepaymentSchedule(
             @RequestParam BigDecimal principal,
             @RequestParam Integer termMonths,
-            @RequestParam BigDecimal annualRate) {
-        List<Map<String, Object>> schedule = loanService.generateRepaymentSchedule(principal, termMonths, annualRate);
+            @RequestParam BigDecimal annualRate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate) {
+        List<Map<String, Object>> schedule = loanService.generateRepaymentSchedule(principal, termMonths, annualRate, startDate);
         return ResponseEntity.ok(schedule);
     }
 
@@ -150,5 +174,50 @@ public class LoanController {
                 "interest", interest,
                 "formula", "(" + principal + " × " + days + " × " + rate + "%) ÷ 36,500"
         ));
+    }
+
+    /**
+     * Get the saved repayment schedule for a specific loan.
+     */
+    @GetMapping("/{id}/saved-schedule")
+    public ResponseEntity<List<LoanSchedule>> getSavedSchedule(@PathVariable UUID id) {
+        return ResponseEntity.ok(loanService.getLoanSchedules(id));
+    }
+
+    /**
+     * Get the repayment history for a specific loan.
+     */
+    @GetMapping("/{id}/repayments")
+    public ResponseEntity<List<LoanRepayment>> getRepayments(@PathVariable UUID id) {
+        return ResponseEntity.ok(loanService.getLoanRepayments(id));
+    }
+
+    /**
+     * Process a loan installment repayment.
+     * Body: { "amount": 10500, "paymentMethod": "CASH", "reference": "Ref123", "actorUsername": "mgr_hkw", "paymentBranchId": 2 }
+     */
+    @PostMapping("/{id}/repay")
+    public ResponseEntity<?> repayInstallment(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
+            String reference = body.getOrDefault("reference", "").toString();
+            String actorUsername = body.getOrDefault("actorUsername", "system").toString();
+            Long paymentBranchId = null;
+            if (body.containsKey("paymentBranchId") && body.get("paymentBranchId") != null) {
+                paymentBranchId = Long.valueOf(body.get("paymentBranchId").toString());
+            }
+            java.time.LocalDate paymentDate = null;
+            if (body.containsKey("paymentDate") && body.get("paymentDate") != null) {
+                paymentDate = java.time.LocalDate.parse(body.get("paymentDate").toString());
+            }
+
+            LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate);
+            return ResponseEntity.ok(repayment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

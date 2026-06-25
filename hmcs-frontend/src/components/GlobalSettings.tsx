@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
+import * as PawningService from '../services/pawning.service';
 import { Percent, PiggyBank, Plus, Key, X, Eye, EyeOff, Edit, CheckCircle, Shield, ChevronDown, ChevronRight, Lock, Briefcase, Scale, Database, Trash2 } from 'lucide-react';
 
 export default function GlobalSettings({ currentTab, readOnly = false }: { currentTab: 'rates' | 'account_types' | 'settings', readOnly?: boolean }) {
@@ -233,9 +234,28 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
     }
   };
 
+  const fetchPawningSettings = async () => {
+    try {
+      const settings = await PawningService.getAllSettings();
+      const interestRate = settings.find((s: any) => s.settingKey === 'pw_int')?.settingValue || '13.0';
+      const advanceAmount = settings.find((s: any) => s.settingKey === 'pw_adv')?.settingValue || '120000';
+      
+      setRatesData(prev => ({
+        ...prev,
+        pawning: [
+          { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: Number(interestRate), unit: '%' },
+          { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: Number(advanceAmount), unit: 'Rs.' },
+        ]
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchSavingsTypes();
     fetchFdTypes();
+    fetchPawningSettings();
   }, []);
 
   const handleAddSavingsType = async () => {
