@@ -68,6 +68,9 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
     { icon: CheckCircle, label: 'Approvals', key: 'approvals' },
     { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
+    { icon: Scale, label: 'Pawning', key: 'pawning' },
+    { isSection: true, label: 'Finance' },
+    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
     { icon: AlertTriangle, label: 'Alerts', key: 'alerts' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
@@ -91,8 +94,10 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
     { icon: FileText, label: 'Loan Accounts', key: 'loans' },
-    { isSection: true, label: 'Operations' },
+    { icon: Scale, label: 'Pawning (Gold Loans)', key: 'pawning' },
+    { isSection: true, label: 'Daily Operations' },
     { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
+    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
