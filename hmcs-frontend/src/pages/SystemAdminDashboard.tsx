@@ -449,7 +449,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
 import GlobalSettings from '../components/GlobalSettings';
 
 export default function SystemAdminDashboard() {
-  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types'>('overview');
+  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings'>('overview');
   const navigate  = useNavigate();
   const user      = AuthService.getCurrentUser();
   const { t, language, setLanguage } = useLanguage();
@@ -505,6 +505,10 @@ export default function SystemAdminDashboard() {
           <button onClick={() => { setActiveBranch(null); setMainTab('account_types'); }}
             className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'account_types' ? 'bg-amber-600/10 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <PiggyBank size={18} className="mr-3" />{t('Account Types')}
+          </button>
+          <button onClick={() => { setActiveBranch(null); setMainTab('settings'); }}
+            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'settings' ? 'bg-slate-600/10 text-slate-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+            <Settings size={18} className="mr-3" />{t('Settings')}
           </button>
           
           {activeBranch && (
@@ -574,6 +578,7 @@ export default function SystemAdminDashboard() {
         <div className="p-8">
           {mainTab === 'rates' && <GlobalSettings currentTab='rates' />}
           {mainTab === 'account_types' && <GlobalSettings currentTab='account_types' />}
+          {mainTab === 'settings' && <GlobalSettings currentTab='settings' />}
           {mainTab === 'overview' && (
             activeBranch ? (
             <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => setActiveBranch(null)} innerTab={activeTab} />

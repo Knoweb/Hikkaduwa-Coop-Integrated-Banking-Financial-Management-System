@@ -24,7 +24,7 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
   // Helper to display member card
   const renderApplicantCard = (title: string, member: MemberData | null, num: number) => {
     if (!member) return null;
-    const fullName = member.fullNameSinhala || member.fullName || '';
+    const fullName = member.fullName || member.fullNameSinhala || '';
     const nic = member.nic || member.birthCertificateNumber || '';
     
     let age = '';

@@ -47,6 +47,7 @@ public class InterestCalculationService {
      * on the correct historical balance — not the current balance.
      */
     @PostConstruct
+    @Scheduled(fixedDelay = 600000) // Run every 10 minutes to catch up if laptop was asleep at midnight
     @Transactional
     public void catchUpMissingDailyBalances() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
@@ -168,9 +169,13 @@ public class InterestCalculationService {
         }
 
         if (grossInterest.compareTo(BigDecimal.ZERO) > 0) {
-            // Withholding Tax = 10%
-            BigDecimal tax = grossInterest.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal netInterest = grossInterest.subtract(tax).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal netInterest = grossInterest;
+
+            if (Boolean.FALSE.equals(account.getHasSubmittedTaxForm())) {
+                // Withholding Tax = 10%
+                BigDecimal tax = grossInterest.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
+                netInterest = grossInterest.subtract(tax).setScale(2, RoundingMode.HALF_UP);
+            }
 
             if (netInterest.compareTo(BigDecimal.ZERO) > 0) {
                 account.setBalance(account.getBalance().add(netInterest));

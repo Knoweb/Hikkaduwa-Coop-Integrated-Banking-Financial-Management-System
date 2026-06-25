@@ -4,22 +4,26 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity
 } from 'lucide-react';
+import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as LedgerService from '../services/ledger.service';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
-import { printLoanAgreement, printDisbursementReceipt } from '../utils/print';
+import { FdViewModal } from '../components/FdViewModal';
+import FdMonitorModal from '../components/FdMonitorModal';
 import OpenAccountForm from '../components/OpenAccountForm';
 import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
 import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
+
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 import PawningModule from '../components/PawningModule';
+
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
@@ -38,20 +42,11 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Users, label: 'Members', key: 'members' }, 
     { isSection: true, label: 'Operations' },
     { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
-    { 
-      icon: FileText, 
-      label: 'ණය (Loans)', 
-      key: 'loans-menu',
-      subItems: [
-        { icon: FileText, label: 'ණය පෝලිම', key: 'loans' },
-        { icon: CheckCircle, label: 'කළමනාකරු අනුමත කළ', key: 'manager-approved' },
-        { icon: CheckCircle, label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' },
-      ]
-    },
-    { icon: Gem, label: 'උකස් (රන් ණය)', key: 'pawning' },
-    { isSection: true, label: 'Finance' },
-    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
-    { icon: AlertTriangle, label: 'Alerts', key: 'alerts' }
+    { icon: CheckCircle, label: 'Approvals', key: 'approvals' },
+    { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
+    { icon: AlertTriangle, label: 'Alerts', key: 'alerts' },
+    { isSection: true, label: 'Information' },
+    { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
   BANK_SERVICE_MANAGER: [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
@@ -72,10 +67,10 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
     { icon: FileText, label: 'Loan Accounts', key: 'loans' },
-    { icon: Gem, label: 'Pawning (Gold Loans)', key: 'pawning' },
-    { isSection: true, label: 'Daily Operations' },
+    { isSection: true, label: 'Operations' },
     { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
-    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
+    { isSection: true, label: 'Information' },
+    { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
   FIELD_OFFICER:        [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
@@ -838,7 +833,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [guardianSearchResults, setGuardianSearchResults] = useState<any[]>([]);
   const [showGuardianDropdown, setShowGuardianDropdown] = useState(false);
   const [selectedGuardianData, setSelectedGuardianData] = useState<any>(null);
-  const initialFormState = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', shareAmount: '' as number | string, photographUrl: '', digitalSignatureUrl: '' };
+  const initialFormState: any = { isMember: true, membershipNumber: '', nameWithInitials: '', fullName: '', fullNameSinhala: '', nic: '', dateOfBirth: '', gender: 'MALE', maritalStatus: 'UNMARRIED', address: '', province: '', contactNumber: '', belongsToOtherSociety: false, otherSocietyName: '', numberOfShares: '' as number | string, photographUrl: '', digitalSignatureUrl: '' };
   const [form, setForm] = useState(initialFormState);
   const [editingOriginalForm, setEditingOriginalForm] = useState<any>(null);
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, onConfirm: () => void, title: string, message: string}>({isOpen: false, onConfirm: () => {}, title: '', message: ''});
@@ -863,6 +858,14 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   // Row Transaction Modal state
   const [rowTxAction, setRowTxAction] = useState<TransactionAction | null>(null);
   const [rowTxAccount, setRowTxAccount] = useState<AccountService.AccountData | null>(null);
+  const [viewingFd, setViewingFd] = useState<any>(null);
+  const [monitoringFd, setMonitoringFd] = useState<any>(null);
+  const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
+  const [fdTypes, setFdTypes] = useState<any[]>([]);
+  const [fdSearch, setFdSearch] = useState('');
+  const [fdLoading, setFdLoading] = useState(false);
+  const [fdCategoryFilter, setFdCategoryFilter] = useState<'ALL'|'NORMAL'|'SENIOR'|'CHILD'>('ALL');
+  const [fdStatusFilter, setFdStatusFilter] = useState<'ALL'|'ACTIVE'|'MATURING_SOON'|'MATURED'>('ALL');
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -921,6 +924,9 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     AccountService.getAccounts().then(setAccounts).catch(() => {});
     LoanService.getLoans().then(setLoans).catch(() => {});
     AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
+    AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
+    setFdLoading(true);
+    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}).finally(() => setFdLoading(false));
   };
   useEffect(() => { fetchData(); }, []);
 
@@ -974,8 +980,8 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     if ((form as any).memberId) {
       setConfirmModal({
         isOpen: true,
-        title: "Confirm Changes",
-        message: "Are you sure you want to save the changes to this profile?",
+        title: "තහවුරු කරන්න",
+        message: "ඔබට මෙම සාමාජික තොරතුරු යාවත්කාලීන කිරීමට අවශ්‍ය බව සහතිකද?",
         onConfirm: processRegistration
       });
       return;
@@ -987,9 +993,12 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     setConfirmModal(prev => ({ ...prev, isOpen: false }));
     setRegError(''); setLoading(true);
     try {
+      const sharePrice = Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0;
+      const numShares = Number(form.numberOfShares) || 0;
       const payload = { 
         ...form, 
-        shareAmount: Number(form.shareAmount) || 0,
+        numberOfShares: numShares,
+        shareAmount: numShares * sharePrice,
         ageCategory: isChildReg ? 'CHILD' : 'ADULT',
         guardianNic: isChildReg ? guardianNic : null,
         guardianMemberNo: isChildReg ? guardianMemberNo : null
@@ -1077,84 +1086,280 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   }
 
   if (activeTab === 'fds') {
-    const mockFDs = [
-      { id: 'FD-8991001', memberName: 'එස්.පී. කුමාර', principal: 500000, term: 12, rate: 8.5, maturityDate: '2027-01-15', status: 'ACTIVE' },
-      { id: 'FD-8991002', memberName: 'කේ.ඩී. පෙරේරා', principal: 100000, term: 6, rate: 7.0, maturityDate: '2026-06-15', status: 'MATURING_SOON' },
-      { id: 'FD-8991003', memberName: 'ආර්.එම්. ජයසිංහ', principal: 250000, term: 24, rate: 9.0, maturityDate: '2026-04-20', status: 'MATURED' },
-    ];
-    
+    const today = new Date();
+    const thirtyDaysLater = new Date();
+    thirtyDaysLater.setDate(today.getDate() + 30);
+
+    const getMemberName = (memberId: string) => {
+      const m = members.find(mem => mem.memberId === memberId);
+      return m ? (m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
+    };
+
+    const getFdCategory = (fd: any): string => {
+      const typeObj = fdTypes.find(t => t.id === fd.typeId || t.id === fd.fdTypeId);
+      if (typeObj) {
+        if (typeObj.code?.startsWith('FD_SNR')) return 'SENIOR';
+        if (typeObj.code?.startsWith('FD_CHD')) return 'CHILD';
+        return 'NORMAL';
+      }
+      
+      // Fallback
+      const num = fd.termMonths || 0;
+      const rate = Number(fd.interestRate);
+      if (rate >= 12) return 'SENIOR';
+      if (num <= 3 && rate === 0) return 'CHILD';
+      return 'NORMAL';
+    };
+
+    const getFdStatus = (fd: any): string => {
+      if (fd.status && fd.status !== 'ACTIVE') return fd.status;
+      const maturity = new Date(fd.maturityDate);
+      if (maturity <= today) return 'MATURED';
+      if (maturity <= thirtyDaysLater) return 'MATURING_SOON';
+      return 'ACTIVE';
+    };
+
+    const filteredFDs = fixedDeposits.filter(fd => {
+      const name = getMemberName(fd.memberId);
+      const status = getFdStatus(fd);
+      const category = getFdCategory(fd);
+      const matchSearch = (fd.fdNumber || '').toLowerCase().includes(fdSearch.toLowerCase()) || name.toLowerCase().includes(fdSearch.toLowerCase());
+      const matchCategory = fdCategoryFilter === 'ALL' || category === fdCategoryFilter;
+      const matchStatus = fdStatusFilter === 'ALL' || status === fdStatusFilter;
+      return matchSearch && matchCategory && matchStatus;
+    });
+
+    const totalPrincipal = fixedDeposits.reduce((sum, fd) => sum + Number(fd.principalAmount || 0), 0);
+    const activeCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'ACTIVE').length;
+    const maturingSoonCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'MATURING_SOON').length;
+    const maturedCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'MATURED').length;
+
     return (
-      <div className="space-y-6">
-        {/* Module Header */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-500 shadow-sm border border-blue-100">
-            <Lock size={32} />
+      <div className="space-y-4">
+        {/* Header bar */}
+        <div className="bg-gradient-to-r from-[#025a4e] to-[#037a68] rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center shadow-inner">
+              <Lock size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">ස්ථාවර තැන්පතු (Fixed Deposits)</h3>
+              <p className="text-emerald-200 text-[11px] font-medium mt-0.5">කාලීන තැන්පතු කළමනාකරණය</p>
+            </div>
           </div>
-          <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Fixed Deposits Module</h3>
-          <p className="text-slate-500 font-medium mb-6 max-w-lg">Manage term deposits, view maturity schedules, and process FD closures or renewals.</p>
-          
-          <button onClick={() => setShowOpenFdForm(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5">
-            <Lock size={18} /> Open Fixed Deposit
+          <button
+            onClick={() => setShowOpenFdForm(true)}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Lock size={14} /> නව ගිණුමක් අරඹන්න
           </button>
         </div>
 
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ගිණුම්</p>
+            <p className="text-2xl font-black text-slate-800">{fixedDeposits.length}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">සියලු ගිණුම්</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">තැන්පතු මුදල</p>
+            <p className="text-xl font-black text-[#025a4e]">Rs. {totalPrincipal.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">සියලු තැන්පතු එකතුව</p>
+          </div>
+          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 shadow-sm">
+            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-0.5">කල් පිරීමට නියමිත</p>
+            <p className="text-2xl font-black text-amber-600">{maturingSoonCount}</p>
+            <p className="text-[10px] text-amber-400 mt-0.5">දින 30 ඇතුලත</p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">කල් පිරුණු</p>
+            <p className="text-2xl font-black text-slate-600">{maturedCount}</p>
+          </div>
+        </div>
+
         {/* Data Table */}
-        <div className="bg-slate-50 rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
-          <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-100/80">
-            <h4 className="font-bold text-slate-700">Active Fixed Deposits</h4>
-            <div className="relative w-72">
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+          {/* Toolbar */}
+          <div className="p-4 border-b border-slate-100 flex flex-col gap-3">
+            {/* Search - full width row */}
+            <div className="relative w-full">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input placeholder="Search FD number or name..." className="w-full pl-9 pr-4 py-2 border border-slate-300 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm transition-all" />
+              <input
+                value={fdSearch}
+                onChange={e => setFdSearch(e.target.value)}
+                placeholder="ගිණුම් අංකය හො නම සොයන්න..."
+                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all"
+              />
+            </div>
+
+            {/* Dropdowns row */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Category dropdown */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">වර්ගය:</label>
+                <select
+                  value={fdCategoryFilter}
+                  onChange={e => setFdCategoryFilter(e.target.value as any)}
+                  className="px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all cursor-pointer"
+                >
+                  <option value="ALL">සියල්ල</option>
+                  <option value="NORMAL">සාමාන්‍ය ස්ථාවර තැන්පතු</option>
+                  <option value="SENIOR">ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු</option>
+                  <option value="CHILD">ළමා ස්ථාවර තැන්පතු</option>
+                </select>
+              </div>
+
+              {/* Status dropdown */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">වර්තමාන තත්වය:</label>
+                <select
+                  value={fdStatusFilter}
+                  onChange={e => setFdStatusFilter(e.target.value as any)}
+                  className="px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all cursor-pointer"
+                >
+                  <option value="ALL">සියල්ල</option>
+                  <option value="ACTIVE">ක්‍රියාත්මක</option>
+                  <option value="MATURING_SOON">කල් පිරීමට නියමිත</option>
+                  <option value="MATURED">කල් පිරුණු</option>
+                </select>
+              </div>
+
+              <p className="ml-auto text-xs text-slate-400">පෙන්වන්නේ <span className="font-bold text-slate-700">{filteredFDs.length}</span> / {fixedDeposits.length} ගිණුම්</p>
             </div>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
+        <div className="border border-slate-200 rounded-xl overflow-x-auto bg-white shadow-sm">
+          <table className="w-full text-sm border-collapse min-w-[800px]">
+            <thead className="bg-slate-100 border-b-2 border-slate-200">
               <tr>
-                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">FD Number</th>
-                <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Account Holder</th>
-                <th className="px-5 py-5 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Principal (Rs.)</th>
-                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Term / Rate</th>
-                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Maturity Date</th>
-                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Status</th>
-                <th className="px-5 py-5 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Actions</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">ගිණුම්<br/>අංකය</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">තැන්පත්කරු</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">වර්ගය</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තැන්පතු මුදල (Rs.)</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">කාලය /<br/>පොළිය</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">කල් පිරීමේ දිනය</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
+                <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">ක්‍රියාකාරකම්</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {mockFDs.map((fd, i) => (
-                <tr key={i} className="hover:bg-blue-50/30 transition-colors group">
-                  <td className="px-5 py-4 font-mono font-bold text-slate-700">{fd.id}</td>
-                  <td className="px-5 py-4 font-bold text-slate-800">{fd.memberName}</td>
-                  <td className="px-5 py-4 text-right font-mono font-bold text-slate-700">{fd.principal.toLocaleString()}</td>
-                  <td className="px-5 py-4 text-center">
-                    <span className="block font-bold text-slate-700">{fd.term} Months</span>
-                    <span className="text-[10px] font-bold text-indigo-500">{fd.rate}% p.a.</span>
-                  </td>
-                  <td className="px-5 py-4 text-center font-medium text-slate-600">{fd.maturityDate}</td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border ${
-                      fd.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      fd.status === 'MATURING_SOON' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {fd.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-100 transition-colors">
-                        View
-                      </button>
-                      <button onClick={() => setRowTxAction('CLOSE_FD')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1">
-                        <ArrowUpRight size={14} /> Release
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {fdLoading ? (
+                <tr><td colSpan={8} className="px-3 py-12 text-center"><div className="flex flex-col items-center gap-2 text-slate-400"><div className="w-8 h-8 border-2 border-slate-300 border-t-[#025a4e] rounded-full animate-spin"></div><span className="text-sm">Loading...</span></div></td></tr>
+              ) : filteredFDs.length === 0 ? (
+                <tr><td colSpan={8} className="px-3 py-12 text-center text-slate-400">
+                  <Lock size={28} className="mx-auto mb-2 opacity-30" />
+                  <p className="font-semibold">{fdSearch || fdCategoryFilter !== 'ALL' || fdStatusFilter !== 'ALL' ? 'ගැලපෙන ස්ථාවර තැන්පතු කිසිවක් හමුවුණේ නැත.' : 'කිසිදු ස්ථාවර තැන්පතු ගිණුමක් හමුවුණේ නැත.'}</p>
+                </td></tr>
+              ) : filteredFDs.map((fd, i) => {
+                const status = getFdStatus(fd);
+                const maturityDate = new Date(fd.maturityDate);
+                const daysLeft = Math.ceil((maturityDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const category = getFdCategory(fd);
+                const categoryLabel = category === 'NORMAL' ? 'සාමාන්‍ය' : category === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ' : 'ළමා';
+                const categoryStyle = category === 'NORMAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : category === 'SENIOR' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-pink-50 text-pink-700 border-pink-200';
+                return (
+                  <tr key={i} className="hover:bg-emerald-50/30 transition-colors group">
+                    <td className="px-3 py-3 border-r border-slate-100">
+                      <span className="font-mono font-bold text-[#025a4e] bg-emerald-50 px-2 py-1 rounded-lg text-[11px]">{fd.fdNumber}</span>
+                    </td>
+                    <td className="px-3 py-3 border-r border-slate-100 min-w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#025a4e] to-teal-400 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm">
+                          {getMemberName(fd.memberId).charAt(0)}
+                        </div>
+                        <span className="font-bold text-slate-800 text-sm whitespace-normal">{getMemberName(fd.memberId)}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold border ${categoryStyle}`}>{categoryLabel}</span>
+                    </td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100">
+                      <span className="font-mono font-black text-slate-800 text-sm">Rs. {Number(fd.principalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className="block font-bold text-slate-700 text-xs">{fd.termMonths} මාස</span>
+                      <span className="text-[10px] font-bold text-indigo-500">{Number(fd.interestRate).toFixed(2)}% (වා.පො.)</span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className="block font-medium text-slate-700 text-xs">{fd.maturityDate}</span>
+                      {daysLeft > 0 && daysLeft <= 60 && (
+                        <span className="text-[10px] font-bold text-amber-500">දින {daysLeft}කින් කල්පිරේ</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider border ${
+                        status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        status === 'MATURING_SOON' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        {status === 'ACTIVE' ? 'ක්‍රියාකාරී' : status === 'MATURING_SOON' ? 'කල් පිරීමට ආසන්නයි' : 'කල් පිරී ඇත'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">බලන්න</button>
+                        <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        </div>
+
+        {/* Row Transaction Modal */}
+        {rowTxAction && (
+          <TransactionModal 
+            accountNumber={rowTxAccount?.accountNumber || ''}
+            accountType={rowTxAccount?.accountType || ''}
+            balance={Number(rowTxAccount?.balance || 0)}
+            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
+            action={rowTxAction}
+            allAccounts={accounts}
+            members={members}
+            onClose={() => { setRowTxAction(null); setRowTxAccount(null); }}
+            onSuccess={() => {
+              setRowTxAction(null); setRowTxAccount(null);
+              // Refresh accounts
+              fetchData();
+            }}
+          />
+        )}
+
+        {/* FD View Modal */}
+        {viewingFd && (
+          <FdViewModal 
+            fd={viewingFd} 
+            members={members} 
+            onClose={() => setViewingFd(null)} 
+          />
+        )}
+
+        {/* FD Monitor Modal */}
+        {monitoringFd && (
+          <FdMonitorModal 
+            fd={monitoringFd} 
+            memberName={getMemberName(monitoringFd.memberId)}
+            onClose={() => setMonitoringFd(null)}
+            onRelease={() => {
+              setMonitoringFd(null);
+              setRowTxAccount({ accountId: monitoringFd.id, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: monitoringFd.principalAmount, memberId: monitoringFd.memberId, childName: '' } as any);
+              setRowTxAction('CLOSE_FD');
+            }}
+          />
+        )}
+
+        {/* Modal for Open FD */}
+        {showOpenFdForm && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full my-8">
+              <OpenFixedDepositForm onClose={() => { setShowOpenFdForm(false); fetchData(); }} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1167,7 +1372,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     const filteredLoans = loans.filter(l => {
       if (loanFilter === 'COMMITTEE_APPROVED' && l.status !== 'APPROVED' && l.status !== 'ACTIVE') return false;
       const member = members.find(m => m.memberId === l.memberId);
-      const nameMatch = member ? (member.fullNameSinhala || member.fullName || '').toLowerCase().includes(loanSearch.toLowerCase()) : false;
+      const nameMatch = member ? (member.fullName || member.fullNameSinhala || '').toLowerCase().includes(loanSearch.toLowerCase()) : false;
       const typeMatch = (l.loanType?.name || '').toLowerCase().includes(loanSearch.toLowerCase());
       return nameMatch || typeMatch;
     });
@@ -1240,9 +1445,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 <tr key={l.loanId} className="hover:bg-indigo-50/40 transition-colors group">
                   <td className="px-6 py-4 text-slate-500 font-medium">{l.appliedDate || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-800 font-bold">
-                    {member 
-                      ? (member.fullNameSinhala || member.fullName)
-                      : (l.applicationData?.applicantName || l.applicationData?.name || l.memberId || 'N/A')}
+                    {member ? (member.fullName || member.fullNameSinhala) : 'N/A'}
                   </td>
                   <td className="px-6 py-4">
                     <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
@@ -1295,7 +1498,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             loan={viewLoan}
             memberName={(() => {
               const m = members.find(m => m.memberId === viewLoan.memberId);
-              return m ? (m.fullNameSinhala || m.fullName) : 'Unknown Member';
+              return m ? (m.fullName || m.fullNameSinhala) : 'Unknown Member';
             })()}
             onClose={() => setViewLoan(null)}
             onUpdated={() => {
@@ -1461,7 +1664,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 <tr key={a.accountId} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-5 py-5 font-bold text-slate-800 font-mono text-base">{a.accountNumber}</td>
                   <td className="px-5 py-5 text-slate-700 font-medium group-hover:text-blue-900 transition-colors">
-                    {a.childName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || members.find(m => m.memberId === a.memberId)?.fullName || 'N/A'}
+                    {a.childName || members.find(m => m.memberId === a.memberId)?.fullName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || 'N/A'}
                   </td>
                   <td className="px-5 py-5">
                     <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide inline-block">
@@ -1496,7 +1699,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             accountNumber={rowTxAccount?.accountNumber || ''}
             accountType={rowTxAccount?.accountType || ''}
             balance={Number(rowTxAccount?.balance || 0)}
-            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || 'N/A'}
+            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
             action={rowTxAction}
             allAccounts={accounts}
             members={members}
@@ -1505,6 +1708,29 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
               setRowTxAction(null); setRowTxAccount(null);
               // Refresh accounts
               AccountService.getAccounts().then(setAccounts).catch(() => {});
+            }}
+          />
+        )}
+
+        {/* FD View Modal */}
+        {viewingFd && (
+          <FdViewModal 
+            fd={viewingFd} 
+            members={members} 
+            onClose={() => setViewingFd(null)} 
+          />
+        )}
+
+        {/* FD Monitor Modal */}
+        {monitoringFd && (
+          <FdMonitorModal 
+            fd={monitoringFd} 
+            memberName={getMemberName(monitoringFd.memberId)}
+            onClose={() => setMonitoringFd(null)}
+            onRelease={() => {
+              setMonitoringFd(null);
+              setRowTxAccount({ accountId: monitoringFd.id, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: monitoringFd.principalAmount, memberId: monitoringFd.memberId, childName: '' } as any);
+              setRowTxAction('CLOSE_FD');
             }}
           />
         )}
@@ -1642,6 +1868,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             </div>
           </div>
         )}
+
       </div>
     );
   }
@@ -1872,11 +2099,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                       <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Full Name (Sinhala/Tamil)')}</label>
-                      <input value={form.fullNameSinhala} onChange={e => setForm(p => ({ ...p, fullNameSinhala: e.target.value }))}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
-                    </div>
+
                   </div>
                   
                   <div className="grid grid-cols-3 gap-5">
@@ -1932,9 +2155,14 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2"><Award size={16} className="text-green-600"/> {t('Membership Details')}</h3>
                     <div className="grid grid-cols-2 gap-5 mb-5">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Share Amount (Rs.)')}</label>
-                        <input type="number" min="0" step="0.01" value={form.shareAmount} onChange={e => setForm(p => ({ ...p, shareAmount: e.target.value }))} placeholder="e.g. 1000.00"
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Number of Shares')}</label>
+                        <input type="number" min="0" step="1" value={form.numberOfShares} onChange={e => setForm(p => ({ ...p, numberOfShares: e.target.value }))} placeholder="e.g. 10"
                           className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                        {form.numberOfShares && (
+                          <div className="text-xs text-green-700 font-bold mt-1.5 ml-1">
+                            මුළු අරමුදල: රු. {(Number(form.numberOfShares) * (Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0)).toFixed(2)} (1 කොටසක් = රු. {Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0})
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -1979,6 +2207,24 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                         </div>
                       )}
                     </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Digital Signature')}</label>
+                      <input type="file" accept="image/*" onChange={handleSignatureUpload}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                      
+                      {signatureProgress > 0 && signatureProgress < 100 && (
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
+                          <div className="bg-green-500 h-1.5 rounded-full transition-all duration-75" style={{ width: `${signatureProgress}%` }}></div>
+                        </div>
+                      )}
+                      
+                      {form.digitalSignatureUrl && (
+                        <div className="mt-3 flex items-start gap-3 p-2 bg-green-50/50 rounded-lg border border-green-100 w-fit">
+                          <img src={form.digitalSignatureUrl} alt="Signature Preview" className="h-12 object-contain bg-white rounded border border-green-200 shadow-sm px-2" />
+                          <p className="text-xs text-green-700 font-medium flex items-center gap-1.5 mt-1 pr-2"><CheckCircle size={14}/> Signature successfully attached</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 </div>
@@ -2013,13 +2259,13 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
                 className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition"
               >
-                CANCEL
+                අවලංගු කරන්න
               </button>
               <button 
                 onClick={confirmModal.onConfirm} 
                 className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition"
               >
-                CONFIRM
+                තහවුරු කරන්න
               </button>
             </div>
           </div>
@@ -2396,6 +2642,10 @@ export default function BranchDashboard() {
   const navItems = ROLE_NAV[role]    || ROLE_NAV['TELLER'];
 
   const renderContent = () => {
+    if (tab === 'rates') {
+      return <div className="mt-4"><GlobalSettings currentTab='rates' readOnly={true} /></div>;
+    }
+
     switch (role) {
       case 'BRANCH_MANAGER':       return <BranchManagerView activeTab={tab} />;
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
@@ -2432,13 +2682,12 @@ export default function BranchDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item, idx) => {
             if (item.isSection) {
               return (
                 <div key={`sec-${idx}`} className={idx === 0 ? "mb-2 px-3" : "mt-6 mb-2 px-3"}>
-                  {idx !== 0 && <div className="h-px w-full bg-white/10 mb-3"></div>}
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t(item.label)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t(item.label)}</p>
                 </div>
               );
             }
@@ -2468,7 +2717,7 @@ export default function BranchDashboard() {
             }
             return (
               <button key={item.key} onClick={() => setTab(item.key!)}
-                className={`flex items-center w-full px-3 py-3 mb-2 rounded-xl text-sm font-bold transition-all border text-left leading-tight ${
+                className={`flex items-center w-full px-4 py-2.5 mb-2 rounded-xl text-sm font-semibold transition-all border ${
                   tab === item.key 
                     ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)] scale-[1.02]' 
                     : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white'
@@ -2516,3 +2765,5 @@ export default function BranchDashboard() {
     </div>
   );
 }
+
+

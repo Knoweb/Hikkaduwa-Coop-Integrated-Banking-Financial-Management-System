@@ -24,6 +24,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   hmcs-member-auth-service:
@@ -35,6 +36,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   hmcs-savings-service:
@@ -46,6 +48,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   hmcs-loan-service:
@@ -57,6 +60,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   hmcs-pawning-service:
@@ -68,6 +72,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   hmcs-reporting-service:
@@ -79,6 +84,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
+      TZ: Asia/Colombo
     restart: unless-stopped
 
   adminer:

@@ -57,6 +57,9 @@ public class Member {
     @Column(precision = 10, scale = 2)
     private BigDecimal shareAmount = BigDecimal.ZERO;
 
+    @Column(name = "number_of_shares")
+    private Integer numberOfShares = 0;
+
     @Column(name = "age_category", length = 20)
     private String ageCategory = "ADULT";
 

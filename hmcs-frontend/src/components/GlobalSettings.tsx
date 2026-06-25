@@ -5,10 +5,10 @@ import * as LoanService from '../services/loan.service';
 import * as PawningService from '../services/pawning.service';
 import { Percent, PiggyBank, Plus, Key, X, Eye, EyeOff, Edit, CheckCircle, Shield, ChevronDown, ChevronRight, Lock, Briefcase, Scale, Database, Trash2 } from 'lucide-react';
 
-export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | 'account_types' }) {
+export default function GlobalSettings({ currentTab, readOnly = false }: { currentTab: 'rates' | 'account_types' | 'settings', readOnly?: boolean }) {
   const { t, language } = useLanguage();
 
-  const [rateCategory, setRateCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
+  const [rateCategory, setRateCategory] = useState<'savings'|'fd'|'loans'|'pawning'|'general'>('savings');
   const [accountCategory, setAccountCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
   const [editingRateId, setEditingRateId] = useState<string | null>(null);
   const [editRateValue, setEditRateValue] = useState<string | number>(0);
@@ -29,8 +29,11 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
       { id: 'ln_bus', label: 'Business Loan', value: 15.0, unit: '%' },
     ],
     pawning: [
-      { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: Number(localStorage.getItem('pawning_interest_rate') || 13.0), unit: '%' },
-      { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: Number(localStorage.getItem('pawning_advance') || 120000), unit: 'Rs.' },
+      { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: 13.0, unit: '%' },
+      { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: 120000, unit: 'Rs.' },
+    ],
+    general: [
+      { id: 'gen_share_price', label: 'Share Price (Rs.)', value: Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0, unit: 'Rs.' }
     ]
   });
   const handleConfirmRateUpdate = async () => {
@@ -49,14 +52,14 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
         payload.interestRateMonthly = newVal.monthly;
         await AccountService.updateFixedDepositType(payload.id, payload);
         await fetchFdTypes();
+      } else if (category === 'settings') {
+        if (id === 'share_price') {
+          localStorage.setItem('SYS_SHARE_PRICE', newVal.toString());
+          setSharePrice(newVal); // Add this hook below if missing, or we assume it is updated by effect
+        }
       } else {
-        if (category === 'pawning') {
-          if (id === 'pw_int') {
-            await PawningService.updateSetting('pw_int', newVal.toString(), 'Pawning Interest Rate (% p.a.)');
-          }
-          if (id === 'pw_adv') {
-            await PawningService.updateSetting('pw_adv', newVal.toString(), 'Advance per Gold Sovereign');
-          }
+        if (category === 'general' && id === 'gen_share_price') {
+          localStorage.setItem('SYS_SHARE_PRICE', newVal.toString());
         }
         setRatesData(prev => ({
           ...prev,
@@ -314,6 +317,58 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
   };
 
 
+  const [sharePrice, setSharePrice] = useState(Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0);
+
+  if (currentTab === 'settings') {
+    return (
+      <div className="space-y-6 max-w-5xl">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden ring-1 ring-slate-900/5 p-8">
+           <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2 mb-6">
+             <Database size={20} className="text-blue-500" />
+             {t('General / Shares')}
+           </h3>
+           <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex items-center justify-between">
+             <div>
+               <p className="font-bold text-slate-700 text-sm">{t('Share Price (Rs.)')}</p>
+               <p className="text-xs text-slate-500 mt-1">{t('Price of a single share for members')}</p>
+             </div>
+             <div className="flex items-center gap-3">
+               <span className="text-slate-500 font-bold text-sm">Rs.</span>
+               {editingRateId === 'share_price' ? (
+                 <>
+                   <input type="number" 
+                     value={editRateValue} 
+                     onChange={e => setEditRateValue(e.target.value)} 
+                     className="w-24 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                   />
+                   <button 
+                     onClick={() => setConfirmRateChange({ category: 'settings', id: 'share_price', name: 'Share Price', oldVal: sharePrice, newVal: Number(editRateValue), unit: 'Rs.' })}
+                     className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition" title={t('Save')}>
+                     <CheckCircle size={16} />
+                   </button>
+                   <button 
+                     onClick={() => setEditingRateId(null)}
+                     className="p-2 text-slate-400 bg-white hover:bg-slate-50 hover:text-slate-600 border border-slate-200 shadow-sm rounded-lg transition" title={t('Cancel')}>
+                     <X size={16} />
+                   </button>
+                 </>
+               ) : (
+                 <>
+                   <span className="w-24 px-3 py-2 text-sm font-bold text-slate-800 bg-white border border-transparent rounded-lg">{sharePrice.toFixed(2)}</span>
+                   <button 
+                     onClick={() => { setEditRateValue(sharePrice); setEditingRateId('share_price'); }}
+                     className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition" title={t('Edit')}>
+                     <Edit size={16} />
+                   </button>
+                 </>
+               )}
+             </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
   return currentTab === 'rates' ? (
     <div className="space-y-6 max-w-5xl">
       {true && (
@@ -381,7 +436,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                               <span className="text-slate-400 font-bold">%</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(currentValue).toFixed(4))} %</span>
+                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(currentValue).toFixed(4))}% (වා.පො.)</span>
                           )}
                         </td>
                         <td className="px-8 py-5 text-right">
@@ -391,9 +446,11 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                               <button onClick={() => setConfirmRateChange({ category: 'savings', id, name, oldVal: currentValue, newVal: Number(editRateValue), unit: '%' })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingRateId(id); setEditRateValue(currentValue); }} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition">
-                              <Edit size={14} /> {t('Edit')}
-                            </button>
+                            !readOnly && (
+                              <button onClick={() => { setEditingRateId(id); setEditRateValue(currentValue); }} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition">
+                                <Edit size={14} /> {t('Edit')}
+                              </button>
+                            )
                           )}
                         </td>
                       </tr>
@@ -458,7 +515,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                             <span className="text-slate-400 font-bold">%</span>
                                           </div>
                                         ) : (
-                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMaturity).toFixed(4))} %</span>
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMaturity).toFixed(4))}% (වා.පො.)</span>
                                         )}
                                       </td>
                                       <td className="px-8 py-4 text-center">
@@ -469,7 +526,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                             <span className="text-slate-400 font-bold">%</span>
                                           </div>
                                         ) : (
-                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMonthly).toFixed(4))} %</span>
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMonthly).toFixed(4))}% (වා.පො.)</span>
                                         )}
                                       </td>
                                       <td className="px-8 py-4 text-right">
@@ -479,7 +536,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                               <button onClick={() => setEditingRateId(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
                                               <button onClick={() => setConfirmRateChange({ category: 'fd', id: st.id, name: st.name, oldVal: st.interestRateMaturity, newVal: { maturity: Number(editRateValueMaturity), monthly: Number(editRateValueMonthly) }, unit: '%', fullObj: st })} className="p-1.5 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                                             </>
-                                          ) : (
+                                          ) : !readOnly && (
                                             <button onClick={() => { setEditingRateId(st.id); setEditRateValueMaturity(st.interestRateMaturity); setEditRateValueMonthly(st.interestRateMonthly); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
                                               <Edit size={14} /> {t('Edit')}
                                             </button>
@@ -530,7 +587,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                   <span className="text-slate-400 font-bold">%</span>
                                 </div>
                               ) : (
-                                <span className="font-mono font-bold text-slate-700 text-base">{lt.interestRate} %</span>
+                                <span className="font-mono font-bold text-slate-700 text-base">{lt.interestRate}% (වා.පො.)</span>
                               )}
                             </td>
                             <td className="px-8 py-5 text-right">
@@ -539,7 +596,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                   <button onClick={() => setEditingLoanRateId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
                                   <button onClick={() => handleUpdateLoanRate(lt, Number(editLoanRateValue))} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                                 </div>
-                              ) : (
+                              ) : !readOnly && (
                                 <button onClick={() => { setEditingLoanRateId(lt.loanTypeId); setEditLoanRateValue(lt.interestRate); }}
                                   className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition">
                                   <Edit size={14} /> {t('Edit')}
@@ -578,7 +635,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                               <button onClick={() => setEditingRateId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
                               <button onClick={() => setConfirmRateChange({ category: rateCategory, id: item.id, name, oldVal: item.value, newVal: Number(editRateValue), unit: item.unit })} className="p-2 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                             </div>
-                          ) : (
+                          ) : !readOnly && (
                             <button onClick={() => { setEditingRateId(item.id); setEditRateValue(item.value); }} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 shadow-sm rounded-xl transition">
                               <Edit size={14} /> {t('Edit')}
                             </button>
@@ -622,7 +679,12 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-1.5">නව අනුපාතය (New Rate)</p>
-                    <p className="text-blue-600 font-mono font-black text-2xl">{Number(Number(confirmRateChange.newVal).toFixed(4))} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
+                      <p className="text-blue-600 font-mono font-black text-2xl">
+                        {confirmRateChange.category === 'fd' 
+                          ? Number(Number((confirmRateChange.newVal as any).maturity).toFixed(4))
+                          : Number(Number(confirmRateChange.newVal).toFixed(4))} 
+                        <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span>
+                      </p>
                   </div>
                 </div>
               </div>
@@ -732,7 +794,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                       <Database size={16} className="text-slate-400" />
                       {t('Manage')} {t(accountCategory === 'savings' ? 'Savings' : accountCategory === 'fd' ? 'Fixed Deposits' : 'Pawning')} {t('Account Types')}
                     </h3>
-                    {accountCategory === 'savings' && (
+                    {!readOnly && accountCategory === 'savings' && (
                       <button 
                         onClick={() => setShowTypeForm(true)}
                         className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
@@ -767,9 +829,11 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                           <td className="px-6 py-4 font-bold text-slate-800">{st.nameEn}</td>
                           <td className="px-6 py-4 text-slate-600">{st.nameSi}</td>
                           <td className="px-6 py-4 text-right">
-                            <button onClick={() => handleDeleteSavingsType(st.id!)} className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
-                              <Trash2 size={16}/>
-                            </button>
+                            {!readOnly && (
+                              <button onClick={() => handleDeleteSavingsType(st.id!)} className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
+                                <Trash2 size={16}/>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -796,15 +860,17 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                     <Lock size={16} className="text-blue-500 ml-1" />
                                     {catName}
                                   </div>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setNewFdType(p => ({ ...p, category: cat }));
-                                      setShowFdTypeForm(true);
-                                    }}
-                                    className="text-xs bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-                                    <Plus size={14} /> {t('Add')}
-                                  </button>
+                                  {!readOnly && (
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setNewFdType(p => ({ ...p, category: cat }));
+                                        setShowFdTypeForm(true);
+                                      }}
+                                      className="text-xs bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                                      <Plus size={14} /> {t('Add')}
+                                    </button>
+                                  )}
                                 </div>
                                 {expandedFdCategories.includes(cat) && (
                                   <div className="divide-y divide-slate-50">
@@ -822,9 +888,11 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-8">
-                                            <button onClick={() => handleDeleteFdType(st.id)} className="text-rose-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded transition" title={t('Delete')}>
-                                              <Trash2 size={16}/>
-                                            </button>
+                                            {!readOnly && (
+                                              <button onClick={() => handleDeleteFdType(st.id)} className="text-rose-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded transition" title={t('Delete')}>
+                                                <Trash2 size={16}/>
+                                              </button>
+                                            )}
                                           </div>
                                         </div>
                                       ))
@@ -929,10 +997,12 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                     <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                       <Database size={15} className="text-slate-400" /> {t('Manage Loans Account Types')}
                     </h3>
-                    <button onClick={openCreateLoanType}
-                      className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
-                      <Plus size={14} /> {t('Add Type')}
-                    </button>
+                    {!readOnly && (
+                      <button onClick={openCreateLoanType}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 shadow-sm">
+                        <Plus size={14} /> {t('Add Type')}
+                      </button>
+                    )}
                   </div>
 
                   {/* Savings-style table */}
@@ -954,7 +1024,7 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                             {t('No loan types configured.')} Click "Add Type" to create one.
                           </td></tr>
                         ) : loanTypes.map(lt => {
-                          const { code, nameSi, nameEn, cleanDesc } = parseLoanMeta(lt);
+                          const { code, nameSi, nameEn } = parseLoanMeta(lt);
                           return (
                             <tr key={lt.loanTypeId} className="hover:bg-amber-50/20 transition-colors">
                               <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600">{code}</td>
@@ -962,14 +1032,18 @@ export default function GlobalSettings({ currentTab }: { currentTab: 'rates' | '
                               <td className="px-6 py-4 text-slate-600">{nameSi || '—'}</td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button onClick={() => openEditLoanType(lt)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition">
-                                    <Edit size={12} className="text-slate-500" /> {t('Edit')}
-                                  </button>
-                                  <button onClick={() => handleDeleteLoanType(lt.loanTypeId)}
-                                    className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
-                                    <Trash2 size={15}/>
-                                  </button>
+                                {!readOnly && (
+                                  <>
+                                    <button onClick={() => openEditLoanType(lt)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition">
+                                      <Edit size={12} className="text-slate-500" /> {t('Edit')}
+                                    </button>
+                                    <button onClick={() => handleDeleteLoanType(lt.loanTypeId)}
+                                      className="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title={t('Delete')}>
+                                      <Trash2 size={15}/>
+                                    </button>
+                                  </>
+                                )}
                                 </div>
                               </td>
                             </tr>

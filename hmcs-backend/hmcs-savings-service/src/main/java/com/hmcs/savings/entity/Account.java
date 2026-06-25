@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -65,6 +66,12 @@ public class Account {
 
     @Column(nullable = false)
     private Integer branchId;
+
+    @Column(updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "has_submitted_tax_form")
+    private Boolean hasSubmittedTaxForm = false;
 
     @Column(updatable = false)
     private LocalDate openedDate = LocalDate.now();

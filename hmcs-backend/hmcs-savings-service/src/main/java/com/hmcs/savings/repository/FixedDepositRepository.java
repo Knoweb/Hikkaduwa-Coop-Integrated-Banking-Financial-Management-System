@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface FixedDepositRepository extends JpaRepository<FixedDeposit, UUID> {
     List<FixedDeposit> findByMemberId(UUID memberId);
+    List<FixedDeposit> findByStatus(String status);
 }

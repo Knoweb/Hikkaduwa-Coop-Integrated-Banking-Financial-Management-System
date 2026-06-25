@@ -48,8 +48,11 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
       ...prev,
       memberId: member.memberId || '',
       fullName: fullName,
+      nameWithInitials: member.nameWithInitials || member.fullName || '',
       idNumber: nic,
       address: member.address || '',
+      dateOfBirth: member.dateOfBirth || '',
+      phoneNumber: member.contactNumber || ''
     }));
     setSearchResults([]);
     setSearchQuery('');
@@ -58,14 +61,31 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
   const [formData, setFormData] = useState({
     memberId: '',
     fullName: '',
+    nameWithInitials: '',
     idNumber: '',
     address: '',
+    dateOfBirth: '',
+    phoneNumber: '',
     fdTypeId: '',
     principalAmount: '',
     interestPayoutMethod: 'AT_MATURITY',
     maturityInstruction: 'REINVEST_PRINCIPAL_AND_INTEREST',
-    linkedSavingsAccountId: ''
+    linkedSavingsAccountId: '',
+    depositorSignature: '',
+    receiptNumber: '',
+    hasSubmittedTaxForm: false
   });
+
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, depositorSignature: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
@@ -109,7 +129,9 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           principalAmount: parseFloat(formData.principalAmount),
           interestPayoutMethod: formData.interestPayoutMethod,
           maturityInstruction: formData.maturityInstruction,
-          linkedSavingsAccountId: formData.linkedSavingsAccountId || null
+          linkedSavingsAccountId: formData.linkedSavingsAccountId || null,
+          depositorSignature: formData.depositorSignature || null,
+          receiptNumber: formData.receiptNumber || null
         })
       });
 
@@ -128,120 +150,204 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
     }
   };
 
-  return (
-    <div className="bg-white p-6 md:p-10 rounded-2xl max-w-4xl mx-auto border border-slate-100 shadow-sm relative">
-      {onClose && (
-        <button onClick={onClose} className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 transition">
-          <X size={24} />
-        </button>
-      )}
+  const calculateMaturityDate = () => {
+    if (!formData.fdTypeId || fdTypes.length === 0) return '';
+    const type = fdTypes.find(t => t.id === formData.fdTypeId);
+    if (!type || !type.termMonths) return '';
+    const d = new Date();
+    d.setMonth(d.getMonth() + type.termMonths);
+    return d.toISOString().split('T')[0];
+  };
 
-      <div className="mb-10 text-center">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">නව ස්ථාවර තැන්පතුව (New Fixed Deposit)</h2>
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <div className={`h-2 flex-1 rounded-l-full ${step >= 1 ? 'bg-blue-600' : 'bg-slate-100'}`}></div>
-          <div className={`h-2 flex-1 rounded-r-full ${step >= 2 ? 'bg-blue-600' : 'bg-slate-100'}`}></div>
+  const getInterestRate = () => {
+    if (!formData.fdTypeId || fdTypes.length === 0) return '0';
+    const type = fdTypes.find(t => t.id === formData.fdTypeId);
+    return type ? type.interestRateMaturity : '0';
+  };
+
+  const [formConfig, setFormConfig] = useState({ category: '', term: '', accountType: 'INDIVIDUAL' });
+
+  // When category or term changes, find matching fdTypeId
+  useEffect(() => {
+    if (formConfig.category && formConfig.term) {
+      const type = fdTypes.find(t => 
+        t.code.startsWith(formConfig.category) && t.termMonths.toString() === formConfig.term
+      );
+      if (type) {
+        setFormData(prev => ({ ...prev, fdTypeId: type.id }));
+      }
+    }
+  }, [formConfig.category, formConfig.term, fdTypes]);
+
+  const [isOfficerApproved, setIsOfficerApproved] = useState(false);
+
+  return (
+    <div className="bg-white rounded-2xl max-w-5xl w-full mx-auto overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative">
+      {/* Header */}
+      <div className="bg-[#01443b] text-white pt-6 pb-0 relative shrink-0">
+        {onClose && (
+          <button onClick={onClose} className="absolute right-4 top-4 text-emerald-200 hover:text-white transition">
+            <X size={20} />
+          </button>
+        )}
+        <div className="px-8 pb-4 flex justify-between items-start">
+          <div>
+            <p className="text-xs text-emerald-200/80 mb-1 font-semibold">විවිධ සේවා සමුපකාර සමිතිය</p>
+            <h2 className="text-2xl font-bold flex items-center gap-3">
+              ස්ථාවර තැන්පතු ගිණුම් පෝරමය
+              <span className="bg-amber-500 text-amber-950 text-xs px-3 py-1 rounded-full font-bold">ස්ථාවර තැන්පතු</span>
+            </h2>
+            <p className="text-xs text-emerald-200/70 mt-1">නව ස්ථාවර තැන්පතු ගිණුමක් ආරම්භ කිරීම</p>
+          </div>
+          <div className="text-right mt-1">
+            <p className="text-xs text-white font-semibold">ප්‍රධාන ශාඛාව - හික්කඩුව (Main Branch - Hikkaduwa)</p>
+          </div>
+        </div>
+
+        {/* Progress Bar in Header */}
+        <div className="grid grid-cols-3 gap-2 px-8 pb-3">
+          <div className={`h-1.5 rounded-full ${step >= 1 ? 'bg-amber-400' : 'bg-[#002f29]'}`}></div>
+          <div className={`h-1.5 rounded-full ${step >= 2 ? 'bg-amber-400' : 'bg-[#002f29]'}`}></div>
+          <div className={`h-1.5 rounded-full ${step >= 3 ? 'bg-amber-400' : 'bg-[#002f29]'}`}></div>
         </div>
       </div>
 
-      {alertConfig && (
-        <div className={`p-4 rounded-xl mb-6 flex justify-between items-start ${alertConfig.isSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          <p className="font-medium text-sm">{alertConfig.message}</p>
-          <button onClick={() => setAlertConfig(null)}><X size={16} /></button>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto p-8 bg-white">
+        <form ref={formRef} onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+          {alertConfig && (
+            <div className={`p-4 rounded-lg mb-6 text-sm border ${alertConfig.isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+              {alertConfig.message}
+            </div>
+          )}
 
-      <form ref={formRef} onSubmit={handleSubmit}>
-        {step === 1 && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-2">
-                1. සාමාජික තොරතුරු (Member Details)
+          {step === 1 && (
+            <div className="animate-in fade-in duration-300">
+              <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
+                1. සාමාජික විස්තර (Member Details)
               </h3>
               
-              <div className="mb-6 relative">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">සාමාජිකයා සොයන්න (Search Member)</label>
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="NIC අංකය හෝ නම ඇතුලත් කරන්න..."
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                  />
-                  {isSearching && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" />}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු කාණ්ඩය (CATEGORY) *</label>
+                  <select
+                    required
+                    value={formConfig.category}
+                    onChange={(e) => setFormConfig({...formConfig, category: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                  >
+                    <option value="">-- තෝරන්න --</option>
+                    <option value="FD_NRM">සාමාන්‍ය (Normal)</option>
+                    <option value="FD_SNR">ජ්‍යෙෂ්ඨ පුරවැසි (Senior Citizen)</option>
+                    <option value="FD_CHD">ළමා (Child)</option>
+                  </select>
                 </div>
-
-                {searchResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {searchResults.map(member => (
-                      <button
-                        key={member.memberId}
-                        type="button"
-                        onClick={() => selectApplicant(member)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b last:border-0"
-                      >
-                        <p className="font-semibold text-slate-800">{member.fullNameSinhala || member.fullName}</p>
-                        <p className="text-xs text-slate-500">NIC: {member.nic} | Member No: {member.memberNo}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කාලය (TERM) *</label>
+                  <select
+                    required
+                    value={formConfig.term}
+                    onChange={(e) => setFormConfig({...formConfig, term: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                  >
+                    <option value="">-- තෝරන්න --</option>
+                    <option value="1">මාස 1</option>
+                    <option value="3">මාස 3</option>
+                    <option value="6">මාස 6</option>
+                    <option value="12">මාස 12</option>
+                    <option value="24">මාස 24</option>
+                    <option value="60">මාස 60</option>
+                  </select>
+                </div>
               </div>
 
-              {formData.memberId && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">සම්පූර්ණ නම</label>
-                    <input type="text" readOnly value={formData.fullName} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම් වර්ගය (ACCOUNT TYPE) *</label>
+                <div className="flex gap-6 items-center h-10">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="accType" checked={formConfig.accountType === 'INDIVIDUAL'} onChange={() => setFormConfig({...formConfig, accountType: 'INDIVIDUAL'})} className="w-4 h-4 text-[#01443b] focus:ring-[#01443b]" />
+                    <span className="text-sm font-semibold text-slate-700">තනි ගිණුමක් (Individual)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="accType" checked={formConfig.accountType === 'JOINT'} onChange={() => setFormConfig({...formConfig, accountType: 'JOINT'})} className="w-4 h-4 text-[#01443b] focus:ring-[#01443b]" />
+                    <span className="text-sm font-semibold text-slate-700">හවුල් ගිණුමක් (Joint)</span>
+                  </label>
+                </div>
+              </div>
+
+              {!formData.memberId ? (
+                <div className="mb-6 relative">
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">සාමාජිකයා සොයන්න (SEARCH MEMBER)</label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="NIC අංකය හෝ නම ටයිප් කරන්න..."
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#01443b] focus:outline-none"
+                    />
+                    {isSearching && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#01443b] animate-spin" />}
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">හැඳුනුම්පත් අංකය</label>
-                    <input type="text" readOnly value={formData.idNumber} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
+
+                  {searchResults.length > 0 && (
+                    <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map(member => (
+                        <button
+                          key={member.memberId}
+                          type="button"
+                          onClick={() => selectApplicant(member)}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b last:border-0"
+                        >
+                          <p className="font-semibold text-slate-800">{member.fullNameSinhala || member.fullName}</p>
+                          <p className="text-xs text-slate-500">NIC: {member.nic} | Member No: {member.memberNo || 'නැත (Non-Member)'}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-xl relative">
+                  <button type="button" onClick={() => setFormData(prev => ({...prev, memberId: ''}))} className="absolute right-4 top-4 text-emerald-600 hover:text-emerald-800">
+                    <X size={16} />
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">සම්පූර්ණ නම</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.fullName || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">මුලකුරු සමඟ නම</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.nameWithInitials || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">ජාතික හැඳුනුම්පත් අංකය</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.idNumber || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">උපන් දිනය (DATE OF BIRTH)</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString().split('T')[0] : '-'}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">දුරකථන අංකය (PHONE NUMBER)</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.phoneNumber || '-'}</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">ලිපිනය</label>
+                      <div className="w-full px-3 py-2 bg-white border border-emerald-100 rounded text-sm text-slate-700">{formData.address || '-'}</div>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 2 && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-2">
+          {step === 2 && (
+            <div className="animate-in fade-in duration-300">
+              <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
                 2. තැන්පතු තොරතුරු (Deposit Details)
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු වර්ගය (FD Type) *</label>
-                  <select
-                    name="fdTypeId"
-                    required
-                    value={formData.fdTypeId}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="">-- තෝරන්න --</option>
-                    {['NORMAL', 'SENIOR', 'CHILD'].map(cat => {
-                      const catPrefix = cat === 'NORMAL' ? 'FD_NRM' : cat === 'SENIOR' ? 'FD_SNR' : 'FD_CHD';
-                      const catName = cat === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : cat === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
-                      const items = fdTypes.filter((t: any) => t.code.startsWith(catPrefix)).sort((a: any, b: any) => a.termMonths - b.termMonths);
-                      if (items.length === 0) return null;
-                      return (
-                        <optgroup key={cat} label={catName}>
-                          {items.map((type: any) => (
-                            <option key={type.id} value={type.id}>
-                              මාස {type.termMonths} (Rate: {type.interestRateMaturity}%)
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    })}
-                  </select>
-                </div>
-
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු මුදල (Principal Amount) *</label>
                   <div className="relative">
@@ -253,7 +359,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                       min="5000"
                       value={formData.principalAmount}
                       onChange={handleInputChange}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                     />
                   </div>
                 </div>
@@ -265,7 +371,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     required
                     value={formData.interestPayoutMethod}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                   >
                     <option value="AT_MATURITY">කල් පිරුණම එකවර ගැනීම (At Maturity - Higher Rate)</option>
                     <option value="MONTHLY">මාසිකව ගැනීම (Monthly - Rate -2%)</option>
@@ -279,7 +385,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     required
                     value={formData.maturityInstruction}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                   >
                     <option value="REINVEST_PRINCIPAL_AND_INTEREST">1. මුල් මුදල සහ පොළිය නැවත ආයෝජනය කිරීම (Reinvest Principal & Interest)</option>
                     <option value="REINVEST_PRINCIPAL_PAY_INTEREST">2. මුල් මුදල නැවත ආයෝජනය කර, පොළිය ඉතුරුම් ගිණුමට (Reinvest Principal, Pay Interest)</option>
@@ -288,32 +394,114 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="mt-10 flex justify-between items-center border-t border-slate-100 pt-6">
-          <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 hover:text-slate-700">අවලංගු කරන්න (Cancel)</button>
-          
-          <div className="flex gap-3">
-            {step > 1 && (
-              <button type="button" onClick={prevStep} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
-                පෙර (Back)
-              </button>
-            )}
+          {step === 3 && (
+            <div className="animate-in fade-in duration-300">
+              <div className="bg-red-50 text-red-600 text-sm font-semibold py-3 px-4 rounded-lg mb-6 flex justify-between items-center border border-red-100">
+                <span>කරුණාකර අනුමත නිලධාරි ලෙස තහවුරු කරන්න (Please approve as authorized officer).</span>
+                <X size={16} className="text-red-400" />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
+                3. කාර්යාලීය ප්‍රයෝජනය සඳහා පමණි (Office Use Only)
+              </h3>
+              
+              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කුවිතාන්සි අංකය (RECEIPT NO)</label>
+                    <input
+                      type="text"
+                      name="receiptNumber"
+                      value={formData.receiptNumber}
+                      onChange={handleInputChange}
+                      placeholder="රිසිට්පත් අංකය"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පත්කරුගේ අත්සන (DEPOSITOR SIGNATURE)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSignatureUpload}
+                      className="w-full px-4 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-[#01443b] hover:file:bg-emerald-100 text-sm"
+                    />
+                    {formData.depositorSignature && (
+                      <div className="mt-2 p-2 bg-white border border-slate-200 rounded-lg inline-block">
+                        <img src={formData.depositorSignature} alt="Signature Preview" className="h-12 object-contain" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-t border-slate-200 pt-6">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">තැන්පත් කළ දිනය (DEPOSIT DATE)</p>
+                    <p className="text-sm font-bold text-slate-800">{new Date().toISOString().split('T')[0]}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">කල්පිරෙන දිනය (MATURITY DATE)</p>
+                    <p className="text-sm font-bold text-slate-800">{calculateMaturityDate() || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">පොළී අනුපාතිකය (INTEREST RATE)</p>
+                    <p className="text-sm font-bold text-slate-800">{getInterestRate()}%</p>
+                  </div>
+                </div>
+
+                <div className="mb-6 pt-4 border-t border-slate-200 space-y-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      name="hasSubmittedTaxForm"
+                      checked={formData.hasSubmittedTaxForm}
+                      onChange={(e) => setFormData(prev => ({ ...prev, hasSubmittedTaxForm: e.target.checked }))}
+                      className="w-5 h-5 text-[#01443b] rounded focus:ring-[#01443b]" 
+                    />
+                    <span className="text-sm font-bold text-slate-700">බදු ආකෘති පත්‍රය ලබා දී ඇත (Tax form submitted) - <i>නොමැති නම් 10% ක WHT බද්දක් අය කෙරේ</i></span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isOfficerApproved}
+                      onChange={(e) => setIsOfficerApproved(e.target.checked)}
+                      className="w-5 h-5 text-[#01443b] rounded focus:ring-[#01443b]" 
+                    />
+                    <span className="text-sm font-bold text-slate-700">අනුමත කළ බලයලත් නිලධාරි අත්සන (Authorized Officer Approved)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex justify-between items-center pt-6 border-t border-slate-200">
+            <button type="button" onClick={onClose} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+              අවලංගු කරන්න (Cancel)
+            </button>
             
-            {step < 2 ? (
-              <button type="button" onClick={nextStep} className="px-8 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-md shadow-blue-500/20">
-                ඊළඟ (Next)
-              </button>
-            ) : (
-              <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition shadow-md shadow-green-500/20 flex items-center gap-2 disabled:opacity-70">
-                {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                තැන්පතුව ආරම්භ කරන්න (Open FD)
-              </button>
-            )}
+            <div className="flex gap-3">
+              {step > 1 && (
+                <button type="button" onClick={prevStep} className="px-6 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition">
+                  පෙර (Back)
+                </button>
+              )}
+              {step < 3 ? (
+                <button type="button" onClick={nextStep} className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-[#01443b] hover:bg-[#002f29] transition shadow-md">
+                  ඊළඟ (Next)
+                </button>
+              ) : (
+                <button type="submit" disabled={isSubmitting || !isOfficerApproved} className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-[#01443b] hover:bg-[#002f29] transition shadow-md flex items-center gap-2 disabled:opacity-50">
+                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  තැන්පතුව ආරම්භ කරන්න (Open FD)
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

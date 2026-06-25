@@ -86,6 +86,7 @@ public class SavingsController {
         public String witnessName;
         public String witnessAddress;
         public String specimenSignature;
+        public Boolean hasSubmittedTaxForm;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -119,6 +120,12 @@ public class SavingsController {
         if (body.witnessAddress != null) account.setWitnessAddress(body.witnessAddress);
         if (body.specimenSignature != null) account.setSpecimenSignature(body.specimenSignature);
         
+        if (body.hasSubmittedTaxForm != null) {
+            account.setHasSubmittedTaxForm(body.hasSubmittedTaxForm);
+        } else {
+            account.setHasSubmittedTaxForm(false);
+        }
+
         if (body.childName != null && !body.childName.trim().isEmpty()) {
             account.setChildName(body.childName);
             account.setChildBirthCertificate(body.childBirthCertificate);

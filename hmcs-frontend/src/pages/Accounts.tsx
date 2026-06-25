@@ -199,7 +199,7 @@ export default function Accounts() {
                     <tr key={acc.accountId} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">{acc.accountNumber}</td>
                       <td className="px-6 py-4 text-slate-700 font-medium">
-                        {acc.childName || members.find(m => m.memberId === acc.memberId)?.fullNameSinhala || members.find(m => m.memberId === acc.memberId)?.fullName || 'N/A'}
+                        {acc.childName || members.find(m => m.memberId === acc.memberId)?.fullName || members.find(m => m.memberId === acc.memberId)?.fullNameSinhala || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         <span className="bg-slate-100 px-2 py-0.5 rounded text-xs uppercase font-bold">

@@ -16,6 +16,7 @@ com\hmcs\savings\HmcsSavingsServiceApplication.class
 com\hmcs\savings\repository\FixedDepositRepository.class
 com\hmcs\savings\repository\SavingsAccountTypeRepository.class
 com\hmcs\savings\controller\SavingsController$OpenAccountRequest.class
+com\hmcs\savings\service\FixedDepositInterestService.class
 com\hmcs\savings\controller\SavingsAccountTypeController.class
 com\hmcs\savings\repository\DailyBalanceRepository.class
 com\hmcs\savings\controller\SavingsController$TransactionRequest.class

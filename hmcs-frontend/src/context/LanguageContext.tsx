@@ -8,6 +8,17 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // Login
+  'HMCS Banking': { en: 'HMCS Banking', si: 'HMCS බැංකුව' },
+  'Secure Portal Access': { en: 'Secure Portal Access', si: 'සුරක්ෂිත පිවිසුම' },
+  'Username': { en: 'Username', si: 'පරිශීලක නාමය' },
+  'Password': { en: 'Password', si: 'මුරපදය' },
+  'Sign In to Secure Portal': { en: 'Sign In to Secure Portal', si: 'පද්ධතියට ඇතුළු වන්න' },
+  'Enter your username': { en: 'Enter your username', si: 'පරිශීලක නාමය ඇතුළත් කරන්න' },
+  'Authenticating...': { en: 'Authenticating...', si: 'තහවුරු කරමින්...' },
+  'Hikkaduwa Multi-Purpose Co-operative Society Ltd.': { en: 'Hikkaduwa Multi-Purpose Co-operative Society Ltd.', si: 'හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය' },
+  '© 2026 INTEGRATED BANKING SYSTEM': { en: '© 2026 INTEGRATED BANKING SYSTEM', si: '© 2026 ඒකාබද්ධ බැංකු පද්ධතිය' },
+
   // Common
   'Hikkaduwa Branch': { en: 'Hikkaduwa Branch', si: 'හික්කඩුව ශාඛාව' },
   'Dashboard': { en: 'Dashboard', si: 'පාලක පුවරුව' },
@@ -111,7 +122,9 @@ const translations: Translations = {
   'Total Non-Members': { en: 'Total Non-Members', si: 'මුළු සාමාජික නොවන අය' },
   'Active Non-Members': { en: 'Active Non-Members', si: 'සක්‍රිය සාමාජික නොවන අය' },
   'Register Non-Member': { en: 'Register Non-Member', si: 'සාමාජික නොවන අය ලියාපදිංචි කරන්න' },
-  'Share Amount (Rs.)': { en: 'Share Amount (Rs.)', si: 'කොටස් ප්‍රමාණය (රු.)' },
+  'Total Members': { en: 'Total Members', si: 'මුළු සාමාජිකයන්' },
+  'Share Amount (Rs.)': { en: 'Share Capital (Rs.)', si: 'කොටස් අරමුදල (රු.)' },
+  'Number of Shares': { en: 'Number of Shares', si: 'මිලදී ගත් කොටස් ප්‍රමාණය' },
   'Belongs to another society?': { en: 'Belongs to another society?', si: 'වෙනත් සමිතියකට අයත්ද?' },
   'Other Society Name': { en: 'Other Society Name', si: 'වෙනත් සමිතියේ නම' },
   'Authorize & Register': { en: 'Authorize & Register', si: 'අනුමත කර ලියාපදිංචි කරන්න' },
@@ -219,6 +232,8 @@ const translations: Translations = {
   'Savings': { en: 'Savings', si: 'ඉතුරුම්' },
   'Loans': { en: 'Loans', si: 'ණය' },
   'Pawning': { en: 'Pawning', si: 'උකස්' },
+  'General / Shares': { en: 'General / Shares', si: 'සාමාන්‍ය / කොටස්' },
+  'Total Earnings': { en: 'Total Earnings', si: 'මුළු ඉපැයීම්' },
   'Product / Type': { en: 'Product / Type', si: 'නිෂ්පාදනය / වර්ගය' },
   'Interest Rate / Value': { en: 'Interest Rate / Value', si: 'පොලී අනුපාතය / අගය' },
   'All': { en: 'All', si: 'සියල්ල' },
