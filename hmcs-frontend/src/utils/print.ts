@@ -301,3 +301,127 @@ export const printPawnTicket = (ticket: any) => {
   printWindow.document.write(html);
   printWindow.document.close();
 };
+export const printAccountStatement = (passbookData: any) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const printed = new Date().toLocaleString('en-US');
+  const accNo = passbookData.account?.accountNumber || 'N/A';
+  const balance = Number(passbookData.account?.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const interestRate = (passbookData.account?.annualInterestRate || 0).toFixed(2);
+  const status = passbookData.account?.status || 'UNKNOWN';
+  
+  let trxRows = '';
+  if (passbookData.transactions && passbookData.transactions.length > 0) {
+    passbookData.transactions.forEach((tx: any) => {
+      const date = new Date(tx.transactionDate).toLocaleDateString('en-GB');
+      const isDeposit = tx.transactionType === 'DEPOSIT';
+      const depositAmt = isDeposit ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
+      const withdrawAmt = !isDeposit ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
+      const runningBalance = Number(tx.runningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      
+      trxRows += \
+        <tr>
+          <td>\</td>
+          <td>\</td>
+          <td class="text-right" style="color: #ef4444;">\</td>
+          <td class="text-right" style="color: #10b981;">\</td>
+          <td class="text-right font-bold">\</td>
+        </tr>
+      \;
+    });
+  } else {
+    trxRows = \<tr><td colspan="5" style="text-align:center; padding:20px;">No transactions found</td></tr>\;
+  }
+
+  const html = \<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Statement - \</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap');
+    body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; font-size: 12px; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+    .bank-name { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+    .bank-sub { font-size: 12px; color: #64748b; font-weight: 600; }
+    .title { font-size: 18px; font-weight: 700; margin: 20px 0; text-align: center; background: #f1f5f9; padding: 10px; border-radius: 8px; }
+    
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+    .summary-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; }
+    .summary-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .summary-value { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: #0f172a; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+    th { background: #f8fafc; text-align: left; padding: 12px; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+    td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+    .text-right { text-align: right; }
+    .font-bold { font-weight: 700; font-family: 'Space Mono', monospace; }
+    
+    .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+    
+    @media print {
+      body { padding: 0; }
+      @page { margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="bank-name">HMCS Bank</div>
+    <div class="bank-sub">Hikkaduwa Co-op Integrated Banking Financial Management System</div>
+  </div>
+  
+  <div class="title">ACCOUNT PASSBOOK / STATEMENT</div>
+  
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Account Number</div>
+      <div class="summary-value">\</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Current Balance</div>
+      <div class="summary-value">Rs. \</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Interest Rate</div>
+      <div class="summary-value">\% p.a.</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Status</div>
+      <div class="summary-value" style="color: \">\</div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 14px; margin-bottom: 10px; color: #334155;">Transaction History</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th class="text-right">Withdrawals</th>
+        <th class="text-right">Deposits</th>
+        <th class="text-right">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      \
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <p>Statement generated on \</p>
+    <p>This is a computer generated document and does not require a signature.</p>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 500);
+    };
+  </script>
+</body>
+</html>\;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+};

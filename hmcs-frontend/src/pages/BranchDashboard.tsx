@@ -4,13 +4,14 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as LedgerService from '../services/ledger.service';
+import { printAccountStatement } from '../utils/print';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { FdViewModal } from '../components/FdViewModal';
