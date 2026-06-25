@@ -67,7 +67,16 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { isSection: true, label: 'Operations' },
     { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
     { icon: CheckCircle, label: 'Approvals', key: 'approvals' },
-    { icon: FileText, label: 'Loan Queue', key: 'loans' }, 
+    { 
+        icon: FileText, 
+        label: 'ණය (Loans)', 
+        key: 'loans-parent', 
+        subItems: [
+          { label: 'ණය පෝලිම', key: 'loans' },
+          { label: 'කළමනාකරු අනුමත කළ', key: 'manager-approved' },
+          { label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' }
+        ]
+      },
     { icon: Scale, label: 'Pawning', key: 'pawning' },
     { isSection: true, label: 'Finance' },
     { icon: BookOpen, label: 'General Ledger', key: 'gl' },
