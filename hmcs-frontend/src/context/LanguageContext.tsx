@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type Language = 'en' | 'si';
 
@@ -45,7 +46,13 @@ const translations: Translations = {
   'Savings Accounts': { en: 'Savings Accounts', si: 'ඉතුරුම් ගිණුම්' },
   'Fixed Deposits': { en: 'Fixed Deposits', si: 'ස්ථාවර තැන්පතු' },
   'Loan Accounts': { en: 'Loan Accounts', si: 'ණය ගිණුම්' },
+  'Pawning (Gold Loans)': { en: 'Pawning (Gold Loans)', si: 'උකස් (රන් ණය)' },
   'Loan Queue': { en: 'Loan Queue', si: 'ණය පෝලිම' },
+  'Loan Committee Approved': { en: 'Loan Committee Approved', si: 'කමිටුව අනුමත කළ ණය' },
+  'Manager Approved': { en: 'Manager Approved', si: 'කළමනාකරු අනුමත කළ' },
+  'Loan Committee Approval': { en: 'Loan Committee Approval', si: 'ණය කමිටු අනුමැතිය' },
+  'Committee Approved': { en: 'Committee Approved', si: 'කමිටුව අනුමත කළ' },
+  'All Loans': { en: 'All Loans', si: 'සියලුම ණය' },
   'Alerts': { en: 'Alerts', si: 'ඇඟවීම්' },
   
   // Dashboard Titles & Stats
@@ -183,7 +190,6 @@ const translations: Translations = {
   'System Activity Log': { en: 'System Activity Log', si: 'පද්ධති ක්‍රියාකාරකම් ලොගය' },
   
   // Branch Detail view
-  'Overview': { en: 'Overview', si: 'දළ විශ්ලේෂණය' },
   'staff accounts': { en: 'staff accounts', si: 'කාර්ය මණ්ඩල ගිණුම්' },
   'Staff & Users': { en: 'Staff & Users', si: 'කාර්ය මණ්ඩලය සහ පරිශීලකයින්' },
   'Interest Rates': { en: 'Interest Rates', si: 'පොලී අනුපාත' },
@@ -191,15 +197,12 @@ const translations: Translations = {
   'Add Type': { en: 'Add Type', si: '+ අලුතින් එක් කරන්න' },
   'Branch Config': { en: 'Branch Config', si: 'ශාඛා සැකසුම්' },
   'Add User': { en: 'Add User', si: 'පරිශීලක එක් කරන්න' },
-  'Full Name': { en: 'Full Name', si: 'සම්පූර්ණ නම' },
   'Username': { en: 'Username', si: 'පරිශීලක නාමය' },
   'Role': { en: 'Role', si: 'භූමිකාව' },
-  'Status': { en: 'Status', si: 'තත්ත්වය' },
   'Actions': { en: 'Actions', si: 'ක්‍රියා' },
   'Edit': { en: 'Edit', si: 'සංස්කරණය' },
   'Delete': { en: 'Delete', si: 'මකන්න' },
   'Active': { en: 'Active', si: 'ක්‍රියාකාරී' },
-  'Cancel': { en: 'Cancel', si: 'අවලංගු කරන්න' },
   'Save Changes': { en: 'Save Changes', si: 'වෙනස්කම් සුරකින්න' },
   'Create User': { en: 'Create User', si: 'පරිශීලක සාදන්න' },
   'Branch Interest & Loan Rates': { en: 'Branch Interest & Loan Rates', si: 'ශාඛා පොලී සහ ණය අනුපාත' },
@@ -219,7 +222,6 @@ const translations: Translations = {
   'Target': { en: 'Target', si: 'ඉලක්කය' },
   'English': { en: 'English', si: 'ඉංග්‍රීසි' },
   'Sinhala': { en: 'Sinhala', si: 'සිංහල' },
-  'Action': { en: 'Action', si: 'ක්‍රියාව' },
   'Branch Information': { en: 'Branch Information', si: 'ශාඛා තොරතුරු' },
   'Branch Name': { en: 'Branch Name', si: 'ශාඛාවේ නම' },
   'Location': { en: 'Location', si: 'ස්ථානය' },
@@ -227,7 +229,6 @@ const translations: Translations = {
   'Mark branch as Active / Inactive': { en: 'Mark branch as Active / Inactive', si: 'ශාඛාව ක්‍රියාකාරී / අක්‍රිය ලෙස ලකුණු කරන්න' },
   'Inactive branches cannot process transactions.': { en: 'Inactive branches cannot process transactions.', si: 'අක්‍රිය ශාඛාවන්ට ගනුදෙනු සිදු කළ නොහැක.' },
   'Save Config': { en: 'Save Config', si: 'සැකසුම් සුරකින්න' },
-  'Sign Out': { en: 'Sign Out', si: 'ඉවත් වන්න' },
   'Edit User Profile': { en: 'Edit User Profile', si: 'පරිශීලක පැතිකඩ සංස්කරණය' },
   'New User —': { en: 'New User —', si: 'නව පරිශීලක —' },
   'Temporary Password': { en: 'Temporary Password', si: 'තාවකාලික මුරපදය' },
@@ -239,13 +240,11 @@ const translations: Translations = {
 
   // Rates Categories
   'Savings': { en: 'Savings', si: 'ඉතුරුම්' },
-  'Fixed Deposits': { en: 'Fixed Deposits', si: 'ස්ථාවර තැන්පතු' },
   'Loans': { en: 'Loans', si: 'ණය' },
   'Pawning': { en: 'Pawning', si: 'උකස්' },
   'General / Shares': { en: 'General / Shares', si: 'සාමාන්‍ය / කොටස්' },
   'Total Earnings': { en: 'Total Earnings', si: 'මුළු ඉපැයීම්' },
   'Product / Type': { en: 'Product / Type', si: 'නිෂ්පාදනය / වර්ගය' },
-  'Target': { en: 'Target', si: 'ඉලක්කය' },
   'Interest Rate / Value': { en: 'Interest Rate / Value', si: 'පොලී අනුපාතය / අගය' },
   'All': { en: 'All', si: 'සියල්ල' },
   'Rs.': { en: 'Rs.', si: 'රු.' },

@@ -34,6 +34,11 @@ export interface Loan {
   appliedDate: string;
   applicationData?: Record<string, any>;
   createdAt?: string;
+  // Disbursement fields
+  accountNumber?: string;
+  disbursementDate?: string;
+  disbursedAmount?: number;
+  disbursedBy?: string;
 }
 
 export interface LoanApprovalAction {
@@ -147,16 +152,41 @@ export const getLoanApprovalHistory = async (loanId: string): Promise<LoanApprov
   return response.data;
 };
 
+export const disburseLoan = async (
+  loanId: string,
+  amount: number,
+  actorUsername: string,
+  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER' = 'CASH',
+  savingsAccountNumber?: string
+): Promise<Loan> => {
+  const response = await axios.post(
+    `${API_URL}/${loanId}/disburse`,
+    { amount, actorUsername, paymentMethod, savingsAccountNumber },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
+export const getMemberSavingsAccounts = async (memberId: string): Promise<any[]> => {
+  const user = getCurrentUser();
+  const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
+  const res = await axios.get('http://localhost:8080/api/v1/savings', { headers });
+  return (res.data as any[]).filter(
+    (acc: any) => acc.memberId === memberId && acc.status === 'ACTIVE'
+  );
+};
+
 // ── EMI & Interest Calculations ───────────────────────────────────────────────
 
 export const getRepaymentSchedule = async (
   principal: number,
   termMonths: number,
-  annualRate: number
+  annualRate: number,
+  startDate?: string
 ): Promise<EmiScheduleRow[]> => {
   const response = await axios.get(`${API_URL}/schedule`, {
     headers: authHeader(),
-    params: { principal, termMonths, annualRate }
+    params: { principal, termMonths, annualRate, startDate }
   });
   return response.data;
 };
@@ -173,15 +203,39 @@ export const calculateInterest = async (
   return response.data;
 };
 
+// ── Repayments & Live Schedule ────────────────────────────────────────────────
+
+export const getSavedSchedule = async (loanId: string): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/${loanId}/saved-schedule`, { headers: authHeader() });
+  return response.data;
+};
+
+export const getRepayments = async (loanId: string): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/${loanId}/repayments`, { headers: authHeader() });
+  return response.data;
+};
+
+export const repayInstallment = async (
+  loanId: string,
+  amount: number,
+  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER',
+  reference: string,
+  actorUsername: string,
+  paymentBranchId: number,
+  paymentDate?: string
+): Promise<any> => {
+  const response = await axios.post(
+    `${API_URL}/${loanId}/repay`,
+    { amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
 // ── Stage Labels (for UI display) ─────────────────────────────────────────────
 
 export const STAGE_LABELS: Record<string, { label: string; labelSi: string; role: string; color: string }> = {
-  STAGE_1_APPLICATION_SUBMITTED:       { label: 'Application Submitted',       labelSi: 'ඉල්ලීම ඉදිරිපත් කිරීම',    role: 'MEMBER/STAFF',         color: 'bg-slate-100 text-slate-700' },
-  STAGE_2_FIELD_OFFICER_VERIFICATION:  { label: 'Field Officer Verification',  labelSi: 'ක්ෂේත්‍ර නිලධාරී සත්‍යාපනය', role: 'FIELD_OFFICER',         color: 'bg-blue-100 text-blue-700' },
-  STAGE_3_REGIONAL_COMMITTEE:          { label: 'Regional Committee Review',   labelSi: 'ප්‍රාදේශීය කමිටු නිර්දේශය', role: 'SENIOR_OFFICER',        color: 'bg-indigo-100 text-indigo-700' },
-  STAGE_4_BRANCH_MANAGER_RECOMMENDATION: { label: 'Branch Manager Recommendation', labelSi: 'ශාඛා කළමනාකාර නිර්දේශය', role: 'BRANCH_MANAGER',     color: 'bg-purple-100 text-purple-700' },
-  STAGE_5_BANK_SERVICE_MANAGER:        { label: 'Bank Service Manager Directive', labelSi: 'ශාඛා සේවා කළමනාකාර නියෝගය', role: 'BANK_SERVICE_MANAGER', color: 'bg-pink-100 text-pink-700' },
-  STAGE_6_LOAN_COMMITTEE_VOTE:         { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු ඡන්දය',            role: 'LOAN_COMMITTEE',        color: 'bg-amber-100 text-amber-700' },
-  STAGE_7_CHAIRMAN_SECRETARY_SIGNATURE:{ label: 'Chairman & Secretary Sign',   labelSi: 'සභාපති හා ලේකම් අත්සන',    role: 'BRANCH_MANAGER',        color: 'bg-orange-100 text-orange-700' },
-  STAGE_8_DISBURSEMENT:                { label: 'Disbursement',                labelSi: 'ණය ගෙවීම',                  role: 'TELLER/SENIOR_OFFICER', color: 'bg-green-100 text-green-700' },
+  STAGE_1_MANAGER_APPROVAL:        { label: 'Manager Approval Awaiting',   labelSi: 'කළමනාකාර අනුමැතිය බලාපොරොත්තුවෙන්', role: 'BRANCH_MANAGER', color: 'bg-blue-100 text-blue-700' },
+  STAGE_2_LOAN_COMMITTEE_APPROVAL: { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු ඡන්දය',                    role: 'LOAN_COMMITTEE', color: 'bg-amber-100 text-amber-700' },
+  STAGE_3_APPROVED:                { label: 'Approved',                    labelSi: 'අනුමත කරන ලදී',                     role: 'BRANCH_MANAGER', color: 'bg-emerald-100 text-emerald-700' },
 };

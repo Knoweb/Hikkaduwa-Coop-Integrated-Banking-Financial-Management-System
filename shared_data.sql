@@ -201,6 +201,7 @@ CREATE TABLE account_service.savings_accounts (
     child_date_of_birth date,
     child_name character varying(150),
     member_id uuid NOT NULL,
+    article_description character varying(255) NOT NULL,
     member_id_2 uuid,
     member_id_3 uuid,
     mode_of_operation character varying(50),
@@ -409,6 +410,7 @@ CREATE TABLE loan_service.loan_guarantors (
     guarantor_record_id integer NOT NULL,
     loan_id uuid NOT NULL,
     guarantor_member_id uuid NOT NULL,
+    article_description character varying(255) NOT NULL,
     digital_confirmation_url character varying(255)
 );
 
@@ -444,6 +446,7 @@ ALTER SEQUENCE loan_service.loan_guarantors_guarantor_record_id_seq OWNED BY loa
 CREATE TABLE loan_service.loans (
     loan_id uuid DEFAULT gen_random_uuid() NOT NULL,
     member_id uuid NOT NULL,
+    article_description character varying(255) NOT NULL,
     loan_type character varying(50) NOT NULL,
     requested_amount numeric(15,2) NOT NULL,
     approved_amount numeric(15,2),
@@ -502,6 +505,7 @@ CREATE TABLE pawning_service.pawn_tickets (
     ticket_id uuid DEFAULT gen_random_uuid() NOT NULL,
     ticket_number character varying(20) NOT NULL,
     member_id uuid NOT NULL,
+    article_description character varying(255) NOT NULL,
     gross_weight_grams numeric(8,2) NOT NULL,
     net_weight_grams numeric(8,2) NOT NULL,
     purity_karat integer NOT NULL,

@@ -1,4 +1,4 @@
---
+﻿--
 -- PostgreSQL database dump
 --
 
@@ -439,7 +439,7 @@ ALTER SEQUENCE loan_service.loan_collateral_collateral_id_seq OWNED BY loan_serv
 CREATE TABLE loan_service.loan_guarantors (
     guarantor_record_id integer NOT NULL,
     loan_id uuid NOT NULL,
-    guarantor_member_id uuid,
+    guarantor_member_id uuid NOT NULL,
     digital_confirmation_url character varying(255)
 );
 
@@ -489,7 +489,7 @@ CREATE TABLE loan_service.loan_types (
 CREATE TABLE loan_service.loans (
     loan_id uuid DEFAULT gen_random_uuid() NOT NULL,
     member_id uuid NOT NULL,
-    loan_type character varying(50),
+    loan_type character varying(50) NOT NULL,
     requested_amount numeric(15,2) NOT NULL,
     approved_amount numeric(15,2),
     interest_rate numeric(5,2) NOT NULL,
