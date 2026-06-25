@@ -213,11 +213,12 @@ export const repayInstallment = async (
   paymentMethod: 'CASH' | 'SAVINGS_TRANSFER',
   reference: string,
   actorUsername: string,
-  paymentBranchId: number
+  paymentBranchId: number,
+  paymentDate?: string
 ): Promise<any> => {
   const response = await axios.post(
     `${API_URL}/${loanId}/repay`,
-    { amount, paymentMethod, reference, actorUsername, paymentBranchId },
+    { amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate },
     { headers: authHeader() }
   );
   return response.data;

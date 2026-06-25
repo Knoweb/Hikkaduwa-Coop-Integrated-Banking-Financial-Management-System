@@ -29,7 +29,7 @@ const STAGE_ROLE_MAP: Record<string, string[]> = {
 };
 
 export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }: Props) {
-  const [tab, setTab] = useState<'overview' | 'schedule' | 'history'>('overview');
+  const [tab, setTab] = useState<'overview' | 'schedule' | 'payments' | 'history'>('overview');
   const [history, setHistory] = useState<LoanService.LoanApprovalAction[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -41,10 +41,14 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   // Repayment State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'SAVINGS_TRANSFER'>('CASH');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
+
+  const [repayments, setRepayments] = useState<any[]>([]);
+  const [loadingRepayments, setLoadingRepayments] = useState(false);
 
   const user = AuthService.getCurrentUser();
   const userRole = user?.role || '';
@@ -53,6 +57,29 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const canAdvance = STAGE_ROLE_MAP[loan.currentStage]?.includes(userRole) && loan.status === 'PENDING';
   const canReject = canAdvance;
 
+  // --- Dynamic Calculations for Payments Tab ---
+  const monthlyPrincipal = Number(loan.requestedAmount) / Number(loan.termMonths);
+  const totalPrincipalPaid = repayments.reduce((sum, r) => sum + Number(r.principalPortion || 0), 0);
+  const outstandingPrincipal = Number(loan.requestedAmount) - totalPrincipalPaid;
+  const totalEstimatedInterest = (Number(loan.requestedAmount) * Number(loan.interestRate) * (Number(loan.termMonths) + 1)) / (2 * 12 * 100);
+
+  // Auto-calculate suggested amount when payment date changes
+  useEffect(() => {
+    if (showPaymentModal) {
+      const lastDate = repayments.length > 0 ? new Date(repayments[0].paymentDate) : new Date(loan.disbursementDate || loan.appliedDate || new Date());
+      const payDateObj = new Date(paymentDate || new Date());
+      let daysElapsed = Math.floor((payDateObj.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+      if (daysElapsed < 0) daysElapsed = 0;
+      
+      const calculatedInterest = outstandingPrincipal * daysElapsed * (Number(loan.interestRate) / 36500);
+      const monthsPassed = Math.max(1, Math.round(daysElapsed / 30));
+      const calculatedPrincipal = monthlyPrincipal * monthsPassed;
+      const suggestedAmount = calculatedInterest + calculatedPrincipal;
+      
+      setPaymentAmount(Math.round(suggestedAmount).toString());
+    }
+  }, [paymentDate, showPaymentModal, repayments, outstandingPrincipal, loan.interestRate, monthlyPrincipal, loan.disbursementDate, loan.appliedDate]);
+
   useEffect(() => {
     if (tab === 'history') {
       setLoadingHistory(true);
@@ -60,6 +87,13 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
         .then(setHistory)
         .catch(() => {})
         .finally(() => setLoadingHistory(false));
+    }
+    if (tab === 'payments') {
+      setLoadingRepayments(true);
+      LoanService.getRepayments(loan.loanId)
+        .then(setRepayments)
+        .catch(() => {})
+        .finally(() => setLoadingRepayments(false));
     }
     if (tab === 'schedule') {
       loadSchedule();
@@ -99,11 +133,19 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
         paymentMethod,
         paymentRef,
         user?.username || 'system',
-        user?.branchId || 1
+        user?.branchId || 1,
+        paymentDate
       );
       setShowPaymentModal(false);
       setPaymentAmount('');
       loadSchedule(); // Refresh schedule to show ticks
+      if (tab === 'payments') {
+        setLoadingRepayments(true);
+        LoanService.getRepayments(loan.loanId)
+          .then(setRepayments)
+          .catch(() => {})
+          .finally(() => setLoadingRepayments(false));
+      }
       onUpdated();
     } catch (e: any) {
       alert(e.response?.data?.error || "Payment failed");
@@ -176,12 +218,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
 
         {/* Tabs */}
         <div className="flex border-b border-slate-100 bg-white">
-          {(['overview', 'schedule', 'history'] as const).map(t => (
+          {(['overview', 'schedule', 'payments', 'history'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-6 py-3.5 text-sm font-bold capitalize transition border-b-2 ${
                 tab === t ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}>
-              {t === 'overview' ? '📋 Overview' : t === 'schedule' ? '📅 EMI Schedule' : '📜 Approval History'}
+              {t === 'overview' ? '📋 දළ විශ්ලේෂණය (Overview)' : t === 'schedule' ? '📅 ණය සැලසුම (Schedule)' : t === 'payments' ? '💵 වාරික ගෙවීම් (Payments)' : '📜 අනුමත ඉතිහාසය (History)'}
             </button>
           ))}
         </div>
@@ -386,18 +428,15 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 <>
                   <div className="mb-4 flex items-center gap-3 text-sm text-slate-500 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                     <Info size={16} className="text-indigo-600 shrink-0" />
-                    Repayment schedule for Rs. {Number(loan.requestedAmount).toLocaleString()} over {loan.termMonths} months at {loan.interestRate}% p.a.
+                    රු. {Number(loan.requestedAmount).toLocaleString()} ක මුදලක් සඳහා මාස {loan.termMonths} ක කාලයකට අදාළ වන {loan.interestRate}% ක වාර්ෂික පොලී අනුපාතය යටතේ සකසන ලද ණය ආපසු ගෙවීමේ සැලසුම.
                   </div>
                   <div className="rounded-2xl border border-slate-200 overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-indigo-50 border-b border-indigo-100">
                         <tr>
-                          {['#', 'Due Date', 'Principal', 'Interest', 'EMI', 'Balance'].map(h => (
+                          {['#', 'ගෙවිය යුතු දිනය', 'මූලික මුදල', 'පොලිය', 'වාරිකය', 'ඉතිරි ශේෂය'].map(h => (
                             <th key={h} className="px-4 py-3 text-left text-xs font-bold text-indigo-900 uppercase tracking-wide">{h}</th>
                           ))}
-                          {(loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
-                             <th className="px-4 py-3 text-right text-xs font-bold text-indigo-900 uppercase tracking-wide">Status / Action</th>
-                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
@@ -409,41 +448,98 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                           <tr key={row.installmentNumber || row.installmentNo} className="hover:bg-slate-50 transition">
                             <td className="px-4 py-3 font-bold text-slate-500 text-center w-10">{row.installmentNumber || row.installmentNo}</td>
                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">{row.dueDate}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-800">Rs. {Number(principal).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-rose-600 font-semibold">Rs. {Number(interest).toLocaleString()}</td>
-                            <td className="px-4 py-3 font-black text-indigo-700">Rs. {Number(expectedAmount).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-slate-500 font-mono">Rs. {Number(row.outstandingBalance || 0).toLocaleString()}</td>
-                            {(loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
-                              <td className="px-4 py-3 text-right">
-                                {row.status === 'PAID' ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs font-bold">
-                                    <CheckCircle size={14} /> PAID
-                                  </span>
-                                ) : (
-                                  userRole === 'SENIOR_OFFICER' && row.status === 'PENDING' ? (
-                                    <button 
-                                      onClick={() => {
-                                        setSelectedInstallment(row);
-                                        setPaymentAmount(expectedAmount.toString());
-                                        setShowPaymentModal(true);
-                                      }}
-                                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm transition">
-                                      Pay Installment
-                                    </button>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-xs font-bold">
-                                      {row.status}
-                                    </span>
-                                  )
-                                )}
-                              </td>
-                            )}
+                            <td className="px-4 py-3 font-semibold text-slate-800">රු. {Number(principal).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-rose-600 font-semibold">රු. {Number(interest).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-black text-indigo-700">රු. {Number(expectedAmount).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-slate-500 font-mono">රු. {Number(row.outstandingBalance || 0).toLocaleString()}</td>
                           </tr>
                         )})}
                       </tbody>
                     </table>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* ── Payments Tab ── */}
+          {tab === 'payments' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                <div>
+                  <h3 className="text-sm font-bold text-indigo-900 mb-1">ණය වාරික ගෙවීම් (Installment Payments)</h3>
+                  <p className="text-xs text-indigo-600">
+                    හීන වන ශේෂ ක්‍රමය යටතේ ගෙවීම් කර ඇති ආකාරය සහ ණය ශේෂය මෙහි දැක්වේ.
+                  </p>
+                </div>
+              </div>
+
+              {/* Top Section Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase">ණය මුදල</p>
+                  <p className="text-lg font-black text-indigo-900">රු. {Number(loan.requestedAmount).toLocaleString()}</p>
+                </div>
+                <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase">වාර්ෂික පොලිය</p>
+                  <p className="text-lg font-black text-indigo-900">{loan.interestRate}%</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                {(userRole === 'SENIOR_OFFICER' || userRole === 'CASHIER' || userRole === 'BRANCH_MANAGER') && (
+                  <button 
+                    onClick={() => {
+                      setPaymentAmount('');
+                      setPaymentDate(new Date().toISOString().split('T')[0]);
+                      setShowPaymentModal(true);
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-sm transition flex items-center gap-2">
+                    වාරිකයක් ගෙවන්න
+                  </button>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">දිනය</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ මූලික මුදල</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ පොලිය</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">මුළු ගෙවූ මුදල</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {loadingRepayments ? (
+                      <tr><td colSpan={4} className="p-8 text-center"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                    ) : repayments.length === 0 ? (
+                      <tr><td colSpan={4} className="p-8 text-center text-slate-500 font-medium">ගෙවීම් කිසිවක් තවම සිදුකර නොමැත</td></tr>
+                    ) : (
+                      repayments.map((r: any) => (
+                        <tr key={r.repaymentId || r.id} className="hover:bg-slate-50 transition">
+                          <td className="px-4 py-3 text-slate-600 font-mono text-xs">{new Date(r.paymentDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 font-semibold text-slate-800">රු. {Number(r.principalPortion).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-rose-600 font-semibold">රු. {Number(r.interestPortion).toLocaleString()}</td>
+                          <td className="px-4 py-3 font-black text-emerald-700 text-right">රු. {Number(r.totalPaid).toLocaleString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Remaining Balance Summary */}
+              {!loadingRepayments && (
+                <div className="bg-rose-50/50 p-5 rounded-2xl border border-rose-100 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-bold text-rose-900 mb-1">ඉතිරි ගෙවිය යුතු මූලික මුදල (Outstanding Balance)</h3>
+                    <p className="text-xs text-rose-600">මීළඟ පොලී ගණනය කිරීම් සිදුවන්නේ මෙම ඉතිරි මුදල මතයි.</p>
+                  </div>
+                  <div className="text-2xl font-black text-rose-700">
+                    රු. {Math.round(outstandingPrincipal).toLocaleString()}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -548,12 +644,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
       </div>
 
       {/* Payment Overlay Modal */}
-      {showPaymentModal && selectedInstallment && (
+      {showPaymentModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
               <h4 className="font-bold text-white flex items-center gap-2 text-lg">
-                <BadgeCheck size={20} className="text-indigo-200" /> Process Repayment
+                <BadgeCheck size={20} className="text-indigo-200" /> වාරිකයක් ගෙවන්න
               </h4>
               <button onClick={() => setShowPaymentModal(false)} className="text-white/70 hover:text-white transition">
                 <X size={20} />
@@ -561,25 +657,33 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
             </div>
             
             <div className="p-6">
-              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-5 text-center">
-                <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">Installment #{selectedInstallment.installmentNumber || selectedInstallment.installmentNo}</div>
-                <div className="text-3xl font-black text-indigo-700">Rs. {Number(selectedInstallment.totalExpectedAmount || selectedInstallment.emi).toLocaleString()}</div>
-                <div className="text-xs font-semibold text-indigo-600/70 mt-1">Due: {selectedInstallment.dueDate}</div>
-              </div>
+              {(() => {
+                const lastDate = repayments.length > 0 ? new Date(repayments[0].paymentDate) : new Date(loan.disbursementDate || loan.appliedDate || new Date());
+                const payDateObj = new Date(paymentDate || new Date());
+                let daysElapsed = Math.floor((payDateObj.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+                if (daysElapsed < 0) daysElapsed = 0;
+                const calculatedInterest = outstandingPrincipal * daysElapsed * (Number(loan.interestRate) / 36500);
+
+                return (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-5 text-center flex flex-col items-center">
+                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">ගෙවුණු දින ගණන: {daysElapsed} දින</div>
+                    <div className="text-xs font-semibold text-indigo-600/70 mt-1">
+                      ගණනය කළ පොලිය: රු. {Math.round(calculatedInterest).toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Payment Date (දිනය)</label>
+                  <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)}
+                    className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 font-bold text-slate-800 transition outline-none" />
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Amount to Pay (Rs.)</label>
                   <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} 
                     className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 transition outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Payment Method</label>
-                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)} 
-                    className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm font-bold bg-white text-slate-800 transition outline-none">
-                    <option value="CASH">Cash Payment</option>
-                    <option value="SAVINGS_TRANSFER">Savings Transfer</option>
-                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Reference Note</label>

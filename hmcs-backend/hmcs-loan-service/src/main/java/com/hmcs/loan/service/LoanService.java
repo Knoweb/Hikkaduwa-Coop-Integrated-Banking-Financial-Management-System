@@ -425,65 +425,73 @@ public class LoanService {
 
     // ── Repayment Processing ───────────────────────────────────────────────────
     @Transactional
-    public LoanRepayment payInstallment(UUID loanId, BigDecimal paymentAmount, String paymentMethod, String accountNoOrRef, String actorUsername, Long paymentBranchId) {
+    public LoanRepayment payInstallment(UUID loanId, BigDecimal paymentAmount, String paymentMethod, String accountNoOrRef, String actorUsername, Long paymentBranchId, java.time.LocalDate paymentDate) {
+        if (paymentDate == null) paymentDate = java.time.LocalDate.now();
         Loan loan = loanRepository.findById(loanId).orElseThrow(() -> new RuntimeException("Loan not found"));
         if (!"ACTIVE".equals(loan.getStatus())) {
             throw new RuntimeException("Loan is not ACTIVE. Cannot accept payments.");
         }
 
-        // Cooperative rules: Heena wana shesha kramaya (reducing balance). No penalty for late payment.
-        // User must pay AT LEAST the expected interest + some principal, or they can pay MORE.
-        
-        // Find next pending schedule
-        List<LoanSchedule> pendingSchedules = loanScheduleRepository.findByLoanIdAndStatusOrderByInstallmentNumberAsc(loanId, LoanSchedule.ScheduleStatus.PENDING);
-        if (pendingSchedules.isEmpty()) {
-            throw new RuntimeException("No pending installments found. Loan might be fully paid.");
+        List<LoanRepayment> repayments = getLoanRepayments(loanId);
+        BigDecimal totalPrincipalPaid = BigDecimal.ZERO;
+        for (LoanRepayment r : repayments) {
+            totalPrincipalPaid = totalPrincipalPaid.add(r.getPrincipalPortion());
         }
         
-        LoanSchedule nextInstallment = pendingSchedules.get(0);
-        BigDecimal expectedTotal = nextInstallment.getTotalExpectedAmount();
-
-        if (paymentAmount.compareTo(expectedTotal) < 0) {
-            throw new RuntimeException("Payment amount (" + paymentAmount + ") is less than the expected installment (" + expectedTotal + "). Underpayment is not allowed.");
+        BigDecimal outstandingPrincipal = loan.getRequestedAmount().subtract(totalPrincipalPaid);
+        if (outstandingPrincipal.compareTo(BigDecimal.ZERO) < 0) {
+            outstandingPrincipal = BigDecimal.ZERO;
         }
 
-        // For reducing balance, if they pay exactly the EMI, split is as per schedule.
-        // If they pay MORE, the extra goes entirely towards the Principal.
-        BigDecimal interestPortion = nextInstallment.getExpectedInterest();
-        BigDecimal principalPortion = paymentAmount.subtract(interestPortion);
+        java.time.LocalDate lastDate = loan.getDisbursementDate() != null ? loan.getDisbursementDate().toLocalDate() : loan.getAppliedDate();
+        if (!repayments.isEmpty()) {
+            lastDate = repayments.get(0).getPaymentDate().toLocalDate();
+        }
+
+        long daysElapsed = java.time.temporal.ChronoUnit.DAYS.between(lastDate, paymentDate);
+        if (daysElapsed < 0) daysElapsed = 0;
+
+        BigDecimal dailyRate = loan.getInterestRate().divide(BigDecimal.valueOf(36500), 10, java.math.RoundingMode.HALF_UP);
+        BigDecimal interestPortion = outstandingPrincipal.multiply(BigDecimal.valueOf(daysElapsed)).multiply(dailyRate);
+        BigDecimal principalPortion;
+
+        if (paymentAmount.compareTo(interestPortion) <= 0) {
+            interestPortion = paymentAmount;
+            principalPortion = BigDecimal.ZERO;
+        } else {
+            principalPortion = paymentAmount.subtract(interestPortion);
+        }
 
         // Record Repayment
         LoanRepayment repayment = new LoanRepayment();
         repayment.setLoanId(loanId);
+        repayment.setPaymentDate(paymentDate.atStartOfDay());
         repayment.setPaymentBranchId(paymentBranchId != null ? paymentBranchId : loan.getBranchId());
-        // Since we don't have a direct user UUID passed for actor, we can try to look it up or just use a dummy UUID if unavailable.
-        // For now, we will generate a random UUID to represent the processor if not supplied. 
         repayment.setProcessedBy(UUID.randomUUID()); 
         repayment.setTotalPaid(paymentAmount);
         repayment.setPrincipalPortion(principalPortion);
         repayment.setInterestPortion(interestPortion);
-        repayment.setPenaltyPaid(BigDecimal.ZERO); // No penalty for reducing balance
+        repayment.setPenaltyPaid(BigDecimal.ZERO);
         repayment.setPaymentMethod(LoanRepayment.PaymentMethod.valueOf(paymentMethod));
-        repayment.setReference("Installment " + nextInstallment.getInstallmentNumber() + " - " + accountNoOrRef);
+        repayment.setReference("Manual Payment - " + accountNoOrRef);
         repayment = loanRepaymentRepository.save(repayment);
 
-        // Update Schedule Status
-        nextInstallment.setStatus(LoanSchedule.ScheduleStatus.PAID);
-        loanScheduleRepository.save(nextInstallment);
+        // Auto-update loan status if fully paid
+        if (outstandingPrincipal.subtract(principalPortion).compareTo(BigDecimal.ZERO) <= 0) {
+            loan.setStatus("COMPLETED");
+            loanRepository.save(loan);
+        }
 
-        // Update Loan Outstanding Balance
-        BigDecimal currentOutstanding = loan.getDisbursedAmount(); // We need an outstanding balance field. If not present, we can approximate or we should really add it to Loan.java
-        // Since Loan entity might lack outstanding balance right now, we just rely on ledger for exact balance. 
-        // We will update the loan status to COMPLETED if the principal portion covers the whole remaining loan.
+        // Ignore pre-calculated schedule (as requested by user)
+
 
         // ── AUTO-CREATE GENERAL LEDGER ENTRY ─────────────────────────────────
         String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod) ? "SAVINGS_DEPOSITS" : "CASH_IN_VAULT";
         
-        // Ledger Entry 1: Total cash in
         LedgerEntry cashIn = new LedgerEntry();
         cashIn.setLoanId(loanId);
         cashIn.setReferenceNumber(repayment.getId().toString());
-        cashIn.setEntryDate(LocalDate.now());
+        cashIn.setEntryDate(paymentDate);
         cashIn.setDescription("Loan Repayment (Cash In) — " + loan.getAccountNumber());
         cashIn.setDebitAccount(debitAccount);
         cashIn.setCreditAccount("LOAN_REPAYMENT_CLEARING");
@@ -494,11 +502,10 @@ public class LoanService {
         cashIn.setCreatedBy(actorUsername);
         ledgerEntryRepository.save(cashIn);
 
-        // Ledger Entry 2: Principal deduction
         LedgerEntry principalDeduction = new LedgerEntry();
         principalDeduction.setLoanId(loanId);
         principalDeduction.setReferenceNumber(repayment.getId().toString());
-        principalDeduction.setEntryDate(LocalDate.now());
+        principalDeduction.setEntryDate(paymentDate);
         principalDeduction.setDescription("Loan Principal Deduction — " + loan.getAccountNumber());
         principalDeduction.setDebitAccount("LOAN_REPAYMENT_CLEARING");
         principalDeduction.setCreditAccount("LOAN_RECEIVABLE");
@@ -513,7 +520,7 @@ public class LoanService {
         LedgerEntry interestIncome = new LedgerEntry();
         interestIncome.setLoanId(loanId);
         interestIncome.setReferenceNumber(repayment.getId().toString());
-        interestIncome.setEntryDate(LocalDate.now());
+        interestIncome.setEntryDate(paymentDate);
         interestIncome.setDescription("Loan Interest Income — " + loan.getAccountNumber());
         interestIncome.setDebitAccount("LOAN_REPAYMENT_CLEARING");
         interestIncome.setCreditAccount("INTEREST_INCOME");

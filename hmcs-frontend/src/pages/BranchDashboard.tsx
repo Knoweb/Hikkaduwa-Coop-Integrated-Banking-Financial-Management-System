@@ -1178,15 +1178,15 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FileText className="text-indigo-600" size={22} /> {t('Loan Accounts Module')}
+              <FileText className="text-indigo-600" size={22} /> ණය ගිණුම් අංශය
             </h3>
-            <p className="text-sm text-slate-500 mt-1">Manage {filteredLoans.length} loan applications and active loans.</p>
+            <p className="text-sm text-slate-500 mt-1">ණය ඉල්ලුම්පත් සහ සක්‍රීය ණය ගිණුම් {filteredLoans.length} ක් කළමනාකරණය කරන්න.</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => setShowLoanModal(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-              <FileText size={18} /> {t('Apply for Loan')}
+              <FileText size={18} /> නව ණයක් ඉල්ලුම් කරන්න
             </button>
           </div>
         </div>
@@ -1202,19 +1202,19 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   loanFilter === 'COMMITTEE_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}>
-                {t('Committee Approved')}
+                කමිටුව අනුමත කළ
               </button>
               <button onClick={() => setLoanFilter('ALL')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   loanFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}>
-                {t('All Loans')}
+                සියලුම ණය
               </button>
             </div>
             {/* Search Bar */}
             <div className="relative w-full md:w-72">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder={t('Search by member or type...')}
+              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="සාමාජිකයා හෝ වර්ගය අනුව සොයන්න..."
                 className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all" />
             </div>
           </div>
@@ -1222,18 +1222,18 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
           <table className="w-full text-sm">
             <thead className="bg-indigo-50/80 border-b border-indigo-100">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Date')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Member')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Loan Type')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Amount')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Stage')}</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Status')}</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-indigo-900 uppercase tracking-wider">{t('Actions')}</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">දිනය</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">සාමාජිකයා</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">ණය වර්ගය</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">මුදල</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">අදියර</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">තත්ත්වය</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-indigo-900 uppercase tracking-wider">ක්‍රියා</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-indigo-50 bg-white">
               {filteredLoans.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400">{t('No loans found')}</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400">ණය ගිණුම් කිසිවක් හමු නොවීය</td></tr>
               ) : filteredLoans.map(l => {
                 const member = members.find(m => m.memberId === l.memberId);
                 return (
@@ -1251,18 +1251,26 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                   </td>
                   <td className="px-6 py-4 font-black text-slate-800 text-base">Rs. {Number(l.requestedAmount).toLocaleString()}</td>
                   <td className="px-6 py-4 text-xs font-bold text-indigo-600">
-                    {language === 'si' 
-                      ? (LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage) 
-                      : (LoanService.STAGE_LABELS[l.currentStage]?.label || l.currentStage)}
+                    {l.currentStage === 'DISBURSED' ? 'මුදා හැර ඇත' : 
+                     l.currentStage === 'COMPLETED' ? 'සම්පූර්ණයි' : 
+                     l.currentStage === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
+                     l.currentStage === 'ACTIVE' ? 'සක්‍රීයයි' :
+                     LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                      {t(l.status)}
+                      {l.status === 'PENDING' ? 'විනිශ්චය වෙමින් පවතී' : 
+                       l.status === 'APPROVED' ? 'අනුමතයි' : 
+                       l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
+                       l.status === 'DISBURSED' ? 'මුදා හැර ඇත' : 
+                       l.status === 'ACTIVE' ? 'සක්‍රීයයි' : 
+                       l.status === 'COMPLETED' ? 'සම්පූර්ණයි' : 
+                       l.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => setViewLoan(l)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition" title={t('View Loan')}>
-                      {t('View')}
+                      බලන්න
                     </button>
                   </td>
                 </tr>

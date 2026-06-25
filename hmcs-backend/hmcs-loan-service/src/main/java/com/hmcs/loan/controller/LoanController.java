@@ -209,8 +209,12 @@ public class LoanController {
             if (body.containsKey("paymentBranchId") && body.get("paymentBranchId") != null) {
                 paymentBranchId = Long.valueOf(body.get("paymentBranchId").toString());
             }
+            java.time.LocalDate paymentDate = null;
+            if (body.containsKey("paymentDate") && body.get("paymentDate") != null) {
+                paymentDate = java.time.LocalDate.parse(body.get("paymentDate").toString());
+            }
 
-            LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId);
+            LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate);
             return ResponseEntity.ok(repayment);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
