@@ -15,8 +15,8 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     designation: '',
     address: '',
     requestedAmount: '',
+    appliedDate: new Date().toISOString().split('T')[0],
     termMonths: '10',
-    date: '',
     agreedAmount: '',
     
     // Guarantors
@@ -105,13 +105,13 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             memberId: formData.memberId || '00000000-0000-0000-0000-000000000000',
             requestedAmount: parseFloat(formData.requestedAmount),
             termMonths: parseInt(formData.termMonths),
+            appliedDate: formData.appliedDate,
             
             applicationData: {
                 name: formData.name,
                 shareAmount: formData.shareAmount,
                 designation: formData.designation,
                 address: formData.address,
-                date: formData.date,
                 agreedAmount: formData.agreedAmount,
                 
                 guarantor1Name: formData.guarantor1Name,
@@ -198,6 +198,19 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
           {/* Section 1: Applicant Details */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 flex flex-col items-start shadow-sm mb-6 relative">
+              <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *</label>
+              <input 
+                type="date" 
+                required
+                name="appliedDate"
+                value={formData.appliedDate}
+                onChange={handleChange}
+                className="w-full sm:w-1/3 rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
+              />
+              <p className="text-xs text-yellow-700 mt-2">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+            </div>
+
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">1. අයදුම්කරුගේ තොරතුරු</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
@@ -236,10 +249,6 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">මාස ගණන (Term)</label>
                 <input type="number" name="termMonths" value={formData.termMonths} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">දිනය</label>
-                <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
               </div>
             </div>
 

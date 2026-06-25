@@ -17,4 +17,5 @@ public class IssueTicketRequest {
     private Integer branchId;
     private UUID valuerId;
     private BigDecimal interestRate; // Optional, defaults to 13
+    private java.time.LocalDate issueDate; // Optional
 }

@@ -19,6 +19,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   const [showDropdown, setShowDropdown] = useState(false);
   const [formData, setFormData] = useState({
     // Step 1: මූලික තොරතුරු
+    appliedDate: new Date().toISOString().split('T')[0],
     applicantName: '',
     addressLine1: '',
     addressLine2: '',
@@ -243,6 +244,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
             requestedAmount: totalAmount,
             termMonths: parseInt(formData.repaymentPeriodMonths || '12'),
             branchId: currentUser?.branchId || 1,
+            appliedDate: formData.appliedDate,
             applicationData: formData
         };
 
@@ -303,6 +305,18 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
           {/* STEP 1: මූලික තොරතුරු */}
           {currentStep === 1 && (
             <div className="space-y-6">
+              <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 flex flex-col items-start shadow-sm relative">
+                <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *</label>
+                <input 
+                  type="date" 
+                  required
+                  value={formData.appliedDate}
+                  onChange={(e) => setFormData({...formData, appliedDate: e.target.value})}
+                  className="w-full sm:w-1/3 rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
+                />
+                <p className="text-xs text-yellow-700 mt-2">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+              </div>
+
               <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><User size={22}/> 01. ඉල්ලුම්කරුගේ මූලික තොරතුරු</h2>
               
               <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100 flex flex-col items-start shadow-sm relative">

@@ -37,8 +37,9 @@ public class PawnService {
             ticket.setInterestRate(request.getInterestRate());
         }
 
-        ticket.setIssueDate(LocalDate.now());
-        ticket.setExpiryDate(LocalDate.now().plusYears(1));
+        LocalDate issueDate = request.getIssueDate() != null ? request.getIssueDate() : LocalDate.now();
+        ticket.setIssueDate(issueDate);
+        ticket.setExpiryDate(issueDate.plusYears(1));
         
         // Generate a 6-digit ticket number, e.g., 698594
         long count = pawnTicketRepository.count();

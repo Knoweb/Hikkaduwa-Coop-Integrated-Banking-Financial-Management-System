@@ -16,7 +16,8 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
     purityKarat: '22',
     assessedValue: '',
     advanceAmount: '',
-    interestRate: ''
+    interestRate: '',
+    issueDate: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
         assessedValue: Number(form.assessedValue),
         advanceAmount: Number(form.advanceAmount),
         interestRate: Number(form.interestRate),
+        issueDate: form.issueDate,
         valuerId: '00000000-0000-0000-0000-000000000000' // Placeholder valuer ID
       });
       alert('Pawn ticket issued successfully!');
@@ -107,6 +109,12 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 bg-yellow-50/50 p-4 rounded-xl border border-yellow-100/50">
+                  <label className="block text-xs font-bold text-yellow-800 mb-1">ගිණුම ආරම්භ කළ දිනය / නිකුත් කළ දිනය (Issue Date) *</label>
+                  <input required type="date" value={form.issueDate} onChange={e => setForm({...form, issueDate: e.target.value})} className="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white" />
+                  <p className="text-[10px] text-yellow-600 mt-1">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+                </div>
+
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">භාණ්ඩ විස්තරය (Article Description) *</label>
                   <input required value={form.articleDescription} onChange={e => setForm({...form, articleDescription: e.target.value})} placeholder="e.g. 22K Gold Chain with Pendant" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />

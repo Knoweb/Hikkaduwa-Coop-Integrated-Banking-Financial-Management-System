@@ -69,7 +69,10 @@ public class LoanService {
             loanRequest.setBranchId(1);
         }
         loanRequest.setInterestRate(type.getInterestRate());
-        loanRequest.setAppliedDate(LocalDate.now());
+        
+        LocalDate appliedDate = loanRequest.getAppliedDate() != null ? loanRequest.getAppliedDate() : LocalDate.now();
+        loanRequest.setAppliedDate(appliedDate);
+        
         loanRequest.setStatus("PENDING");
         loanRequest.setCurrentStage("STAGE_1_MANAGER_APPROVAL");
 
