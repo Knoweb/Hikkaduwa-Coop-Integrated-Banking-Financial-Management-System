@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -52,6 +53,9 @@ public class FixedDeposit {
 
     @Column(nullable = false)
     private LocalDate openedDate = LocalDate.now();
+    
+    @Column(updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column
     private LocalDate lastInterestPayoutDate;

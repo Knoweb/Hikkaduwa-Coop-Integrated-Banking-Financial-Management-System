@@ -14,4 +14,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     );
 
     List<Transaction> findByBranchIdOrderByTransactionTimestampDesc(Integer branchId, org.springframework.data.domain.Pageable pageable);
+    List<Transaction> findByBranchIdAndTransactionTimestampBetweenOrderByTransactionTimestampDesc(Integer branchId, java.time.LocalDateTime start, java.time.LocalDateTime end, org.springframework.data.domain.Pageable pageable);
 }

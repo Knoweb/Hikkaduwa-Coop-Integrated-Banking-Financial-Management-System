@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,7 @@ public class SavingsController {
         public String accountNumber;
         public String accountType;
         public BigDecimal initialDeposit;
+        public LocalDate openedDate;
         public String childName;
         public String childBirthCertificate;
         public String childDateOfBirth;
@@ -106,6 +108,9 @@ public class SavingsController {
         account.setMemberId(body.memberId);
         account.setAccountType(body.accountType != null ? body.accountType : "REGULAR");
         account.setBalance(body.initialDeposit != null ? body.initialDeposit : BigDecimal.ZERO);
+        if (body.openedDate != null) {
+            account.setOpenedDate(body.openedDate);
+        }
         account.setBranchId(branchId);
         account.setStatus("ACTIVE");
         

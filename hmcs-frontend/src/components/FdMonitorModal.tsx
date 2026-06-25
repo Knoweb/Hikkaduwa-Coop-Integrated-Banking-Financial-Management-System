@@ -43,6 +43,31 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
   const totalMaturityValue = principal + totalExpectedInterest;
   const remainingInterest = Math.max(0, totalExpectedInterest - accInterest);
   
+  let paidOutInterest = 0;
+  let monthsPaid = 0;
+  let paidHistory: { date: Date, amount: number }[] = [];
+  
+  if (fd.interestPayoutMethod === 'MONTHLY' && fd.lastInterestPayoutDate) {
+    const openedDateObj = new Date(fd.openedDate || start);
+    const lastPayoutDateObj = new Date(fd.lastInterestPayoutDate);
+    monthsPaid = (lastPayoutDateObj.getFullYear() - openedDateObj.getFullYear()) * 12 + 
+                 (lastPayoutDateObj.getMonth() - openedDateObj.getMonth());
+    if (monthsPaid > 0) {
+      paidOutInterest = monthsPaid * estMonthlyInterest;
+      
+      for (let i = monthsPaid; i >= 1; i--) {
+        const payoutDate = new Date(openedDateObj.getFullYear(), openedDateObj.getMonth() + i, openedDateObj.getDate());
+        paidHistory.push({
+          date: payoutDate,
+          amount: estMonthlyInterest
+        });
+      }
+    }
+  }
+
+  const lastCalculationDate = fd.lastInterestPayoutDate || fd.openedDate || start;
+  const formattedLastDate = new Date(lastCalculationDate).toLocaleDateString('si-LK');
+
   const maturityInstructionMap: any = {
     'REINVEST_PRINCIPAL_AND_INTEREST': 'මුළු මුදලම යළි ආයෝජනය (Auto Renew)',
     'REINVEST_PRINCIPAL_PAY_INTEREST': 'පොළිය ලබාදී මුදල යළි ආයෝජනය',
@@ -73,7 +98,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
         {/* Content */}
         <div className="p-6 overflow-y-auto">
           
-          <div className="flex items-center gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-3 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
               {memberName.charAt(0)}
             </div>
@@ -83,8 +108,26 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
             </div>
             <div className="ml-auto text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">තැන්පතු මුදල (PRINCIPAL)</p>
-              <p className="font-black text-indigo-700 text-lg">Rs. {Number(fd.principalAmount).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+              <p className="font-black text-indigo-700 text-lg">Rs. {Number(fd.principalAmount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mb-6 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white text-slate-500 rounded-lg shadow-sm border border-slate-100">
+                <Wallet size={16} />
+              </div>
+              <div>
+                <p className="font-bold text-slate-700 text-sm">ගිණුම නිදහස් කිරීම (Close FD)</p>
+                <p className="text-[10px] font-semibold text-slate-500 mt-0.5">සම්පූර්ණ මුදල සම්බන්ධිත ගිණුමට බැර කෙරේ.</p>
+              </div>
+            </div>
+            <button 
+              onClick={onRelease}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm whitespace-nowrap shrink-0"
+            >
+              <ArrowUpRight size={14} /> නිදහස් කරන්න
+            </button>
           </div>
 
           {/* Progress Bar Section */}
@@ -111,34 +154,63 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex flex-col justify-center shadow-sm relative overflow-hidden">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-emerald-600">
-                  <TrendingUp size={16} />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">දැනට එකතු වූ පොළිය</span>
+            <div className="bg-white rounded-xl border border-emerald-200 shadow-sm flex flex-col overflow-hidden">
+              <div className="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <TrendingUp size={18} />
+                  <span className="text-sm font-bold uppercase tracking-wider">පොළී විස්තර (Interest)</span>
                 </div>
-              </div>
-              <div className="font-mono text-2xl font-black text-emerald-700 mb-1">
-                Rs. {accInterest.toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </div>
-              <div className="text-[10px] text-emerald-600/70 font-semibold mb-3">
-                දිනකට පොළිය: Rs. {dailyInterest.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${hasTaxForm ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                  {hasTaxForm ? 'No WHT' : '10% WHT'}
+                </span>
               </div>
               
-              <div className="mt-auto pt-3 border-t border-emerald-200/60">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-emerald-700/80 font-bold">මාසිකව හැදෙන පොළිය (Est.)</span>
-                  <span className="text-xs font-black text-emerald-700">Rs. {estMonthlyInterest.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+              <div className="p-5 flex flex-col flex-1">
+                {fd.interestPayoutMethod === 'MONTHLY' ? (
+                  <div className="mb-5">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-1.5 tracking-wide">
+                      Savings ගිණුමට ගෙවූ පොළිය {monthsPaid > 0 ? `(${monthsPaid} මාස)` : ''}
+                    </p>
+                    <p className="font-mono text-3xl font-black text-emerald-600">
+                      Rs. {paidOutInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </p>
+                    
+                    {paidHistory.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">ගෙවීම් ඉතිහාසය</p>
+                        <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                          {paidHistory.map((h, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-slate-50 p-2 px-3 rounded-lg border border-slate-100">
+                              <span className="text-xs font-semibold text-slate-600">{h.date.toLocaleDateString('si-LK')}</span>
+                              <span className="font-mono text-xs font-bold text-emerald-600">Rs. {h.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-5">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-1.5 tracking-wide">
+                      දැනට එකතු වී ඇති පොළිය (Accrued)
+                      <span className="block text-[11px] text-slate-400 normal-case mt-0.5 font-medium">({formattedLastDate} සිට අද දක්වා)</span>
+                    </p>
+                    <p className="font-mono text-3xl font-black text-emerald-600">
+                      Rs. {accInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="mt-auto pt-4 border-t border-slate-100 space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500">මාසිකව හැදෙන පොළිය</span>
+                    <span className="font-mono font-black text-slate-700">Rs. {estMonthlyInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500">වාර්ෂික පොලී අනුපාතය</span>
+                    <span className="font-mono font-black text-slate-700">{intRate.toFixed(2)}% ({payoutMethodText})</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-[9px] text-emerald-600/70 font-semibold">පොලී අනුපාතය: {intRate.toFixed(2)}% ({payoutMethodText})</p>
-                </div>
-              </div>
-              
-              <div className={`mt-3 p-2 rounded-lg border ${hasTaxForm ? 'bg-emerald-100/50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                <p className={`text-[10px] font-bold text-center ${hasTaxForm ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {hasTaxForm ? '✓ බදු ආකෘති පත්‍රය ලබා දී ඇත (No WHT)' : '⚠️ බදු ආකෘති පත්‍රය ලබා දී නැත (10% WHT අය කෙරේ)'}
-                </p>
               </div>
             </div>
 
@@ -149,11 +221,11 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                   <span className="text-[11px] font-bold uppercase tracking-wider">කල් පිරෙන විට මුළු මුදල</span>
                 </div>
                 <div className="font-mono text-xl font-black text-indigo-700">
-                  Rs. {totalMaturityValue.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                  Rs. {totalMaturityValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
-                <div className="mt-2 pt-2 border-t border-indigo-200/50 flex justify-between items-center">
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-indigo-200/50">
                   <span className="text-[10px] text-indigo-600/80 font-bold">ඉදිරියට ලැබීමට ඇති පොළිය:</span>
-                  <span className="text-[11px] font-black text-indigo-600">Rs. {remainingInterest.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                  <span className="font-mono text-[11px] font-black text-indigo-600">Rs. {remainingInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
               </div>
 
@@ -163,28 +235,6 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               </div>
             </div>
           </div>
-
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">ක්‍රියාමාර්ග (Actions)</h4>
-            <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 text-slate-500 rounded-lg">
-                  <Wallet size={18} />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-700 text-sm">ගිණුම නිදහස් කිරීම (Close FD)</p>
-                  <p className="text-[10px] font-semibold text-slate-500">සම්පූර්ණ මුදල සම්බන්ධිත ගිණුමට බැර කෙරේ.</p>
-                </div>
-              </div>
-              <button 
-                onClick={onRelease}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-              >
-                <ArrowUpRight size={14} /> නිදහස් කරන්න
-              </button>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>

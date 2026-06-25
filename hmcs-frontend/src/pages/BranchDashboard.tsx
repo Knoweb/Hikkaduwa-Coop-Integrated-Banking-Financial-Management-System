@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -22,6 +22,19 @@ import LoanDetailModal from '../components/LoanDetailModal';
 
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 
+export const getBranchName = (branchId: number) => {
+  switch (branchId) {
+    case 1: return 'Hikkaduwa Branch';
+    case 2: return 'Dodanduwa Branch';
+    case 3: return 'Rathgama Branch';
+    case 4: return 'Seenigama Branch';
+    case 5: return 'Thiranagama Branch';
+    case 6: return 'Peraliya Branch';
+    case 7: return 'Kalupe Branch';
+    case 8: return 'Gonapinuwala Branch';
+    default: return 'Hikkaduwa Branch'; // Fallback
+  }
+};
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
   BRANCH_MANAGER:       { label: 'Branch Manager',       color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900' },
@@ -31,6 +44,17 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gr
   FIELD_OFFICER:        { label: 'Field Officer',        color: 'text-green-700',  bg: 'bg-green-600',  gradient: 'from-green-900 via-green-800 to-slate-900' },
   TELLER:               { label: 'Teller',               color: 'text-red-700',    bg: 'bg-red-600',    gradient: 'from-red-900 via-red-800 to-slate-900' },
   VALUER:               { label: 'Valuer',               color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900' },
+};
+
+const BRANCH_THEMES: Record<number, { bg: string; gradient: string; color: string; logoBg: string }> = {
+  1: { color: 'text-blue-700',   bg: 'bg-blue-600',   gradient: 'from-blue-900 via-blue-800 to-slate-900',       logoBg: 'bg-blue-800' },
+  2: { color: 'text-purple-700', bg: 'bg-purple-600', gradient: 'from-purple-900 via-purple-800 to-slate-900',   logoBg: 'bg-purple-800' },
+  3: { color: 'text-green-700',  bg: 'bg-green-600',  gradient: 'from-green-900 via-green-800 to-slate-900',     logoBg: 'bg-green-800' },
+  4: { color: 'text-orange-700', bg: 'bg-orange-600', gradient: 'from-orange-900 via-orange-800 to-slate-900',   logoBg: 'bg-orange-800' },
+  5: { color: 'text-teal-700',   bg: 'bg-teal-600',   gradient: 'from-teal-900 via-teal-800 to-slate-900',       logoBg: 'bg-teal-800' },
+  6: { color: 'text-pink-700',   bg: 'bg-pink-600',   gradient: 'from-pink-900 via-pink-800 to-slate-900',       logoBg: 'bg-pink-800' },
+  7: { color: 'text-yellow-700', bg: 'bg-yellow-600', gradient: 'from-yellow-900 via-yellow-800 to-slate-900',   logoBg: 'bg-yellow-800' },
+  8: { color: 'text-red-700',    bg: 'bg-red-600',    gradient: 'from-red-900 via-red-800 to-slate-900',         logoBg: 'bg-red-800' },
 };
 
 const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSection?: boolean }[]> = {
@@ -133,7 +157,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
   const [search, setSearch] = useState('');
 
   const loadData = () => {
-    AccountService.getMembers().then(setMembers).catch(() => {});
+    AccountService.getBranchMembers().then(setMembers).catch(() => {});
     AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
     AccountService.getPendingApprovals().then(setPendingApprovals).catch(() => {});
   };
@@ -380,11 +404,19 @@ function TellerView() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [activityDate, setActivityDate] = useState<string>('');
+
+  const fetchActivities = () => {
+    AccountService.getBranchActivities(activityDate).then(setActivities).catch(() => {});
+  };
 
   useEffect(() => {
-    AccountService.getAccounts().then(setAccounts).catch(() => {});
-    AccountService.getBranchActivities().then(setActivities).catch(() => {});
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [activityDate]);
 
   const handleTx = async () => {
     if (!accNo || !amount) return;
@@ -396,21 +428,27 @@ function TellerView() {
         : await AccountService.withdraw({ accountNumber: accNo, amount: amt });
       setResult({ ok: true, msg: `✓ ${txType === 'deposit' ? 'Deposited' : 'Withdrawn'} Rs. ${amt.toLocaleString()}. New balance: Rs. ${(res as any).balance?.toLocaleString()}` });
       setAmount(''); setAccNo('');
-      AccountService.getAccounts().then(setAccounts).catch(() => {});
-      AccountService.getBranchActivities().then(setActivities).catch(() => {});
+      AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
+      fetchActivities();
     } catch (e: any) {
       setResult({ ok: false, msg: e.response?.data || 'Transaction failed' });
     } finally { setLoading(false); }
   };
-
-  const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
 
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6">
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-[400px]">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+            <input 
+              type="date" 
+              value={activityDate} 
+              onChange={(e) => setActivityDate(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#01443b]"
+            />
+          </div>
           <div className="space-y-3 overflow-y-auto pr-2 flex-1">
             {activities.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-6">No recent activities</p>
@@ -420,13 +458,17 @@ function TellerView() {
               let label = act.type;
               
               if (act.type === 'DEPOSIT') {
-                icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "Deposit";
+                icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "මුදල් තැන්පතුව (Cash Deposit)";
               } else if (act.type === 'WITHDRAWAL') {
-                icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "Withdrawal";
+                icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "මුදල් ආපසු ගැනීම (Cash Withdrawal)";
               } else if (act.type === 'NEW_SAVINGS') {
-                icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "New Savings";
+                icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "නව ඉතුරුම් ගිණුමක් විවෘත කිරීම (New Savings)";
               } else if (act.type === 'NEW_FD') {
-                icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "New FD";
+                icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "නව ස්ථාවර තැන්පතුවක් විවෘත කිරීම (New FD)";
+              } else if (act.type === 'INITIAL_DEPOSIT') {
+                icon = <ArrowDownLeft size={16} />; colorClass = "bg-emerald-100 text-emerald-700"; label = "ආරම්භක තැන්පතුව (Initial Deposit)";
+              } else if (act.type === 'FD_MATURED') {
+                icon = <CheckCircle size={16} />; colorClass = "bg-amber-100 text-amber-700"; label = "ස්ථාවර තැන්පතුවක් කල් පිරීම (FD Matured)";
               }
 
               return (
@@ -494,14 +536,30 @@ function ValuerView() {
   );
 }
 
-function CustomerServiceView({ activeTab }: { activeTab: string }) {
+function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, onTabChange?: (tab: string) => void }) {
   const { t, language } = useLanguage();
   const [showOpenAccountForm, setShowOpenAccountForm] = useState(false);
   const [showOpenFdForm, setShowOpenFdForm] = useState(false);
   const [showViewAccount, setShowViewAccount] = useState<{show: boolean, accountId: string|null}>({show: false, accountId: null});
+  const [showMemberAccountsModal, setShowMemberAccountsModal] = useState(false);
+  const [selectedMemberForAccounts, setSelectedMemberForAccounts] = useState<any>(null);
+  const [expandedInterestId, setExpandedInterestId] = useState<string | null>(null);
   const user = AuthService.getCurrentUser();
   const navigate = useNavigate();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
+
+  const getMemberName = (memberId: string, accNo?: string) => {
+    const m = members.find(mem => mem.memberId === memberId);
+    if (m && (m.fullName || m.fullNameSinhala)) {
+      return m.fullName || m.fullNameSinhala;
+    }
+    if (accNo) {
+      const acc = accounts.find(a => a.accountNumber === accNo);
+      if (acc && acc.childName) return acc.childName + " (Child)";
+    }
+    return 'Unknown';
+  };
+
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [loanSearch, setLoanSearch] = useState('');
@@ -553,11 +611,15 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
   const [monitoringFd, setMonitoringFd] = useState<any>(null);
   const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [activityDate, setActivityDate] = useState<string>('');
+  const [activityDetails, setActivityDetails] = useState<any>(null);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
   const [fdSearch, setFdSearch] = useState('');
   const [fdLoading, setFdLoading] = useState(false);
   const [fdCategoryFilter, setFdCategoryFilter] = useState<'ALL'|'NORMAL'|'SENIOR'|'CHILD'>('ALL');
   const [fdStatusFilter, setFdStatusFilter] = useState<'ALL'|'ACTIVE'|'MATURING_SOON'|'MATURED'>('ALL');
+  const [alertConfig, setAlertConfig] = useState<{message: string, isSuccess?: boolean} | null>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -611,15 +673,26 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     }
   };
 
+  const fetchActivities = () => {
+    AccountService.getBranchActivities(activityDate).then(setActivities).catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, [activityDate]);
+
+  useEffect(() => {
+    AccountService.getBranchMembers().then(setMembers).catch(() => {});
+  }, []);
+
   const fetchData = () => {
-    AccountService.getMembers().then(setMembers).catch(() => {});
-    AccountService.getAccounts().then(setAccounts).catch(() => {});
+    AccountService.getBranchMembers().then(setMembers).catch(() => {});
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
     LoanService.getLoans().then(setLoans).catch(() => {});
     AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
     AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
     setFdLoading(true);
     AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}).finally(() => setFdLoading(false));
-    AccountService.getBranchActivities().then(setActivities).catch(() => {});
   };
   useEffect(() => { fetchData(); }, []);
 
@@ -732,25 +805,38 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
     }
   };
 
-  const handleGlobalTx = async () => {
-    if (!txAccNo || !txAmount) return;
-    setTxLoading(true); setTxResult(null);
+  const handleViewActivity = async (act: any) => {
+    setLoadingActivity(true);
     try {
-      const amt = parseFloat(txAmount);
-      const res = txType === 'deposit'
-        ? await AccountService.deposit({ accountNumber: txAccNo, amount: amt })
-        : await AccountService.withdraw({ accountNumber: txAccNo, amount: amt });
-      setTxResult({ ok: true, msg: `✓ ${txType === 'deposit' ? 'Deposited' : 'Withdrawn'} Rs. ${amt.toLocaleString()}. New balance: Rs. ${(res as any).balance?.toLocaleString()}` });
-      setTxAmount(''); setTxAccNo('');
-      AccountService.getAccounts().then(setAccounts).catch(() => {});
-    } catch (e: any) {
-      setTxResult({ ok: false, msg: e.response?.data || 'Transaction failed' });
-    } finally { setTxLoading(false); }
-  };
+      const details = await AccountService.getActivityDetails(act.type, act.id);
+      let memberName = 'Unknown';
+      if (details.memberId) {
+        try {
+          const member = await AccountService.getMemberById(details.memberId);
+          memberName = member.fullName || member.fullNameSinhala || 'Unknown';
+        } catch (e) {
+          if (details.accountNumber) {
+            const acc = accounts.find(a => a.accountNumber === details.accountNumber);
+            if (acc && acc.childName) memberName = acc.childName + " (Child)";
+          }
+        }
+      }
+      setActivityDetails({ ...act, ...details, _type: act.type, _memberName: memberName });
+    } catch (e) {
+      alert("Failed to fetch activity details");
+    } finally {
+      setLoadingActivity(false);
+    }
+  }
 
   const totalBranchBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
 
-  const getAccountCount = (memberId?: string) => accounts.filter(a => a.memberId === memberId).length;
+  const getAccountCount = (memberId?: string) => {
+    const savingsCount = accounts.filter(a => a.memberId === memberId).length;
+    const fdCount = fixedDeposits.filter(f => f.memberId === memberId).length;
+    const loanCount = loans.filter(l => l.memberId === memberId).length;
+    return savingsCount + fdCount + loanCount;
+  };
 
   const filteredAccounts = accounts.filter(a => {
     const matchesSearch = a.accountNumber.toLowerCase().includes(search.toLowerCase());
@@ -988,6 +1074,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">බලන්න</button>
                         <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
+                        <button onClick={() => { if(window.confirm('මෙම ස්ථාවර තැන්පතුව මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { AccountService.deleteFixedDeposit(fd.fdId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); fetchData(); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -1173,7 +1260,15 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-[400px]">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Activity size={16} /> Branch Activity Log</h3>
+              <input 
+                type="date" 
+                value={activityDate} 
+                onChange={(e) => setActivityDate(e.target.value)}
+                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#01443b]"
+              />
+            </div>
             <div className="space-y-3 overflow-y-auto pr-2 flex-1">
               {activities.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-6">No recent activities</p>
@@ -1183,28 +1278,38 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                 let label = act.type;
                 
                 if (act.type === 'DEPOSIT') {
-                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "Deposit";
+                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-green-100 text-green-700"; label = "මුදල් තැන්පතුව (Cash Deposit)";
                 } else if (act.type === 'WITHDRAWAL') {
-                  icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "Withdrawal";
+                  icon = <ArrowUpRight size={16} />; colorClass = "bg-red-100 text-red-700"; label = "මුදල් ආපසු ගැනීම (Cash Withdrawal)";
                 } else if (act.type === 'NEW_SAVINGS') {
-                  icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "New Savings";
+                  icon = <UserPlus size={16} />; colorClass = "bg-blue-100 text-blue-700"; label = "නව ඉතුරුම් ගිණුමක් විවෘත කිරීම (New Savings)";
                 } else if (act.type === 'NEW_FD') {
-                  icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "New FD";
+                  icon = <Lock size={16} />; colorClass = "bg-purple-100 text-purple-700"; label = "නව ස්ථාවර තැන්පතුවක් විවෘත කිරීම (New FD)";
+                } else if (act.type === 'INITIAL_DEPOSIT') {
+                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-emerald-100 text-emerald-700"; label = "ආරම්භක තැන්පතුව (Initial Deposit)";
+                } else if (act.type === 'FD_MATURED') {
+                  icon = <CheckCircle size={16} />; colorClass = "bg-amber-100 text-amber-700"; label = "ස්ථාවර තැන්පතුවක් කල් පිරීම (FD Matured)";
                 }
 
                 return (
-                  <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+                  <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer" onClick={() => handleViewActivity(act)}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
-                      {icon}
+                      {loadingActivity ? <Loader2 size={16} className="animate-spin" /> : icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <p className="text-sm font-bold text-slate-800 truncate">{label}</p>
-                        <p className="text-sm font-black text-slate-800 whitespace-nowrap">Rs. {Number(act.amount).toLocaleString()}</p>
-                      </div>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs font-mono text-slate-500">{act.reference || 'N/A'}</p>
-                        <p className="text-[10px] font-semibold text-slate-400">{new Date(act.timestamp).toLocaleString()}</p>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{label}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-0.5">{act.reference}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-slate-700">
+                            {act.amount ? `Rs. ${act.amount.toLocaleString()}` : '-'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {new Date(act.timestamp).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1213,6 +1318,110 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             </div>
           </div>
         </div>
+
+        {/* Activity Details Modal */}
+        {activityDetails && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-slate-800 p-4 flex justify-between items-center text-white">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Activity size={20} className="text-blue-400" />
+                  {t('Activity Details')}
+                </h3>
+                <button onClick={() => setActivityDetails(null)} className="text-slate-400 hover:text-white transition bg-white/10 p-1.5 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 text-sm text-slate-700">
+                <div className="grid grid-cols-2 gap-y-5">
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Type')}</p>
+                    <p className="font-semibold text-slate-800">{activityDetails._type}</p>
+                  </div>
+                  {(activityDetails.transactionId || activityDetails.accountId || activityDetails.fdId) && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Reference ID')}</p>
+                      <p className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded inline-block">
+                        {activityDetails.transactionId || activityDetails.accountId || activityDetails.fdId}
+                      </p>
+                    </div>
+                  )}
+                  {activityDetails.amount !== undefined && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Amount')}</p>
+                      <p className="font-bold text-emerald-600 text-base">Rs. {Number(activityDetails.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                    </div>
+                  )}
+                  {activityDetails.balanceAfter !== undefined && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Balance After')}</p>
+                      <p className="font-bold text-slate-800 text-base">Rs. {Number(activityDetails.balanceAfter).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                    </div>
+                  )}
+                  {activityDetails.accountNumber && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Account No')}</p>
+                      <p className="font-medium text-slate-800">{activityDetails.accountNumber}</p>
+                    </div>
+                  )}
+                  {activityDetails.memberId && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Account Owner')}</p>
+                      <p className="font-medium text-slate-800">{activityDetails._memberName || getMemberName(activityDetails.memberId, activityDetails.accountNumber)}</p>
+                    </div>
+                  )}
+                  {activityDetails.branchId && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Branch')}</p>
+                      <p className="font-medium text-slate-800">{getBranchName(activityDetails.branchId)}</p>
+                    </div>
+                  )}
+                  {activityDetails.fdNumber && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('FD No')}</p>
+                      <p className="font-medium text-slate-800">{activityDetails.fdNumber}</p>
+                    </div>
+                  )}
+                  {activityDetails.principalAmount !== undefined && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Principal Amount')}</p>
+                      <p className="font-bold text-emerald-600 text-base">Rs. {Number(activityDetails.principalAmount).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                    </div>
+                  )}
+                  {activityDetails.interestRate !== undefined && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Interest Rate')}</p>
+                      <p className="font-bold text-slate-800">{activityDetails.interestRate}%</p>
+                    </div>
+                  )}
+                  {activityDetails.openedDate && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Opened Date')}</p>
+                      <p className="font-medium text-slate-800">{new Date(activityDetails.openedDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {activityDetails.maturityDate && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Maturity Date')}</p>
+                      <p className="font-medium text-slate-800">{new Date(activityDetails.maturityDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {activityDetails.timestamp && (
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Timestamp')}</p>
+                      <p className="font-medium text-slate-800">{new Date(activityDetails.timestamp).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onClick={() => setActivityDetails(null)} className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-200 bg-slate-200/50 rounded-xl transition text-sm">
+                  {t('Close')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1350,7 +1559,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
             onSuccess={() => {
               setRowTxAction(null); setRowTxAccount(null);
               // Refresh accounts
-              AccountService.getAccounts().then(setAccounts).catch(() => {});
+              AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
             }}
           />
         )}
@@ -1452,53 +1661,92 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="w-full">
                       {/* Transactions */}
                       <div>
                         <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Transactions History</h4>
                         {passbookData.transactions.length === 0 ? (
                           <p className="text-sm text-slate-500">No transactions recorded.</p>
                         ) : (
-                          <div className="space-y-3">
-                            {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => (
-                              <div key={tx.transactionId} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
-                                <div>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${tx.transactionType.includes('DEPOSIT') ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                    {tx.transactionType.replace('_', ' ')}
-                                  </span>
-                                  <p className="text-xs text-slate-400 mt-1">{new Date(tx.transactionTimestamp).toLocaleString()}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className={`font-mono font-bold ${tx.transactionType.includes('DEPOSIT') ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {tx.transactionType.includes('DEPOSIT') ? '+' : '-'} {tx.amount.toLocaleString()}
-                                  </p>
-                                  <p className="text-xs text-slate-500 font-mono mt-0.5">Bal: {tx.balanceAfter.toLocaleString()}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                                <tr>
+                                  <th className="px-4 py-3 font-semibold">Date</th>
+                                  <th className="px-4 py-3 font-semibold">Description</th>
+                                  <th className="px-4 py-3 font-semibold text-right">Withdrawals</th>
+                                  <th className="px-4 py-3 font-semibold text-right">Deposits</th>
+                                  <th className="px-4 py-3 font-semibold text-right">Balance</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => {
+                                  const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST');
+                                  const isInterest = tx.transactionType === 'INTEREST';
+                                  const isFdInterest = tx.transactionType === 'FD_MONTHLY_INTEREST';
+                                  const isExpanded = expandedInterestId === tx.transactionId;
+                                  
+                                  let txDate = new Date(tx.transactionTimestamp);
+                                  let txMonthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+                                  let monthBalances = passbookData.dailyBalances.filter((db: any) => db.recordDate.startsWith(txMonthStr));
 
-                      {/* Daily Balances / Interest */}
-                      <div>
-                        <h4 className="font-bold text-slate-800 mb-4 border-b pb-2">Daily Balances & Interest</h4>
-                        {passbookData.dailyBalances.length === 0 ? (
-                          <p className="text-sm text-slate-500">No daily balances recorded yet.</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {passbookData.dailyBalances.sort((a: any, b: any) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime()).map((db: any) => (
-                              <div key={db.id} className="flex justify-between items-center p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
-                                <div>
-                                  <p className="text-sm font-bold text-slate-700">{db.recordDate}</p>
-                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">Bal: Rs. {db.endOfDayBalance.toLocaleString()}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interest Added</p>
-                                  <p className="font-mono font-bold text-blue-600">+ Rs. {db.dailyInterestEarned.toLocaleString()}</p>
-                                </div>
-                              </div>
-                            ))}
+                                  return (
+                                    <React.Fragment key={tx.transactionId}>
+                                      <tr 
+                                        className={`hover:bg-slate-50 transition-colors ${isInterest ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-blue-50/30' : ''}`}
+                                        onClick={() => { if(isInterest) setExpandedInterestId(isExpanded ? null : tx.transactionId) }}
+                                      >
+                                        <td className="px-4 py-3 text-slate-500">
+                                          {txDate.toLocaleDateString()}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${isCredit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                              {isInterest ? 'MONTHLY INTEREST' : isFdInterest ? 'FD INTEREST' : tx.transactionType.replace('_', ' ')}
+                                            </span>
+                                            {isInterest && (
+                                              <span className="text-[10px] text-blue-500 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
+                                                {isExpanded ? 'Hide' : 'Details'}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-rose-600 font-mono">
+                                          {!isCredit ? `Rs. ${tx.amount.toLocaleString()}` : '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-emerald-600 font-mono">
+                                          {isCredit ? `Rs. ${tx.amount.toLocaleString()}` : '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-bold text-slate-700 font-mono">
+                                          Rs. {tx.balanceAfter.toLocaleString()}
+                                        </td>
+                                      </tr>
+                                      {isInterest && isExpanded && (
+                                        <tr>
+                                          <td colSpan={5} className="p-0 border-b-0 bg-slate-50/80 shadow-inner">
+                                            <div className="p-4 px-6 border-l-4 border-blue-400 m-2 bg-white rounded-r-lg shadow-sm">
+                                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Daily Balance Breakdown ({txMonthStr})</p>
+                                              {monthBalances.length === 0 ? (
+                                                <p className="text-xs text-slate-400 italic">No daily balances recorded for this period.</p>
+                                              ) : (
+                                                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                                                  {monthBalances.sort((a: any, b: any) => new Date(a.recordDate).getTime() - new Date(b.recordDate).getTime()).map((db: any) => (
+                                                    <div key={db.id} className="flex justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
+                                                      <span className="font-medium text-slate-600">{db.recordDate}</span>
+                                                      <span className="font-mono text-slate-500">Rs. {db.closingBalance?.toLocaleString() || db.endOfDayBalance?.toLocaleString()}</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         )}
                       </div>
@@ -1580,23 +1828,32 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => { 
-                        setForm(m as any);
-                        setEditingOriginalForm(m as any);
-                        setIsChildReg(m.ageCategory === 'CHILD');
-                        setGuardianNic(m.guardianNic || '');
-                        setGuardianMemberNo(m.guardianMemberNo || '');
-                        if (m.guardianNic || m.guardianMemberNo) {
-                          const g = members.find(gm => (m.guardianNic && gm.nic === m.guardianNic) || (m.guardianMemberNo && gm.membershipNumber === m.guardianMemberNo));
-                          setSelectedGuardianData(g || null);
-                        } else {
-                          setSelectedGuardianData(null);
-                        }
-                        setShowRegModal(true); 
-                      }}
-                      className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold hover:bg-slate-200 transition flex items-center gap-1.5 inline-flex">
-                      <FileText size={12} /> {t('View / Edit')}
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => { 
+                          setSelectedMemberForAccounts(m);
+                          setShowMemberAccountsModal(true);
+                        }}
+                        className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg font-semibold hover:bg-blue-100 transition flex items-center gap-1.5">
+                        <CreditCard size={12} /> {t('View Accounts')}
+                      </button>
+                      <button onClick={() => { 
+                          setForm(m as any);
+                          setEditingOriginalForm(m as any);
+                          setIsChildReg(m.ageCategory === 'CHILD');
+                          setGuardianNic(m.guardianNic || '');
+                          setGuardianMemberNo(m.guardianMemberNo || '');
+                          if (m.guardianNic || m.guardianMemberNo) {
+                            const g = members.filter(gm => (m.guardianNic && gm.nic === m.guardianNic) || (m.guardianMemberNo && gm.membershipNumber === m.guardianMemberNo))[0];
+                            setSelectedGuardianData(g || null);
+                          } else {
+                            setSelectedGuardianData(null);
+                          }
+                          setShowRegModal(true); 
+                        }}
+                        className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold hover:bg-slate-200 transition flex items-center gap-1.5 inline-flex">
+                        <User size={12} /> {t('Profile')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1604,6 +1861,132 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
           </table>
         </div>
       </div>
+
+      {showMemberAccountsModal && selectedMemberForAccounts && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden">
+            <div className="bg-slate-800 px-6 py-4 flex justify-between items-center border-b-4 border-blue-600">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <CreditCard size={18} /> {t('Accounts for')} {selectedMemberForAccounts.nameWithInitials || selectedMemberForAccounts.fullName}
+              </h3>
+              <button onClick={() => setShowMemberAccountsModal(false)} className="text-slate-300 hover:text-white transition">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+              
+              {(() => {
+                const memberSavings = accounts.filter(a => a.memberId === selectedMemberForAccounts.memberId);
+                const memberFds = fixedDeposits.filter(f => f.memberId === selectedMemberForAccounts.memberId);
+                const memberLoans = loans.filter(l => l.memberId === selectedMemberForAccounts.memberId);
+                const memberPawning: any[] = []; // Placeholder for future Pawning integration
+                const totalMemberAccounts = memberSavings.length + memberFds.length + memberLoans.length + memberPawning.length;
+
+                if (totalMemberAccounts === 0) {
+                  return <p className="text-sm text-slate-500 italic text-center py-4">{t('No accounts found')}</p>;
+                }
+
+                return (
+                  <>
+                    {/* Savings Accounts */}
+                    {memberSavings.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><PiggyBank size={16} className="text-emerald-600"/> {t('Savings Accounts')}</h4>
+                        <div className="space-y-2">
+                          {memberSavings.map(a => (
+                            <div key={a.id} onClick={() => { 
+                                setSearch(a.accountNumber); 
+                                setShowMemberAccountsModal(false); 
+                                if(onTabChange) onTabChange('savings'); 
+                              }} 
+                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                              <div>
+                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{a.accountNumber}</p>
+                                <p className="text-xs text-slate-500">{a.accountType}</p>
+                              </div>
+                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fixed Deposits */}
+                    {memberFds.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><Lock size={16} className="text-amber-600"/> {t('Fixed Deposits')}</h4>
+                        <div className="space-y-2">
+                          {memberFds.map(f => (
+                            <div key={f.id} onClick={() => { 
+                                setFdSearch(f.fdNumber); 
+                                setShowMemberAccountsModal(false); 
+                                if(onTabChange) onTabChange('fds'); 
+                              }} 
+                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                              <div>
+                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{f.fdNumber}</p>
+                                <p className="text-xs text-slate-500">Rs. {Number(f.principalAmount).toLocaleString()}</p>
+                              </div>
+                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Loans */}
+                    {memberLoans.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><FileText size={16} className="text-red-600"/> {t('Loan Accounts')}</h4>
+                        <div className="space-y-2">
+                          {memberLoans.map(l => (
+                            <div key={l.id} onClick={() => { 
+                                setLoanSearch(l.loanNumber || l.memberId); 
+                                setShowMemberAccountsModal(false); 
+                                if(onTabChange) onTabChange('loans'); 
+                              }} 
+                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                              <div>
+                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{l.loanNumber || 'Pending Loan'}</p>
+                                <p className="text-xs text-slate-500">{l.loanType?.name || 'Loan'}</p>
+                              </div>
+                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pawning */}
+                    {memberPawning.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><Scale size={16} className="text-purple-600"/> {t('Pawning')}</h4>
+                        <div className="space-y-2">
+                          {memberPawning.map(p => (
+                            <div key={p.id} onClick={() => { 
+                                // setPawningSearch(p.pawningNumber); 
+                                setShowMemberAccountsModal(false); 
+                                // if(onTabChange) onTabChange('pawning'); 
+                              }} 
+                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                              <div>
+                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{p.pawningNumber || 'Pending Pawning'}</p>
+                                <p className="text-xs text-slate-500">{p.type || 'Pawning'}</p>
+                              </div>
+                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {showRegModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1613,7 +1996,7 @@ function CustomerServiceView({ activeTab }: { activeTab: string }) {
               <div className="flex items-center gap-4">
                 <img src={logo} alt="HMCS Logo" className="w-12 h-12 rounded-md object-cover border border-white/20 shadow-sm bg-white" />
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('Hikkaduwa Branch')}</h2>
+                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t(getBranchName(user.branchId))}</h2>
                   <p className="text-slate-300 text-sm">{form.memberId ? t('Edit Profile') : form.isMember ? t('Register New Member') : t('Register Non-Member')}</p>
                 </div>
               </div>
@@ -2089,6 +2472,13 @@ export default function BranchDashboard() {
   const user       = AuthService.getCurrentUser();
   const [tab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
   
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    AccountService.getBranchNotifications().then(setNotifications).catch(() => {});
+  }, []);
+
   const setTab = (newTab: string) => {
     localStorage.setItem('hmcs_active_tab', newTab);
     setTabState(newTab);
@@ -2099,7 +2489,17 @@ export default function BranchDashboard() {
   if (!user) { navigate('/login'); return null; }
 
   const role    = user.role?.replace('ROLE_', '') || 'TELLER';
-  const config  = ROLE_CONFIG[role]  || ROLE_CONFIG['TELLER'];
+  const roleConfig = ROLE_CONFIG[role]  || ROLE_CONFIG['TELLER'];
+  const branchTheme = BRANCH_THEMES[user.branchId] || BRANCH_THEMES[1];
+  
+  const config = {
+    ...roleConfig,
+    bg: branchTheme.bg,
+    gradient: branchTheme.gradient,
+    color: branchTheme.color,
+    logoBg: branchTheme.logoBg
+  };
+
   const navItems = ROLE_NAV[role]    || ROLE_NAV['TELLER'];
 
   const renderContent = () => {
@@ -2113,7 +2513,7 @@ export default function BranchDashboard() {
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView />;
-      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} />;
+      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
     }
@@ -2124,10 +2524,14 @@ export default function BranchDashboard() {
       {/* Sidebar */}
       <aside className={`w-64 bg-gradient-to-b ${config.gradient} flex flex-col fixed h-full z-10`}>
         <div className="h-16 flex items-center px-6 border-b border-white/10">
-          <img src={logo} alt="HMCS" className="w-8 h-8 rounded-lg object-cover mr-3 border border-white/20" />
-          <div>
-            <p className="font-bold text-white text-sm">{t('Hikkaduwa Branch')}</p>
-            <p className="text-white/50 text-xs">HMCS Bank</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#01443b] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+              <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-sm">{t(getBranchName(user.branchId))}</p>
+              <p className="text-white/50 text-xs">HMCS Bank</p>
+            </div>
           </div>
         </div>
 
@@ -2178,14 +2582,49 @@ export default function BranchDashboard() {
       <main className="flex-1 md:ml-64">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">{t('Hikkaduwa Branch')}</h1>
+            <h1 className="text-lg font-bold text-slate-800">{t(getBranchName(user.branchId))}</h1>
             <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('Branch Online')}
             </span>
-            <Bell size={18} className="text-slate-400 cursor-pointer hover:text-slate-600" />
+            <div className="relative">
+              <div className="relative cursor-pointer" onClick={() => setShowNotifications(!showNotifications)}>
+                <Bell size={18} className="text-slate-400 hover:text-slate-600" />
+                {notifications.filter(n => !n.isRead).length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+              </div>
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 shadow-lg rounded-xl z-50 py-2">
+                  <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
+                    <h4 className="font-semibold text-sm text-slate-800">Notifications</h4>
+                    <span className="text-xs text-slate-400">{notifications.length}</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-slate-400">No new notifications</div>
+                    ) : (
+                      notifications.map((notif, idx) => (
+                        <div key={idx} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-default ${notif.isRead ? 'opacity-70' : 'bg-blue-50/20'}`}>
+                          <div className="flex gap-3">
+                            <div className="mt-0.5">
+                              {notif.type === 'FD_MATURITY' ? <AlertTriangle size={16} className="text-amber-500" /> : <Bell size={16} className="text-blue-500" />}
+                            </div>
+                            <div>
+                              <h5 className="text-sm font-medium text-slate-800">{notif.title}</h5>
+                              <p className="text-xs text-slate-500 mt-1">{notif.message}</p>
+                              <span className="text-[10px] text-slate-400 mt-2 block">{new Date(notif.timestamp).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

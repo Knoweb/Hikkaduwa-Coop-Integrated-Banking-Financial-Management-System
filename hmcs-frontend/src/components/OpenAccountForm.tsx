@@ -120,7 +120,9 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     // පද්ධති සහ ආයතනික තොරතුරු (Institutional Fields)
     branchName: 'හික්කඩුව', // පද්ධතියෙන් ස්වයංක්රීයව පිරේ [cite: 71, 72]
     societyName: 'හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය', // [cite: 76, 78]
+    // ගිණුම් සැකසුම්
     date: new Date().toISOString().split('T')[0], // [cite: 75]
+    openedDate: new Date().toISOString().split('T')[0],
     accountNumber: '', // පද්ධතියෙන් ජනනය වේ [cite: 74]
     officerSignature: 'senior_hkw', // [cite: 74]
 
@@ -214,6 +216,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       const accountData = {
         memberId: formData.memberId1,
         accountNumber: formData.accountNumber, // Submitted by user
+        openedDate: formData.openedDate,
         accountType: formData.accountType,
         initialDeposit: parseFloat(formData.initialDeposit) || 0,
         childName: clientType === 'child' ? formData.fullName1 : undefined,
@@ -371,6 +374,11 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම් අංකය (Account Number)</label>
                 <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder="උදා: ACC-123456" className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම ආරම්භ කළ දිනය (Opened Date)</label>
+                <input type="date" name="openedDate" value={formData.openedDate} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
               </div>
 
 

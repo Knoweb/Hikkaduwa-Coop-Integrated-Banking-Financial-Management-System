@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class LoanService {
@@ -53,7 +54,12 @@ public class LoanService {
     }
 
     // ── Getters ────────────────────────────────────────────────────────────────
-    public List<Loan> getAllLoans() {
+    public List<Loan> getAllLoans(Integer branchId) {
+        if (branchId != null) {
+            return loanRepository.findAll().stream()
+                .filter(loan -> branchId.equals(loan.getBranchId()))
+                .collect(Collectors.toList());
+        }
         return loanRepository.findAll();
     }
 

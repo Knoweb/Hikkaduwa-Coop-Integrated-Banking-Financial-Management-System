@@ -18,8 +18,17 @@ const translations: Translations = {
   'Hikkaduwa Multi-Purpose Co-operative Society Ltd.': { en: 'Hikkaduwa Multi-Purpose Co-operative Society Ltd.', si: 'හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය' },
   '© 2026 INTEGRATED BANKING SYSTEM': { en: '© 2026 INTEGRATED BANKING SYSTEM', si: '© 2026 ඒකාබද්ධ බැංකු පද්ධතිය' },
 
-  // Common
+  // Branches
   'Hikkaduwa Branch': { en: 'Hikkaduwa Branch', si: 'හික්කඩුව ශාඛාව' },
+  'Dodanduwa Branch': { en: 'Dodanduwa Branch', si: 'දොඩන්දූව ශාඛාව' },
+  'Rathgama Branch': { en: 'Rathgama Branch', si: 'රත්ගම ශාඛාව' },
+  'Seenigama Branch': { en: 'Seenigama Branch', si: 'සීනිගම ශාඛාව' },
+  'Thiranagama Branch': { en: 'Thiranagama Branch', si: 'තිරණගම ශාඛාව' },
+  'Peraliya Branch': { en: 'Peraliya Branch', si: 'පෙරලිය ශාඛාව' },
+  'Kalupe Branch': { en: 'Kalupe Branch', si: 'කලුපේ ශාඛාව' },
+  'Gonapinuwala Branch': { en: 'Gonapinuwala Branch', si: 'ගෝනාපීනුවල ශාඛාව' },
+
+  // Common
   'Dashboard': { en: 'Dashboard', si: 'පාලක පුවරුව' },
   'Branch Online': { en: 'Branch Online', si: 'ශාඛාව මාර්ගගතයි' },
   'Welcome back': { en: 'Welcome back', si: 'නැවත සාදරයෙන් පිළිගනිමු' },
@@ -179,6 +188,7 @@ const translations: Translations = {
   'Staff & Users': { en: 'Staff & Users', si: 'කාර්ය මණ්ඩලය සහ පරිශීලකයින්' },
   'Interest Rates': { en: 'Interest Rates', si: 'පොලී අනුපාත' },
   'Account Types': { en: 'Account Types', si: 'ගිණුම් වර්ග' },
+  'Add Type': { en: 'Add Type', si: '+ අලුතින් එක් කරන්න' },
   'Branch Config': { en: 'Branch Config', si: 'ශාඛා සැකසුම්' },
   'Add User': { en: 'Add User', si: 'පරිශීලක එක් කරන්න' },
   'Full Name': { en: 'Full Name', si: 'සම්පූර්ණ නම' },

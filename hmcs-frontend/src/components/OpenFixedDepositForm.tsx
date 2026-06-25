@@ -196,6 +196,21 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
     }
   }, [formConfig.category, formConfig.term, fdTypes]);
 
+  const uniqueCategories = useMemo(() => {
+    const map = new Map<string, string>();
+    fdTypes.forEach(t => {
+      const parts = t.code.split('_');
+      if (parts.length >= 2) {
+        const prefix = parts[0] + '_' + parts[1];
+        if (!map.has(prefix)) {
+          const baseName = t.name.split(' - ')[0].trim();
+          map.set(prefix, baseName);
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([code, name]) => ({ code, name }));
+  }, [fdTypes]);
+
   const availableTerms = useMemo(() => {
     if (!formConfig.category) return [];
     const terms = fdTypes
@@ -251,6 +266,18 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                 1. සාමාජික විස්තර (Member Details)
               </h3>
               
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම ආරම්භ කළ දිනය (OPENED DATE) *</label>
+                <input
+                  type="date"
+                  name="openedDate"
+                  required
+                  value={formData.openedDate}
+                  onChange={handleInputChange}
+                  className="w-full md:w-1/2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු කාණ්ඩය (CATEGORY) *</label>
@@ -261,9 +288,9 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                   >
                     <option value="">-- තෝරන්න --</option>
-                    <option value="FD_NRM">සාමාන්‍ය (Normal)</option>
-                    <option value="FD_SNR">ජ්‍යෙෂ්ඨ පුරවැසි (Senior Citizen)</option>
-                    <option value="FD_CHD">ළමා (Child)</option>
+                    {uniqueCategories.map(cat => (
+                      <option key={cat.code} value={cat.code}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -371,6 +398,19 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ස්ථාවර තැන්පතු අංකය (FD Number) *</label>
+                  <input
+                    type="text"
+                    name="fdNumber"
+                    required
+                    placeholder="e.g. FD-00123"
+                    value={formData.fdNumber}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු මුදල (Principal Amount) *</label>
                   <div className="relative">

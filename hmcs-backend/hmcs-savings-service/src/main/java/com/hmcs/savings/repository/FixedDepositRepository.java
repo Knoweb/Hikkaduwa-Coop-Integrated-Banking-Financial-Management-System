@@ -9,4 +9,5 @@ public interface FixedDepositRepository extends JpaRepository<FixedDeposit, UUID
     List<FixedDeposit> findByMemberId(UUID memberId);
     List<FixedDeposit> findByStatus(String status);
     List<FixedDeposit> findByBranchIdOrderByOpenedDateDesc(Integer branchId, org.springframework.data.domain.Pageable pageable);
+    List<FixedDeposit> findByBranchIdAndOpenedDateOrderByOpenedDateDesc(Integer branchId, java.time.LocalDate date, org.springframework.data.domain.Pageable pageable);
 }

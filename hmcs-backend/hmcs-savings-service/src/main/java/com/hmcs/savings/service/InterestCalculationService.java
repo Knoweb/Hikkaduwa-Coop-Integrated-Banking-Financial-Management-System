@@ -144,7 +144,7 @@ public class InterestCalculationService {
                 dailyBalanceRepository.save(snapshot);
             }
 
-            // If last day of month → credit monthly interest
+            // If last day of month -> credit monthly interest
             if (today.equals(today.withDayOfMonth(today.lengthOfMonth()))) {
                 calculateAndCreditMonthlyInterest(account, today, daysInYear);
             }

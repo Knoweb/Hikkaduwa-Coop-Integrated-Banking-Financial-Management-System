@@ -32,8 +32,8 @@ public class LoanController {
 
     // ── Queries ──────────────────────────────────────────────────────────────
     @GetMapping
-    public List<Loan> getAllLoans() {
-        return loanService.getAllLoans();
+    public List<Loan> getAllLoans(@RequestParam(required = false) Integer branchId) {
+        return loanService.getAllLoans(branchId);
     }
 
     @GetMapping("/{id}")

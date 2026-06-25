@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
@@ -86,8 +86,8 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
 
 
   const [showFdTypeForm, setShowFdTypeForm] = useState(false);
-  const [newFdType, setNewFdType] = useState({ category: 'NORMAL', termMonths: 12 });
-  const [expandedFdCategories, setExpandedFdCategories] = useState<string[]>(['NORMAL', 'SENIOR', 'CHILD']);
+  const [newFdType, setNewFdType] = useState({ category: 'FD_NRM', termMonths: 12 });
+  const [expandedFdCategories, setExpandedFdCategories] = useState<string[]>([]);
 
   const toggleFdCategory = (cat: string) => {
     setExpandedFdCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -228,10 +228,31 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
     try {
       const types = await AccountService.getFixedDepositTypes();
       setFdTypes(types);
+      
+      // Auto-expand the first few categories if not already set
+      const uniquePrefixes = Array.from(new Set(types.map((t: any) => t.code.split('_').slice(0, 2).join('_'))));
+      if (expandedFdCategories.length === 0 && uniquePrefixes.length > 0) {
+        setExpandedFdCategories(uniquePrefixes.slice(0, 3) as string[]);
+      }
     } catch (err) {
       console.error(err);
     }
   };
+
+  const uniqueFdCategories = useMemo(() => {
+    const map = new Map<string, { code: string; name: string }>();
+    fdTypes.forEach(t => {
+      const parts = t.code.split('_');
+      if (parts.length >= 2) {
+        const prefix = `${parts[0]}_${parts[1]}`;
+        const baseName = t.name.split(' - ')[0].trim();
+        if (!map.has(prefix)) {
+          map.set(prefix, { code: prefix, name: baseName });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [fdTypes]);
 
   useEffect(() => {
     fetchSavingsTypes();
@@ -252,12 +273,13 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
 
   const handleAddFdType = async () => {
     try {
-      const catCode = newFdType.category === 'NORMAL' ? 'NRM' : newFdType.category === 'SENIOR' ? 'SNR' : 'CHD';
-      const catName = newFdType.category === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : newFdType.category === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+      const catInfo = uniqueFdCategories.find(c => c.code === newFdType.category);
+      const catCode = catInfo ? catInfo.code.replace('FD_', '') : 'NRM';
+      const catName = catInfo ? catInfo.name : 'සාමාන්‍ය ස්ථාවර තැන්පතු';
       
       const payload = {
-        code: `FD_${catCode}_${newFdType.termMonths}M`,
-        name: `${catName} - මාස ${newFdType.termMonths}`,
+        code: `FD_${catCode}_${newFdType.termMonths >= 12 ? (newFdType.termMonths/12) + 'Y' : newFdType.termMonths + 'M'}`,
+        name: `${catName} - ${newFdType.termMonths >= 12 ? (newFdType.termMonths/12) + ' අවුරුදු' : newFdType.termMonths + ' මාස'}`,
         termMonths: newFdType.termMonths,
         interestRateMaturity: 0.0,
         interestRateMonthly: 0.0,
@@ -266,7 +288,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
 
       await AccountService.createFixedDepositType(payload);
       setShowFdTypeForm(false);
-      setNewFdType({ category: 'NORMAL', termMonths: 12 });
+      setNewFdType({ category: uniqueFdCategories.length > 0 ? uniqueFdCategories[0].code : 'FD_NRM', termMonths: 12 });
       fetchFdTypes();
     } catch (err: any) {
       console.error(err);
@@ -443,14 +465,14 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
 
                   {rateCategory === 'fd' ? (
                     <>
-                      {['NORMAL', 'SENIOR', 'CHILD'].map(cat => {
-                        const catPrefix = cat === 'NORMAL' ? 'FD_NRM' : cat === 'SENIOR' ? 'FD_SNR' : 'FD_CHD';
-                        const catName = cat === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : cat === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+                      {uniqueFdCategories.map(cat => {
+                        const catPrefix = cat.code;
+                        const catName = cat.name;
                         const items = fdTypes.filter((t: any) => t.code.startsWith(catPrefix)).sort((a: any, b: any) => a.termMonths - b.termMonths);
-                        const isExpanded = expandedFdCategories.includes(cat);
+                        const isExpanded = expandedFdCategories.includes(cat.code);
 
                         return (
-                          <React.Fragment key={cat}>
+                          <React.Fragment key={cat.code}>
                             {/* Category Header Row */}
                             <tr 
                               className="bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors border-b border-slate-100"
@@ -726,9 +748,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">ප්‍රධාන වර්ගය (Main Category)</label>
                     <select value={newFdType.category} onChange={e => setNewFdType(p => ({ ...p, category: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium">
-                      <option value="NORMAL">සාමාන්‍ය ස්ථාවර තැන්පතු</option>
-                      <option value="SENIOR">ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු</option>
-                      <option value="CHILD">ළමා ස්ථාවර තැන්පතු</option>
+                      {uniqueFdCategories.map(cat => (
+                        <option key={cat.code} value={cat.code}>{cat.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -824,19 +846,19 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     ) : (
                       <tr>
                         <td colSpan={5} className="p-0">
-                          {['NORMAL', 'SENIOR', 'CHILD'].map(cat => {
-                            const catPrefix = cat === 'NORMAL' ? 'FD_NRM' : cat === 'SENIOR' ? 'FD_SNR' : 'FD_CHD';
-                            const catName = cat === 'NORMAL' ? 'සාමාන්‍ය ස්ථාවර තැන්පතු' : cat === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු' : 'ළමා ස්ථාවර තැන්පතු';
+                          {uniqueFdCategories.map(cat => {
+                            const catPrefix = cat.code;
+                            const catName = cat.name;
                             const items = fdTypes.filter((t: any) => t.code.startsWith(catPrefix)).sort((a: any, b: any) => a.termMonths - b.termMonths);
                             
                             return (
-                              <div key={cat} className="border-b border-slate-100 last:border-0 bg-white">
+                              <div key={cat.code} className="border-b border-slate-100 last:border-0 bg-white">
                                 <div 
                                   className="px-6 py-4 bg-slate-50/50 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 transition-colors"
-                                  onClick={() => toggleFdCategory(cat)}
+                                  onClick={() => toggleFdCategory(cat.code)}
                                 >
                                   <div className="font-bold text-slate-800 flex items-center gap-2">
-                                    {expandedFdCategories.includes(cat) ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                                    {expandedFdCategories.includes(cat.code) ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
                                     <Lock size={16} className="text-blue-500 ml-1" />
                                     {catName}
                                   </div>
@@ -844,7 +866,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                     <button 
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setNewFdType(p => ({ ...p, category: cat }));
+                                        setNewFdType(p => ({ ...p, category: cat.code }));
                                         setShowFdTypeForm(true);
                                       }}
                                       className="text-xs bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">

@@ -112,7 +112,7 @@ export const getGlobalAccounts = async (): Promise<AccountData[]> => {
   return res.data;
 };
 
-export const openAccount = async (data: { memberId: string; accountType: string; initialDeposit: number; childName?: string; childBirthCertificate?: string; childDateOfBirth?: string }): Promise<AccountData> => {
+export const openAccount = async (data: { memberId: string; accountType: string; initialDeposit: number; openedDate?: string; childName?: string; childBirthCertificate?: string; childDateOfBirth?: string }): Promise<AccountData> => {
   const res = await axios.post(API_URL + 'accounts', data, { headers: authHeader() });
   return res.data;
 };
@@ -198,13 +198,24 @@ export const deleteFixedDepositType = async (id: string): Promise<void> => {
   await axios.delete(`${API_URL}fixed-deposit-types/${id}`, { headers: authHeader() });
 };
 
+export const deleteFixedDeposit = async (id: string): Promise<void> => {
+  await axios.delete(`${API_URL}fixed-deposits/${id}`, { headers: authHeader() });
+};
+
 export const updateFixedDepositType = async (id: string, data: any): Promise<any> => {
   const response = await axios.put(`${API_URL}fixed-deposit-types/${id}`, data, { headers: authHeader() });
   return response.data;
 };
 
 // --- Fixed Deposits API ---
+// Returns ONLY current branch fixed deposits
 export const getFixedDeposits = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}fixed-deposits?branchOnly=true`, { headers: authHeader() });
+  return response.data;
+};
+
+// Returns ALL fixed deposits (cross-branch)
+export const getGlobalFixedDeposits = async (): Promise<any[]> => {
   const response = await axios.get(`${API_URL}fixed-deposits`, { headers: authHeader() });
   return response.data;
 };
@@ -215,7 +226,19 @@ export const releaseFixedDeposit = async (id: string): Promise<any> => {
 };
 
 // --- Branch Activities ---
-export const getBranchActivities = async (): Promise<any[]> => {
-  const response = await axios.get(`${API_URL}branch/activities`, { headers: authHeader() });
+export const getBranchActivities = async (date?: string): Promise<any[]> => {
+  const params = date ? { date } : {};
+  const response = await axios.get(`${API_URL}branch/activities`, { headers: authHeader(), params });
+  return response.data;
+};
+
+// --- Notifications ---
+export const getBranchNotifications = async (): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}branch/notifications`, { headers: authHeader() });
+  return response.data;
+};
+
+export const getActivityDetails = async (type: string, id: string): Promise<any> => {
+  const response = await axios.get(`${API_URL}branch/activity-details/${type}/${id}`, { headers: authHeader() });
   return response.data;
 };

@@ -23,6 +23,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/fixed-deposits")
@@ -43,8 +44,20 @@ public class FixedDepositController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FixedDeposit>> getAllFDs() {
-        return ResponseEntity.ok(fdRepository.findAll());
+    public ResponseEntity<List<FixedDeposit>> getAllFDs(
+            @RequestParam(required = false, defaultValue = "false") boolean branchOnly,
+            HttpServletRequest request) {
+        
+        List<FixedDeposit> fds;
+        if (branchOnly) {
+            Integer branchId = branchContext.extractBranchId(request);
+            fds = fdRepository.findAll().stream()
+                    .filter(fd -> branchId == null || branchId.equals(fd.getBranchId()))
+                    .collect(Collectors.toList());
+        } else {
+            fds = fdRepository.findAll();
+        }
+        return ResponseEntity.ok(fds);
     }
 
     @GetMapping("/member/{memberId}")
@@ -59,6 +72,7 @@ public class FixedDepositController {
         public UUID typeId;
         public String fdNumber;
         public BigDecimal principalAmount;
+        public LocalDate openedDate;
         public UUID linkedSavingsAccountId;
         public String interestPayoutMethod; // "MONTHLY" or "AT_MATURITY"
         public String maturityInstruction; // "REINVEST_PRINCIPAL_AND_INTEREST", "REINVEST_PRINCIPAL_PAY_INTEREST", "CLOSE_ACCOUNT"
@@ -102,10 +116,14 @@ public class FixedDepositController {
         
         fd.setBranchId(currentBranchId);
         fd.setTermMonths(type.getTermMonths());
-        fd.setOpenedDate(LocalDate.now());
-        fd.setLastInterestPayoutDate(LocalDate.now());
+        if (request.openedDate != null) {
+            fd.setOpenedDate(request.openedDate);
+        } else {
+            fd.setOpenedDate(LocalDate.now());
+        }
+        fd.setLastInterestPayoutDate(fd.getOpenedDate());
         fd.setAccumulatedInterest(BigDecimal.ZERO);
-        fd.setMaturityDate(LocalDate.now().plusMonths(type.getTermMonths()));
+        fd.setMaturityDate(fd.getOpenedDate().plusMonths(type.getTermMonths()));
         
         String payoutMethod = request.interestPayoutMethod != null ? request.interestPayoutMethod : "AT_MATURITY";
         fd.setInterestPayoutMethod(payoutMethod);
@@ -241,5 +259,23 @@ public class FixedDepositController {
         response.put("deductedInterest", paidInterestToDeduct);
         
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteFixedDeposit(@PathVariable UUID id, HttpServletRequest request) {
+        Optional<FixedDeposit> fdOpt = fdRepository.findById(id);
+        if (fdOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        FixedDeposit fd = fdOpt.get();
+        // Option to restrict deletion only for the same branch or ADMIN can be added here
+        Integer currentBranchId = branchContext.extractBranchId(request);
+        if (currentBranchId != null && fd.getBranchId() != null && !currentBranchId.equals(fd.getBranchId())) {
+             return ResponseEntity.status(403).body("Not authorized to delete FD of another branch");
+        }
+
+        fdRepository.delete(fd);
+        return ResponseEntity.ok(Map.of("message", "Fixed deposit deleted successfully"));
     }
 }

@@ -84,7 +84,15 @@ export const deleteLoanType = async (id: string): Promise<void> => {
 
 // ── Loan Applications ─────────────────────────────────────────────────────────
 
+// Returns ONLY current branch loans
 export const getLoans = async (): Promise<Loan[]> => {
+  const user = getCurrentUser();
+  const response = await axios.get(`${API_URL}?branchId=${user?.branchId}`, { headers: authHeader() });
+  return response.data;
+};
+
+// Returns ALL loans (cross-branch)
+export const getGlobalLoans = async (): Promise<Loan[]> => {
   const response = await axios.get(API_URL, { headers: authHeader() });
   return response.data;
 };
