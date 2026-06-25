@@ -173,11 +173,12 @@ export const getMemberSavingsAccounts = async (memberId: string): Promise<any[]>
 export const getRepaymentSchedule = async (
   principal: number,
   termMonths: number,
-  annualRate: number
+  annualRate: number,
+  startDate?: string
 ): Promise<EmiScheduleRow[]> => {
   const response = await axios.get(`${API_URL}/schedule`, {
     headers: authHeader(),
-    params: { principal, termMonths, annualRate }
+    params: { principal, termMonths, annualRate, startDate }
   });
   return response.data;
 };

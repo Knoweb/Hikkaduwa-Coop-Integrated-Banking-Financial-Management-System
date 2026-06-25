@@ -152,8 +152,9 @@ public class LoanController {
     public ResponseEntity<List<Map<String, Object>>> getRepaymentSchedule(
             @RequestParam BigDecimal principal,
             @RequestParam Integer termMonths,
-            @RequestParam BigDecimal annualRate) {
-        List<Map<String, Object>> schedule = loanService.generateRepaymentSchedule(principal, termMonths, annualRate);
+            @RequestParam BigDecimal annualRate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate) {
+        List<Map<String, Object>> schedule = loanService.generateRepaymentSchedule(principal, termMonths, annualRate, startDate);
         return ResponseEntity.ok(schedule);
     }
 

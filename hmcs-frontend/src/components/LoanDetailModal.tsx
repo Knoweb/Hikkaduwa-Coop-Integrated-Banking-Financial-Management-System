@@ -77,7 +77,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
       LoanService.getRepaymentSchedule(
         loan.requestedAmount,
         loan.termMonths || 36,
-        loan.interestRate || 14
+        loan.interestRate || 14,
+        loan.appliedDate
       )
         .then(setSchedule)
         .catch(() => {})

@@ -382,7 +382,7 @@ public class LoanService {
         }
         if (termMonths == null) termMonths = 12; // default
 
-        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(loan.getDisbursedAmount(), termMonths, loan.getInterestRate());
+        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(loan.getDisbursedAmount(), termMonths, loan.getInterestRate(), loan.getAppliedDate());
         
         for (Map<String, Object> row : scheduleData) {
             LoanSchedule schedule = new LoanSchedule();
@@ -401,12 +401,13 @@ public class LoanService {
         return loanRepository.save(loan);
     }
 
-    public List<Map<String, Object>> generateRepaymentSchedule(BigDecimal principal, Integer termMonths, BigDecimal annualRatePercent) {
+    public List<Map<String, Object>> generateRepaymentSchedule(BigDecimal principal, Integer termMonths, BigDecimal annualRatePercent, LocalDate startDate) {
+        if (startDate == null) startDate = LocalDate.now();
         List<Map<String, Object>> schedule = new ArrayList<>();
         BigDecimal monthlyPrincipal = principal.divide(BigDecimal.valueOf(termMonths), 2, RoundingMode.HALF_UP);
         BigDecimal dailyRate = annualRatePercent.divide(BigDecimal.valueOf(36500), 10, RoundingMode.HALF_UP);
         BigDecimal outstandingBalance = principal;
-        LocalDate dueDate = LocalDate.now().plusMonths(1);
+        LocalDate dueDate = startDate.plusMonths(1);
         for (int i = 1; i <= termMonths; i++) {
             BigDecimal interest = outstandingBalance.multiply(dailyRate).multiply(BigDecimal.valueOf(30)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal emi = monthlyPrincipal.add(interest);
