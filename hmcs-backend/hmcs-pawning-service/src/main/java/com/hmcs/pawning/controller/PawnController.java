@@ -37,4 +37,16 @@ public class PawnController {
     public ResponseEntity<PawnTicketResponse> redeemTicket(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(pawnService.redeemTicket(ticketId));
     }
+
+    @PostMapping("/{ticketId}/payments")
+    public ResponseEntity<PawnTicketResponse> makePayment(
+            @PathVariable UUID ticketId,
+            @RequestBody java.util.Map<String, Object> request
+    ) {
+        java.math.BigDecimal amount = new java.math.BigDecimal(request.get("amount").toString());
+        java.time.LocalDate date = request.containsKey("date") && request.get("date") != null 
+                ? java.time.LocalDate.parse(request.get("date").toString()) 
+                : java.time.LocalDate.now();
+        return ResponseEntity.ok(pawnService.makePayment(ticketId, amount, date));
+    }
 }
