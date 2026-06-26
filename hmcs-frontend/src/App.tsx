@@ -18,6 +18,7 @@ function App() {
           {/* System Admin Routes */}
           <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
             <Route path="/dashboard" element={<SystemAdminDashboard />} />
+            <Route path="/admin/branch/:id" element={<BranchDashboard />} />
           </Route>
 
           {/* General Manager Routes */}

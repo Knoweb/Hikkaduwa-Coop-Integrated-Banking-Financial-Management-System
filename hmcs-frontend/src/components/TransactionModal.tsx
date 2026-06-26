@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function TransactionModal({ accountId, accountNumber, accountType, balance = 0, accountHolder = 'N/A', action, onClose, onSuccess, allAccounts = [], members = [] }: Props) {
+  if (window.__isAdminView) return <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center"><h3 className="text-xl font-bold text-red-600 mb-2">Access Denied</h3><p className="text-slate-600 mb-6">System Administrators are in Read-Only mode and cannot perform transactions or open accounts.</p><button onClick={typeof onClose !== 'undefined' ? onClose : () => {}} className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold hover:bg-slate-700">Close</button></div></div>;
   const [internalAccNo, setInternalAccNo] = useState(accountNumber || '');
   const [internalAccId, setInternalAccId] = useState(accountId || '');
   const [amount, setAmount] = useState<number | ''>('');

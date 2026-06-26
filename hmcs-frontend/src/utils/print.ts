@@ -320,25 +320,25 @@ export const printAccountStatement = (passbookData: any) => {
       const withdrawAmt = !isDeposit ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
       const runningBalance = Number(tx.runningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
       
-      trxRows += \
+      trxRows += `
         <tr>
-          <td>\</td>
-          <td>\</td>
-          <td class="text-right" style="color: #ef4444;">\</td>
-          <td class="text-right" style="color: #10b981;">\</td>
-          <td class="text-right font-bold">\</td>
+          <td>${date}</td>
+          <td>${tx.description || tx.transactionType}</td>
+          <td class="text-right" style="color: #ef4444;">${withdrawAmt}</td>
+          <td class="text-right" style="color: #10b981;">${depositAmt}</td>
+          <td class="text-right font-bold">${runningBalance}</td>
         </tr>
-      \;
+      `;
     });
   } else {
-    trxRows = \<tr><td colspan="5" style="text-align:center; padding:20px;">No transactions found</td></tr>\;
+    trxRows = `<tr><td colspan="5" style="text-align:center; padding:20px;">No transactions found</td></tr>`;
   }
 
-  const html = \<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Account Statement - \</title>
+  <title>Account Statement - ${accNo}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap');
     body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; font-size: 12px; }
@@ -377,19 +377,19 @@ export const printAccountStatement = (passbookData: any) => {
   <div class="summary-grid">
     <div class="summary-card">
       <div class="summary-label">Account Number</div>
-      <div class="summary-value">\</div>
+      <div class="summary-value">${accNo}</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Current Balance</div>
-      <div class="summary-value">Rs. \</div>
+      <div class="summary-value">Rs. ${balance}</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Interest Rate</div>
-      <div class="summary-value">\% p.a.</div>
+      <div class="summary-value">${interestRate}% p.a.</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Status</div>
-      <div class="summary-value" style="color: \">\</div>
+      <div class="summary-value" style="color: ${status === 'ACTIVE' ? '#10b981' : '#ef4444'}">${status}</div>
     </div>
   </div>
 
@@ -405,12 +405,12 @@ export const printAccountStatement = (passbookData: any) => {
       </tr>
     </thead>
     <tbody>
-      \
+      ${trxRows}
     </tbody>
   </table>
 
   <div class="footer">
-    <p>Statement generated on \</p>
+    <p>Statement generated on ${printed}</p>
     <p>This is a computer generated document and does not require a signature.</p>
   </div>
 
@@ -420,8 +420,9 @@ export const printAccountStatement = (passbookData: any) => {
     };
   </script>
 </body>
-</html>\;
+</html>`;
 
   printWindow.document.write(html);
   printWindow.document.close();
 };
+

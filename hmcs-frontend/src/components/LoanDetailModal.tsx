@@ -183,6 +183,22 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
 
   const ad = loan.applicationData || {};
 
+  
+  const translateRole = (role: string) => {
+    if (!role) return 'පද්ධතිය (SYSTEM)';
+    if (role === 'BRANCH_MANAGER') return 'ශාඛා කළමනාකරු';
+    if (role === 'LOAN_COMMITTEE') return 'ණය කමිටුව';
+    if (role === 'SENIOR_OFFICER') return 'ජ්‍යෙෂ්ඨ නිලධාරී';
+    return role.replace(/_/g, ' ');
+  };
+
+  const translateAction = (act: string) => {
+    if (act === 'APPROVED') return 'අනුමතයි';
+    if (act === 'REJECTED') return 'ප්‍රතික්ෂේපිතයි';
+    if (act === 'DISBURSED') return 'මුදා හැරියා';
+    return act;
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -572,21 +588,26 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                         <div className="flex-1 bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-bold text-slate-800 text-sm">{LoanService.STAGE_LABELS[action.stage]?.label || action.stage}</p>
+                              <p className="font-bold text-slate-800 text-sm">{LoanService.STAGE_LABELS[action.stage]?.labelSi || (action.stage === 'DISBURSED' ? 'මුදා හැර ඇත (Disbursed)' : action.stage)}</p>
                               <p className="text-xs text-slate-400 mt-0.5">
-                                {action.actorUsername} · {action.actorRole.replace(/_/g, ' ')}
+                                {action.actorUsername} • {translateRole(action.actorRole)}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
-                              <span className={`text-[10px] font-black px-2 py-1 rounded-full uppercase ${
-                                action.action === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                              }`}>{action.action}</span>
+                                <span className={`text-[10px] font-black px-2 py-1 rounded-full uppercase ${
+                                  action.action === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                                }`}>{translateAction(action.action)}</span>
                               <p className="text-[10px] text-slate-400 mt-1 font-mono">{new Date(action.createdAt).toLocaleDateString()}</p>
                             </div>
                           </div>
-                          {action.comments && (
-                            <p className="text-xs text-slate-600 mt-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100 italic">"{action.comments}"</p>
-                          )}
+                            {action.comments && (
+                              <p className="text-xs text-slate-600 mt-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100 italic">"{action.comments
+                                .replace('Approved/Recommended by BRANCH_MANAGER', 'ශාඛා කළමනාකරු විසින් අනුමත/නිර්දේශ කරන ලදී')
+                                .replace('Approved/Recommended by LOAN_COMMITTEE', 'Loan Committee විසින් අනුමත/නිර්දේශ කරන ලදී')
+                                .replace('Rejected by BRANCH_MANAGER', 'ශාඛා කළමනාකරු විසින් ප්‍රතික්ෂේප කරන ලදී')
+                                .replace(/Loan disbursed \(CASH\)\. Account No:/, 'ණය මුදල මුදා හැරියා (මුදලින්). ගිණුම් අංකය:')
+                                .replace(/Loan disbursed\. Account No:/, 'ණය මුදල මුදා හැරියා. ගිණුම් අංකය:')}"</p>
+                            )}
                         </div>
                       </div>
                     ))}
