@@ -1521,6 +1521,7 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
           <table className="w-full text-sm">
             <thead className="bg-indigo-50/80 border-b border-indigo-100">
               <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">ගිණුම් අංකය</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">දිනය</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">සාමාජිකයා</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">ණය වර්ගය</th>
@@ -1532,11 +1533,12 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
             </thead>
             <tbody className="divide-y divide-indigo-50 bg-white">
               {filteredLoans.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400">ණය ගිණුම් කිසිවක් හමු නොවීය</td></tr>
+                <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">ණය ගිණුම් කිසිවක් හමු නොවීය</td></tr>
               ) : filteredLoans.map(l => {
                 const member = members.find(m => m.memberId === l.memberId);
                 return (
                 <tr key={l.loanId} className="hover:bg-indigo-50/40 transition-colors group">
+                  <td className="px-6 py-4 font-mono font-bold text-indigo-700 bg-indigo-50/50 rounded-l-lg">{l.accountNumber || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-500 font-medium">{l.appliedDate || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-800 font-bold">
                     {member ? (member.fullName || member.fullNameSinhala) : 'N/A'}
@@ -3008,8 +3010,29 @@ export default function BranchDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    AccountService.getBranchNotifications().then(setNotifications).catch(() => {});
-  }, []);
+    AccountService.getBranchNotifications().then(async (notifs) => {
+      // Fetch Pawning Tickets to check for nearing maturity
+      try {
+        const { getTicketsByBranch } = await import('../services/pawning.service');
+        const tickets = await getTicketsByBranch(user.branchId);
+        const nearingPawning = tickets.filter((t: any) => {
+          if (t.status === 'REDEEMED' || t.status === 'OVERDUE') return false;
+          const expiry = new Date(t.expiryDate);
+          const diffDays = Math.ceil((expiry.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+          return diffDays <= 30 && diffDays >= 0;
+        });
+        const pawningNotifs = nearingPawning.map((t: any) => ({
+          type: 'PW_MATURITY',
+          isRead: false,
+          title: `උකස් පත්‍රිකාව කල්පිරීමට ආසන්නයි (PW-${t.ticketNumber})`,
+          message: `මෙම උකස් පත්‍රිකාව (${t.ticketNumber}) දින ${Math.ceil((new Date(t.expiryDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} කින් කල් පිරේ.`
+        }));
+        setNotifications([...pawningNotifs, ...notifs]);
+      } catch (e) {
+        setNotifications(notifs);
+      }
+    }).catch(() => {});
+  }, [user.branchId]);
 
   const setTab = (newTab: string) => {
     localStorage.setItem('hmcs_active_tab', newTab);
@@ -3166,7 +3189,9 @@ export default function BranchDashboard() {
                         <div key={idx} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-default ${notif.isRead ? 'opacity-70' : 'bg-blue-50/20'}`}>
                           <div className="flex gap-3">
                             <div className="mt-0.5">
-                              {notif.type === 'FD_MATURITY' ? <AlertTriangle size={16} className="text-amber-500" /> : <Bell size={16} className="text-blue-500" />}
+                              {notif.type === 'FD_MATURITY' ? <AlertTriangle size={16} className="text-amber-500" /> : 
+                               notif.type === 'PW_MATURITY' ? <Scale size={16} className="text-amber-600" /> : 
+                               <Bell size={16} className="text-blue-500" />}
                             </div>
                             <div>
                               <h5 className="text-sm font-medium text-slate-800">{notif.title}</h5>

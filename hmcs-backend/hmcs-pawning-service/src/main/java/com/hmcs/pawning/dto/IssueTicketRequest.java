@@ -16,6 +16,7 @@ public class IssueTicketRequest {
     private BigDecimal advanceAmount;
     private Integer branchId;
     private UUID valuerId;
+    private String ticketNumber; // Optional, can be provided manually
     private BigDecimal interestRate; // Optional, defaults to 13
     private java.time.LocalDate issueDate; // Optional
 }

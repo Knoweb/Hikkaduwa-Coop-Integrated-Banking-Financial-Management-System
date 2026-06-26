@@ -9,8 +9,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                          new Date(ticket.expiryDate).getTime() - new Date().getTime() <= 30 * 24 * 60 * 60 * 1000;
 
   const handlePrint = () => {
-    // Call print function (we'll implement this if needed, or leave it as a placeholder)
-    alert("Printing Pawn Ticket...");
+    printPawnTicket(ticket);
   };
 
   return (
@@ -47,9 +46,14 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
           )}
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <p className="text-xs text-slate-500 font-medium mb-1">සාමාජික හැඳුනුම්පත (Member ID)</p>
-              <p className="text-sm font-semibold text-slate-800">{ticket.memberId}</p>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 font-medium mb-1">සාමාජිකයා (Member)</p>
+              <h4 className="text-sm font-bold text-slate-800">
+                {ticket.memberDetails?.nameWithInitials || ticket.memberDetails?.fullNameSinhala || ticket.memberDetails?.fullName || ticket.memberName || 'Unknown Member'}
+              </h4>
+              <p className="text-xs font-semibold text-slate-500 mt-1">
+                ID: {ticket.memberDetails?.membershipNumber || ticket.memberDetails?.membership_number || ticket.memberId}
+              </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-slate-500 font-medium mb-1">නිකුත් කළ දිනය / කල් ඉකුත් වන දිනය</p>

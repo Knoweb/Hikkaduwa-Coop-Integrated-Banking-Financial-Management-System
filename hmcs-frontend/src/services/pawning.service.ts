@@ -34,6 +34,16 @@ export const redeemTicket = async (ticketId: string) => {
   return res.data;
 };
 
+export const makePayment = async (ticketId: string, amount: number, date?: string) => {
+  const token = localStorage.getItem('hmcs_token');
+  const payload: any = { amount };
+  if (date) payload.date = date;
+  const res = await axios.post(`${API_URL}/${ticketId}/payments`, payload, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
 export const getAllSettings = async () => {
   const token = localStorage.getItem('hmcs_token');
   const res = await axios.get(`${API_URL.replace('/tickets', '/settings')}`, {

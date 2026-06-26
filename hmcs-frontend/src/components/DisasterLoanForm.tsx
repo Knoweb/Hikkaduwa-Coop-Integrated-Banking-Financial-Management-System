@@ -11,6 +11,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   const [formData, setFormData] = useState({
     name: '',
     memberId: '',
+    accountNumber: '',
     shareAmount: '',
     designation: '',
     address: '',
@@ -106,6 +107,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             requestedAmount: parseFloat(formData.requestedAmount),
             termMonths: parseInt(formData.termMonths),
             appliedDate: formData.appliedDate,
+            accountNumber: formData.accountNumber || undefined,
             
             applicationData: {
                 name: formData.name,
@@ -198,17 +200,28 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
           {/* Section 1: Applicant Details */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 flex flex-col items-start shadow-sm mb-6 relative">
-              <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *</label>
-              <input 
-                type="date" 
-                required
-                name="appliedDate"
-                value={formData.appliedDate}
-                onChange={handleChange}
-                className="w-full sm:w-1/3 rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
-              />
-              <p className="text-xs text-yellow-700 mt-2">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+            <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 shadow-sm relative grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම් අංකය (Account Number)</label>
+                <input 
+                  type="text" 
+                  name="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *</label>
+                <input 
+                  type="date" 
+                  required
+                  name="appliedDate"
+                  value={formData.appliedDate}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
+                />
+              </div>
             </div>
 
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">1. අයදුම්කරුගේ තොරතුරු</h3>

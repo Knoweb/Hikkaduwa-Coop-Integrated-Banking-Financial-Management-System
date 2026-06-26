@@ -5,9 +5,11 @@ E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\dto\IssueTicketRequest.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\dto\PawnTicketResponse.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\entity\PawningSetting.java
+E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\entity\PawnPayment.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\entity\PawnTicket.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\HmcsPawningServiceApplication.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\repository\PawningSettingRepository.java
+E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\repository\PawnPaymentRepository.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\repository\PawnTicketRepository.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\service\PawningSettingService.java
 E:\Hikkaduwa Banking System\hmcs-backend\hmcs-pawning-service\src\main\java\com\hmcs\pawning\service\PawnService.java
