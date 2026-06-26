@@ -61,4 +61,26 @@ public class PawnTicket {
     // ACTIVE, REDEEMED, AUCTIONED, OVERDUE
     @Column(name = "status", length = 20)
     private String status = "ACTIVE";
+
+    @Column(name = "remaining_advance", precision = 15, scale = 2)
+    private BigDecimal remainingAdvance;
+
+    @Column(name = "last_payment_date")
+    private LocalDate lastPaymentDate;
+
+    @Column(name = "carried_over_interest", precision = 15, scale = 2)
+    private BigDecimal carriedOverInterest = BigDecimal.ZERO;
+
+    @PrePersist
+    public void prePersist() {
+        if (remainingAdvance == null) {
+            remainingAdvance = advanceAmount;
+        }
+        if (lastPaymentDate == null) {
+            lastPaymentDate = issueDate != null ? issueDate : LocalDate.now();
+        }
+        if (carriedOverInterest == null) {
+            carriedOverInterest = BigDecimal.ZERO;
+        }
+    }
 }
