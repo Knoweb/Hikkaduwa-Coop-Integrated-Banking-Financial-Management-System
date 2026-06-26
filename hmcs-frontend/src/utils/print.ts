@@ -260,39 +260,135 @@ export const printPawnTicket = (ticket: any) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
-  const date = new Date(ticket.issueDate).toLocaleDateString();
+  const date = new Date(ticket.issueDate).toLocaleDateString('en-GB');
+  const printed = new Date().toLocaleString('en-US');
+  const memberName = ticket.memberName || (ticket.memberDetails ? (ticket.memberDetails.fullNameSinhala || ticket.memberDetails.fullName) : 'N/A');
+  const memberNic = ticket.memberNic || (ticket.memberDetails ? ticket.memberDetails.nic : 'N/A');
+
   const html = `<!DOCTYPE html>
 <html lang="si">
 <head>
   <meta charset="UTF-8">
   <title>Pawn Ticket - ${ticket.ticketNumber}</title>
   <style>
-    body { font-family: 'Arial', sans-serif; padding: 20px; }
-    h1 { text-align: center; font-size: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #000; padding: 10px; text-align: left; }
-    .footer { margin-top: 50px; text-align: center; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;800&family=Inter:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap');
+    @page { size: A4 portrait; margin: 20mm; }
+    body { font-family: 'Inter', 'Noto Sans Sinhala', sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 0; }
+    
+    .ticket-container { border: 2px solid #b45309; padding: 30px; position: relative; border-radius: 10px; background: #fffaf0; }
+    .bg-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; color: rgba(180, 83, 9, 0.04); font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 0; }
+    
+    .header { text-align: center; border-bottom: 2px solid #b45309; padding-bottom: 15px; margin-bottom: 25px; position: relative; z-index: 1; }
+    .bank-name { font-size: 26px; font-weight: 800; color: #92400e; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 1px; }
+    .branch-name { font-size: 14px; color: #b45309; margin: 0; font-weight: 600; letter-spacing: 0.5px; }
+    
+    .title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; z-index: 1; }
+    .title { font-size: 18px; font-weight: 800; background-color: #b45309; color: #fff; padding: 6px 16px; border-radius: 4px; display: inline-block; letter-spacing: 1px; }
+    .ticket-no { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: #78350f; background: #fef3c7; padding: 5px 12px; border-radius: 4px; border: 1px solid #fde68a; }
+    
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 12px; font-weight: 600; color: #451a03; border-bottom: 1px dashed #d97706; padding-bottom: 10px; position: relative; z-index: 1; }
+    
+    .section-title { font-size: 14px; font-weight: 800; color: #78350f; border-left: 4px solid #b45309; padding-left: 10px; margin: 20px 0 10px 0; position: relative; z-index: 1; }
+    
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; position: relative; z-index: 1; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #fde68a; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #fef3c7; }
+    th { width: 45%; font-weight: 700; color: #92400e; background-color: #fffbeb; }
+    td { font-weight: 600; color: #451a03; }
+    .td-number { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
+    
+    .amount-highlight { background-color: #fef3c7; color: #b45309; font-size: 16px; font-weight: 800; }
+    
+    .conditions { font-size: 11px; margin-top: 25px; text-align: justify; color: #78350f; line-height: 1.5; padding: 15px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; position: relative; z-index: 1; }
+    
+    .signatures { margin-top: 60px; display: flex; justify-content: space-between; position: relative; z-index: 1; }
+    .sig-block { width: 28%; text-align: center; }
+    .sig-line { border-top: 1px dashed #b45309; margin-top: 40px; padding-top: 8px; font-size: 11px; font-weight: 700; color: #92400e; }
+    
+    .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #b45309; position: relative; z-index: 1; font-family: 'Space Mono', monospace; }
+    
+    @media print { 
+      body { margin: 0; }
+      .ticket-container { border: 2px solid #000; background: #fff; border-radius: 0; }
+      .bg-watermark { display: none; }
+      .title { background-color: #000; color: #fff; }
+      .ticket-no, table, .conditions { border-color: #000; background: #fff; color: #000; }
+      th { background-color: #f0f0f0; color: #000; }
+      .bank-name, .branch-name, .section-title, th, td, .amount-highlight, .conditions, .sig-line, .footer { color: #000; }
+      .sig-line { border-color: #000; }
+      .header { border-color: #000; }
+      .meta-row { border-color: #000; }
+    }
   </style>
 </head>
 <body>
-  <h1>Co-op Rural Bank - Pawn Ticket</h1>
-  <p>Ticket No: ${ticket.ticketNumber}</p>
-  <p>Date: ${date}</p>
-  <table>
-    <tr><th>Article Description</th><td>${ticket.articleDescription}</td></tr>
-    <tr><th>Gross Weight</th><td>${ticket.grossWeightGrams} g</td></tr>
-    <tr><th>Net Weight</th><td>${ticket.netWeightGrams} g</td></tr>
-    <tr><th>Purity</th><td>${ticket.purityKarat} Karat</td></tr>
-    <tr><th>Assessed Value</th><td>Rs. ${ticket.assessedValue}</td></tr>
-    <tr><th>Advance Amount</th><td>Rs. ${ticket.advanceAmount}</td></tr>
-    <tr><th>Interest Rate</th><td>${ticket.interestRate}% p.a.</td></tr>
-  </table>
-  <div class="footer">
-    <p>Please surrender this ticket to redeem the articles.</p>
+  <div class="ticket-container">
+    <div class="bg-watermark">HMCS PAWNING</div>
+    
+    <div class="header">
+      <h1 class="bank-name">Hikkaduwa Co-operative Society Bank</h1>
+      <p class="branch-name">Hikkaduwa Branch (හික්කඩුව ශාඛාව)</p>
+    </div>
+
+    <div class="title-row">
+      <div class="title">උකස් පත්‍රිකාව (PAWN TICKET)</div>
+      <div class="ticket-no">TKT No: PW-${ticket.ticketNumber}</div>
+    </div>
+
+    <div class="meta-row">
+      <div>Issue Date / නිකුත් කළ දිනය: ${date}</div>
+      <div>Valuer / තක්සේරුකරු: HMCS Valuer</div>
+    </div>
+
+    <div class="section-title">1. Customer Details (පාරිභෝගික තොරතුරු)</div>
+    <table>
+      <tr><th>Customer Name (නම)</th><td>${memberName.toUpperCase()}</td></tr>
+      <tr><th>NIC Number (ජා.හැ.ප)</th><td class="td-number">${memberNic}</td></tr>
+    </table>
+
+    <div class="section-title">2. Article Details (භාණ්ඩයේ තොරතුරු)</div>
+    <table>
+      <tr><th>Article Description (විස්තරය)</th><td>${ticket.articleDescription}</td></tr>
+      <tr><th>Gross Weight (දළ බර)</th><td class="td-number">${ticket.grossWeightGrams} g</td></tr>
+      <tr><th>Net Weight (ශුද්ධ බර)</th><td class="td-number">${ticket.netWeightGrams} g</td></tr>
+      <tr><th>Purity (කැරට් අගය)</th><td class="td-number">${ticket.purityKarat}K</td></tr>
+      <tr><th>Assessed Value (තක්සේරු වටිනාකම)</th><td class="td-number">Rs. ${Number(ticket.assessedValue).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+    </table>
+
+    <div class="section-title">3. Loan Details (ණය තොරතුරු)</div>
+    <table>
+      <tr><th class="amount-highlight">Advance Amount (අත්තිකාරම් මුදල)</th><td class="td-number amount-highlight">Rs. ${Number(ticket.advanceAmount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+      <tr><th>Interest Rate (වාර්ෂික පොලිය)</th><td class="td-number">${ticket.interestRate}% p.a.</td></tr>
+      <tr><th>Status (තත්ත්වය)</th><td>ACTIVE</td></tr>
+    </table>
+
+    <div class="conditions">
+      <strong>Terms & Conditions (කොන්දේසි):</strong><br/>
+      1. Please surrender this ticket to redeem the articles. (භාණ්ඩ බේරා ගැනීම සඳහා මෙම පත්‍රිකාව ඉදිරිපත් කිරීම අනිවාර්ය වේ.)<br/>
+      2. Articles not redeemed within 1 year will be auctioned. (වසරක් ඇතුළත බේරා නොගන්නා භාණ්ඩ වෙන්දේසි කිරීමට බැංකුවට බලය ඇත.)<br/>
+      3. Interest is calculated based on the daily reducing balance method. (දිනපතා අඩුවන ශේෂ ක්‍රමය මත පොලිය ගණනය කෙරේ.)<br/>
+      4. Safe custody of this ticket is the responsibility of the customer. (මෙම පත්‍රිකාව සුරක්ෂිතව තබා ගැනීම පාරිභෝගිකයාගේ වගකීමකි.)
+    </div>
+
+    <div class="signatures">
+      <div class="sig-block">
+        <div class="sig-line">Valuer Signature<br>(තක්සේරුකරුගේ අත්සන)</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line">Manager Signature<br>(කළමනාකරුගේ අත්සන)</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line">Customer Signature<br>(පාරිභෝගික අත්සන)</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Generated by HMCS Banking System &bull; Printed: ${printed}
+    </div>
   </div>
+
   <script>
     window.onload = function() {
-      setTimeout(function() { window.print(); }, 500);
+      setTimeout(function() { window.print(); }, 800);
     };
   </script>
 </body>
