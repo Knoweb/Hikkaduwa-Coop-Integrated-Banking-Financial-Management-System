@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -848,7 +848,7 @@ function ValuerView() {
   );
 }
 
-function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, onTabChange?: (tab: string) => void }) {
+function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: string, onTabChange?: (tab: string) => void, readOnly?: boolean }) {
   const { t, language } = useLanguage();
   const [showOpenAccountForm, setShowOpenAccountForm] = useState(false);
   const [showOpenFdForm, setShowOpenFdForm] = useState(false);
@@ -1239,12 +1239,14 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
               <p className="text-emerald-200 text-[11px] font-medium mt-0.5">කාලීන තැන්පතු කළමනාකරණය</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowOpenFdForm(true)}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
-          >
-            <Lock size={14} /> නව ගිණුමක් අරඹන්න
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => setShowOpenFdForm(true)}
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              <Lock size={14} /> නව ගිණුමක් අරඹන්න
+            </button>
+          )}
         </div>
 
         {/* Stat cards */}
@@ -1391,8 +1393,12 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">බලන්න</button>
-                        <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
-                        <button onClick={() => { if(window.confirm('මෙම ස්ථාවර තැන්පතුව මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { AccountService.deleteFixedDeposit(fd.fdId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); fetchData(); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm"><Trash2 size={14} /></button>
+                        {!readOnly && (
+                          <>
+                            <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
+                            <button onClick={() => { if(window.confirm('මෙම ස්ථාවර තැන්පතුව මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { AccountService.deleteFixedDeposit(fd.fdId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); fetchData(); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm"><Trash2 size={14} /></button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1483,10 +1489,12 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <button onClick={() => setShowLoanModal(true)}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-              <FileText size={18} /> නව ණයක් ඉල්ලුම් කරන්න
-            </button>
+            {!readOnly && (
+              <button onClick={() => setShowLoanModal(true)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
+                <FileText size={18} /> නව ණයක් ඉල්ලුම් කරන්න
+              </button>
+            )}
           </div>
         </div>
 
@@ -1511,7 +1519,7 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
               </button>
             </div>
             {/* Search Bar */}
-            <div className="relative w-full md:w-72">
+            <div className="relative w-full md:w-[450px]">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="සාමාජිකයා හෝ වර්ගය අනුව සොයන්න..."
                 className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all" />
@@ -1777,43 +1785,80 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
   }
 
   if (activeTab === 'savings') {
+    const totalSavings = accounts.length;
+    const activeSavings = accounts.filter(a => a.status === 'ACTIVE').length;
+    const inactiveSavings = accounts.filter(a => a.status === 'INACTIVE').length;
+
     return (
-      <div className="space-y-6">
-        {/* Module Header */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col items-center justify-center gap-5 text-center">
-          <div>
-            <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
-              <PiggyBank className="text-blue-600" size={24} /> {t('Savings Accounts Module')}
-            </h3>
-            <p className="text-sm text-slate-500 mt-1.5 font-medium">Manage {filteredAccounts.length} accounts, view passbooks, and process transactions.</p>
-          </div>
-          
-          <div className="flex flex-wrap justify-center items-center gap-3">
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
-              <button 
-                onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-emerald-700 hover:bg-white hover:shadow-sm"
-              >
-                <ArrowDownLeft size={16} className="text-emerald-500" /> {t('Deposit')}
-              </button>
-              <div className="w-px bg-slate-300 mx-1 my-2"></div>
-              <button 
-                onClick={() => { setRowTxAccount(null); setRowTxAction('WITHDRAW'); }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-red-700 hover:bg-white hover:shadow-sm"
-              >
-                <ArrowUpRight size={16} className="text-red-500" /> {t('Withdraw')}
-              </button>
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
+        {/* KPI Cards (Top) */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-slate-200 flex items-center gap-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-10"><PiggyBank size={40} /></div>
+            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg border border-blue-100"><PiggyBank size={18} /></div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">මුළු ගිණුම්</p>
+              <h4 className="text-2xl font-black text-slate-800 leading-tight">{totalSavings}</h4>
             </div>
-            
-            <button onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5">
-              <CreditCard size={18} /> {t('Open Account')}
-            </button>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-slate-200 flex items-center gap-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-600"><CheckCircle size={40} /></div>
+            <div className="bg-emerald-50 text-emerald-600 p-2 rounded-lg border border-emerald-100"><CheckCircle size={18} /></div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">සක්‍රිය ගිණුම්</p>
+              <h4 className="text-2xl font-black text-slate-800 leading-tight">{activeSavings}</h4>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-slate-200 flex items-center gap-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-10 text-rose-600"><XCircle size={40} /></div>
+            <div className="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100"><XCircle size={18} /></div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">අක්‍රිය ගිණුම්</p>
+              <h4 className="text-2xl font-black text-slate-800 leading-tight">{inactiveSavings}</h4>
+            </div>
           </div>
         </div>
 
+        {/* Action Buttons (Only for non-readOnly) */}
+        {!readOnly && (
+          <div className="flex justify-center items-center gap-4 py-1">
+            {/* Deposit */}
+            <button
+              onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
+              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
+            >
+              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+              <ArrowDownLeft size={18} className="drop-shadow" /> {t('Deposit')}
+            </button>
+
+            {/* Divider dot */}
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+
+            {/* Withdraw */}
+            <button
+              onClick={() => { setRowTxAccount(null); setRowTxAction('WITHDRAW'); }}
+              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-rose-500 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
+            >
+              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+              <ArrowUpRight size={18} className="drop-shadow" /> {t('Withdraw')}
+            </button>
+
+            {/* Divider dot */}
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+
+            {/* Open Account */}
+            <button
+              onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
+              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
+            >
+              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+              <CreditCard size={18} className="drop-shadow" /> {t('Open Account')}
+            </button>
+          </div>
+        )}
+
         {/* Unified Data Table Card */}
-        <div className="bg-slate-50 rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
+        <div className="bg-slate-50 rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5 flex-1 min-h-0">
           
           {/* Table Toolbar */}
           <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-100/80">
@@ -1821,8 +1866,11 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
             {/* Compact Animated Tab Switcher */}
             <div className="relative flex bg-slate-200/50 p-1 rounded-xl w-full md:w-[320px] shadow-inner">
               <div 
-                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${savingsTab === 'NON_SOCIETY' ? 'left-[50%] bg-blue-500 shadow-md shadow-blue-500/20' : 'left-1 bg-emerald-500 shadow-md shadow-emerald-500/20'}`}
-              ></div>
+                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${savingsTab === 'NON_SOCIETY' ? 'left-[50%] bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.8)]' : 'left-1 bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.8)]'} overflow-hidden`}
+              >
+                <div className="absolute inset-[-150%] animate-[spin_2s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 200deg, rgba(255,255,255,0.3) 290deg, white 360deg)' }}></div>
+                <div className={`absolute inset-[2.5px] rounded-[5.5px] transition-colors duration-500 ${savingsTab === 'NON_SOCIETY' ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
+              </div>
               
               <button 
                 onClick={() => setSavingsTab('SOCIETY')} 
@@ -1840,15 +1888,16 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
             </div>
 
             {/* Search Bar */}
-            <div className="relative w-full md:w-72">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative flex-1 min-w-0">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search account number...')}
-                className="w-full pl-9 pr-4 py-2 border border-slate-300 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm transition-all" />
+                className="w-full pl-11 pr-4 py-2.5 border border-slate-300 bg-white rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all placeholder:text-slate-400" />
             </div>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
+          <div className="overflow-y-auto flex-1 bg-white">
+          <table className="w-full text-sm relative">
+            <thead className="bg-slate-50/90 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[15%]">{t('Account No.')}</th>
                 <th className="px-5 py-5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest w-[25%]">{t('Account Holder')}</th>
@@ -1892,6 +1941,7 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Row Transaction Modal */}
@@ -2119,22 +2169,24 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+    <div className="flex flex-col gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-3 gap-4 shrink-0">
         <StatCard icon={Users}        label={isNonMembersTab ? t('Total Non-Members') : t('Total Members')}    value={displayedMembers.length.toString()} color="text-green-600" />
         <StatCard icon={CreditCard}   label={t('Total Accounts')}   value={accounts.length.toString()} color="text-blue-600" />
         <StatCard icon={UserPlus}     label={isNonMembersTab ? t('Active Non-Members') : t('Active Members')}   value={displayedMembers.filter(m => m.status === 'ACTIVE').length.toString()} color="text-purple-600" />
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-2xl p-6 pb-4 shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between mb-4 shrink-0">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> {isNonMembersTab ? t('Non-Members') : t('Branch Members')}</h3>
-          <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setEditingOriginalForm(null); setShowRegModal(true); }}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
-            <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
-          </button>
+          {!readOnly && (
+            <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setEditingOriginalForm(null); setShowRegModal(true); }}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+              <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 shrink-0">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by name or NIC...')}
@@ -2147,7 +2199,7 @@ function CustomerServiceView({ activeTab, onTabChange }: { activeTab: string, on
             <option value="CHILD">{t('Children Only')}</option>
           </select>
         </div>
-        <div className="overflow-x-auto max-h-80 border border-slate-100 rounded-xl">
+        <div className="overflow-auto border border-slate-100 rounded-xl flex-1 min-h-0">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 sticky top-0 z-10">
               <tr>
@@ -2999,10 +3051,11 @@ function LedgerView({ branchId }: { branchId?: number }) {
   );
 }
 
-export default function BranchDashboard() {
+export default function BranchDashboard({ overrideActiveTab, hideSidebar, overrideRole, readOnly, onBack }: { overrideActiveTab?: string, hideSidebar?: boolean, overrideRole?: string, readOnly?: boolean, onBack?: () => void } = {}) {
   const navigate   = useNavigate();
   const user       = AuthService.getCurrentUser();
-  const [tab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
+  const [internalTab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
+  const tab = overrideActiveTab || internalTab;
   
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -3020,7 +3073,7 @@ export default function BranchDashboard() {
 
   if (!user) { navigate('/login'); return null; }
 
-  const role    = user.role?.replace('ROLE_', '') || 'TELLER';
+  const role    = overrideRole || user.role?.replace('ROLE_', '') || 'TELLER';
   const roleConfig = ROLE_CONFIG[role]  || ROLE_CONFIG['TELLER'];
   const branchTheme = BRANCH_THEMES[user.branchId] || BRANCH_THEMES[1];
   
@@ -3045,16 +3098,17 @@ export default function BranchDashboard() {
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView />;
-      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} />;
+      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className={`flex ${hideSidebar ? 'flex-1 min-h-0 w-full' : 'min-h-screen bg-slate-50'}`}>
       {/* Sidebar */}
-      <aside className={`w-64 bg-gradient-to-b ${config.gradient} flex flex-col fixed h-full z-10`}>
+      {!hideSidebar && (
+        <aside className={`w-64 bg-gradient-to-b ${config.gradient} flex flex-col fixed h-full z-10`}>
         <div className="h-16 flex items-center px-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#01443b] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
@@ -3127,71 +3181,86 @@ export default function BranchDashboard() {
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <button onClick={() => { AuthService.logout(); navigate('/login'); }}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
-            <LogOut size={16} className="mr-2" /> {t('Sign Out')}
-          </button>
+          {onBack ? (
+            <button onClick={onBack}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
+              <LogOut size={16} className="mr-2 rotate-180" /> {t('Back to Admin')}
+            </button>
+          ) : (
+            <button onClick={() => { AuthService.logout(); navigate('/login'); }}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
+              <LogOut size={16} className="mr-2" /> {t('Sign Out')}
+            </button>
+          )}
         </div>
       </aside>
+      )}
 
       {/* Main */}
-      <main className="flex-1 md:ml-64">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">{t(getBranchName(user.branchId))}</h1>
-            <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('Branch Online')}
-            </span>
-            <div className="relative">
-              <div className="relative cursor-pointer" onClick={() => setShowNotifications(!showNotifications)}>
-                <Bell size={18} className="text-slate-400 hover:text-slate-600" />
-                {notifications.filter(n => !n.isRead).length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                )}
-              </div>
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 shadow-lg rounded-xl z-50 py-2">
-                  <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
-                    <h4 className="font-semibold text-sm text-slate-800">Notifications</h4>
-                    <span className="text-xs text-slate-400">{notifications.length}</span>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-slate-400">No new notifications</div>
-                    ) : (
-                      notifications.map((notif, idx) => (
-                        <div key={idx} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-default ${notif.isRead ? 'opacity-70' : 'bg-blue-50/20'}`}>
-                          <div className="flex gap-3">
-                            <div className="mt-0.5">
-                              {notif.type === 'FD_MATURITY' ? <AlertTriangle size={16} className="text-amber-500" /> : <Bell size={16} className="text-blue-500" />}
-                            </div>
-                            <div>
-                              <h5 className="text-sm font-medium text-slate-800">{notif.title}</h5>
-                              <p className="text-xs text-slate-500 mt-1">{notif.message}</p>
-                              <span className="text-[10px] text-slate-400 mt-2 block">{new Date(notif.timestamp).toLocaleString()}</span>
+      <main className={`flex-1 overflow-x-hidden bg-slate-50 relative flex flex-col min-h-0 ${!hideSidebar ? 'md:ml-64' : ''}`}>
+        {/* Header — only shown in standalone branch view */}
+        {!hideSidebar && (
+          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
+            <div>
+              <h1 className="text-lg font-bold text-slate-800">{t(getBranchName(user.branchId))}</h1>
+              <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('Branch Online')}
+              </span>
+              <div className="relative">
+                <div className="relative cursor-pointer" onClick={() => setShowNotifications(!showNotifications)}>
+                  <Bell size={18} className="text-slate-400 hover:text-slate-600" />
+                  {notifications.filter(n => !n.isRead).length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  )}
+                </div>
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 shadow-lg rounded-xl z-50 py-2">
+                    <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
+                      <h4 className="font-semibold text-sm text-slate-800">Notifications</h4>
+                      <span className="text-xs text-slate-400">{notifications.length}</span>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-400">No new notifications</div>
+                      ) : (
+                        notifications.map((notif, idx) => (
+                          <div key={idx} className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-default ${notif.isRead ? 'opacity-70' : 'bg-blue-50/20'}`}>
+                            <div className="flex gap-3">
+                              <div className="mt-0.5">
+                                {notif.type === 'FD_MATURITY' ? <AlertTriangle size={16} className="text-amber-500" /> : <Bell size={16} className="text-blue-500" />}
+                              </div>
+                              <div>
+                                <h5 className="text-sm font-medium text-slate-800">{notif.title}</h5>
+                                <p className="text-xs text-slate-500 mt-1">{notif.message}</p>
+                                <span className="text-[10px] text-slate-400 mt-2 block">{new Date(notif.timestamp).toLocaleString()}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
-        <div className="p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-800">
-              {t(navItems.find(n => n.key === tab)?.label || 'Overview')}
-            </h2>
-            <p className="text-sm text-slate-500">{t('Welcome back')}, {user.username}. {t("Here's your work summary.")}</p>
-          </div>
-          {renderContent()}
+        {/* Content */}
+        <div className={`flex flex-col flex-1 min-h-0 ${hideSidebar ? 'px-6 pt-4 pb-4' : 'px-8 pt-8 pb-8'}`}>
+          {/* Page title — hidden in System Admin embedded view */}
+          {!hideSidebar && (
+            <div className="mb-6 shrink-0">
+              <h2 className="text-xl font-bold text-slate-800">
+                {t(navItems.find(n => n.key === tab)?.label || 'Overview')}
+              </h2>
+              <p className="text-sm text-slate-500">{t('Welcome back')}, {user.username}. {t("Here's your work summary.")}</p>
+            </div>
+          )}
+          <div className="flex-1 min-h-0 flex flex-col">{renderContent()}</div>
         </div>
       </main>
     </div>

@@ -40,8 +40,31 @@ export const logout = () => {
 
 export const getCurrentUser = () => {
   const userStr = localStorage.getItem('user');
-  if (userStr) return JSON.parse(userStr);
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    const overrideBranchId = localStorage.getItem('overrideBranchId');
+    if (overrideBranchId && user.role === 'SYSTEM_ADMIN') {
+      user.branchId = parseInt(overrideBranchId, 10);
+    }
+    return user;
+  }
   return null;
+};
+
+export const filterByBranch = (data: any[]) => {
+  const userStr = localStorage.getItem('user');
+  const overrideBranchId = localStorage.getItem('overrideBranchId');
+  if (userStr && overrideBranchId) {
+    const user = JSON.parse(userStr);
+    if (user.role === 'SYSTEM_ADMIN') {
+      const bId = parseInt(overrideBranchId, 10);
+      return data.filter(item => {
+        const itemBranchId = item.branchId !== undefined ? item.branchId : item.registeredBranchId;
+        return itemBranchId === bId;
+      });
+    }
+  }
+  return data;
 };
 
 export interface UserDTO {

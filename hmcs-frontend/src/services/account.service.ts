@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getCurrentUser } from './auth.service';
+import { getCurrentUser, filterByBranch } from './auth.service';
 
 export const API_URL = 'http://localhost:8080/api/v1/';
 
@@ -75,8 +75,12 @@ export const getMembers = async (): Promise<MemberData[]> => {
 
 // Returns ONLY current branch members
 export const getBranchMembers = async (): Promise<MemberData[]> => {
-  const res = await axios.get(API_URL + 'members?branchOnly=true', { headers: authHeader() });
-  return res.data;
+  const user = getCurrentUser();
+  const overrideBranchId = localStorage.getItem('overrideBranchId');
+  const bId = (user?.role === 'SYSTEM_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
+  const url = bId ? `${API_URL}members?branchId=${bId}` : `${API_URL}members`;
+  const res = await axios.get(url, { headers: authHeader() });
+  return filterByBranch(res.data);
 };
 
 export const getMemberById = async (id: string): Promise<MemberData> => {
@@ -104,7 +108,7 @@ export const getAccounts = async (): Promise<AccountData[]> => {
 // Returns ONLY current branch accounts - used by Ledger tables & Dashboards
 export const getBranchAccounts = async (): Promise<AccountData[]> => {
   const res = await axios.get(API_URL + 'savings?branchOnly=true', { headers: authHeader() });
-  return res.data;
+  return filterByBranch(res.data);
 };
 
 export const getGlobalAccounts = async (): Promise<AccountData[]> => {
@@ -211,7 +215,7 @@ export const updateFixedDepositType = async (id: string, data: any): Promise<any
 // Returns ONLY current branch fixed deposits
 export const getFixedDeposits = async (): Promise<any[]> => {
   const response = await axios.get(`${API_URL}fixed-deposits?branchOnly=true`, { headers: authHeader() });
-  return response.data;
+  return filterByBranch(response.data);
 };
 
 // Returns ALL fixed deposits (cross-branch)
@@ -229,13 +233,13 @@ export const releaseFixedDeposit = async (id: string): Promise<any> => {
 export const getBranchActivities = async (date?: string): Promise<any[]> => {
   const params = date ? { date } : {};
   const response = await axios.get(`${API_URL}branch/activities`, { headers: authHeader(), params });
-  return response.data;
+  return filterByBranch(response.data);
 };
 
 // --- Notifications ---
 export const getBranchNotifications = async (): Promise<any[]> => {
   const response = await axios.get(`${API_URL}branch/notifications`, { headers: authHeader() });
-  return response.data;
+  return filterByBranch(response.data);
 };
 
 export const getActivityDetails = async (type: string, id: string): Promise<any> => {

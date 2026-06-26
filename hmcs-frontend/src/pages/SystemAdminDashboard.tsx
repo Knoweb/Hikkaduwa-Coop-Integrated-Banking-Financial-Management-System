@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
-  CheckCircle, Server, Database, Clock, Shield, Key, Users,
+  CheckCircle, Server, Database, Clock, Shield, Key, Users, UserMinus,
   Settings, ChevronRight, ChevronDown, ChevronUp, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
-  Lock, Briefcase, Scale, AlertTriangle
+  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
@@ -447,19 +447,41 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab }: {
 
 
 import GlobalSettings from '../components/GlobalSettings';
+import BranchDashboard from './BranchDashboard';
 
 export default function SystemAdminDashboard() {
-  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings'>('overview');
+  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings'>(
+    () => (sessionStorage.getItem('sa_mainTab') as any) || 'overview'
+  );
   const navigate  = useNavigate();
   const user      = AuthService.getCurrentUser();
   const { t, language, setLanguage } = useLanguage();
   const [allUsers, setAllUsers] = useState<AuthService.UserDTO[]>([]);
-  const [activeBranch, setActiveBranch] = useState<typeof BRANCHES[0] | null>(null);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeBranch, setActiveBranch] = useState<typeof BRANCHES[0] | null>(() => {
+    const saved = sessionStorage.getItem('sa_activeBranch');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      localStorage.setItem('overrideBranchId', parsed.id.toString());
+      return parsed;
+    }
+    return null;
+  });
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('sa_activeTab') || 'users');
+
+  useEffect(() => { sessionStorage.setItem('sa_mainTab', mainTab); }, [mainTab]);
+  useEffect(() => { sessionStorage.setItem('sa_activeTab', activeTab); }, [activeTab]);
 
   const handleSelectBranch = (branch: typeof BRANCHES[0]) => {
+    sessionStorage.setItem('sa_activeBranch', JSON.stringify(branch));
+    localStorage.setItem('overrideBranchId', branch.id.toString());
     setActiveBranch(branch);
     setActiveTab('users');
+  };
+
+  const handleClearBranch = () => {
+    sessionStorage.removeItem('sa_activeBranch');
+    localStorage.removeItem('overrideBranchId');
+    setActiveBranch(null);
   };
 
   const fetchUsers = async () => {
@@ -493,45 +515,72 @@ export default function SystemAdminDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-          <button onClick={() => { setActiveBranch(null); setMainTab('overview'); }}
-            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'overview' && !activeBranch ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-            <LayoutDashboard size={18} className="mr-3" />{t('Overview')}
-          </button>
-          <button onClick={() => { setActiveBranch(null); setMainTab('rates'); }}
-            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'rates' ? 'bg-emerald-600/10 text-emerald-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-            <Percent size={18} className="mr-3" />{t('Interest Rates')}
-          </button>
-          <button onClick={() => { setActiveBranch(null); setMainTab('account_types'); }}
-            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'account_types' ? 'bg-amber-600/10 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-            <PiggyBank size={18} className="mr-3" />{t('Account Types')}
-          </button>
-          <button onClick={() => { setActiveBranch(null); setMainTab('settings'); }}
-            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'settings' ? 'bg-slate-600/10 text-slate-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-            <Settings size={18} className="mr-3" />{t('Settings')}
-          </button>
+        <nav className="flex-1 flex flex-col px-3 py-3 space-y-1 overflow-hidden">
+          {/* Main System Tabs */}
+          {!activeBranch && (
+            <div className="space-y-1">
+              <button onClick={() => { setActiveBranch(null); setMainTab('overview'); }}
+                className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'overview' && !activeBranch ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                <LayoutDashboard size={18} className="mr-3" />{t('Overview')}
+              </button>
+              <button onClick={() => { handleClearBranch(); setMainTab('rates'); }}
+                className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'rates' ? 'bg-emerald-600/10 text-emerald-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                <Percent size={18} className="mr-3" />{t('Interest Rates')}
+              </button>
+              <button onClick={() => { handleClearBranch(); setMainTab('account_types'); }}
+                className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'account_types' ? 'bg-amber-600/10 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                <PiggyBank size={18} className="mr-3" />{t('Account Types')}
+              </button>
+              <button onClick={() => { handleClearBranch(); setMainTab('settings'); }}
+                className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'settings' ? 'bg-slate-600/10 text-slate-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                <Settings size={18} className="mr-3" />{t('Settings')}
+              </button>
+            </div>
+          )}
           
           {activeBranch && (
-            <div className="mt-8 mb-2">
-              <div className="px-4 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse shrink-0"></div>
-                <p className="text-xs font-bold text-white uppercase tracking-wider line-clamp-1">{t(activeBranch.name)}</p>
+            <div className="mt-2 mb-1 flex flex-col flex-1 h-full overflow-hidden">
+              <div className="px-3 mb-3 flex items-center gap-2 bg-slate-800/30 py-2 rounded-lg border border-slate-700/50 shrink-0">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse shrink-0"></div>
+                <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider line-clamp-1">{t(activeBranch.name)}</p>
               </div>
-              <div className="space-y-2.5 px-2">
+              <div className="flex flex-col flex-1 px-1 gap-2 overflow-hidden">
                 {[
-                  ['users', Users, 'Staff & Users'], 
-                  ['config', Settings, 'Branch Config']
-                ].map(([key, Icon, label]) => (
-                  <button key={key as string} onClick={() => setActiveTab(key as string)}
-                    className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
-                      activeTab === key 
-                        ? 'bg-blue-500/10 border-blue-500/40 text-blue-400 shadow-sm' 
-                        : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200 hover:border-slate-600'
+                  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+                  { key: 'members', label: 'Members', icon: Users },
+                  { key: 'non-members', label: 'Non-Members', icon: UserMinus },
+                  { key: 'savings', label: 'Savings', icon: PiggyBank },
+                  { key: 'fds', label: 'Fixed Deposits', icon: Lock },
+                  { key: 'loans', label: 'Loans', icon: Briefcase },
+                  { key: 'pawning', label: 'Pawning', icon: Scale },
+                  { isSection: true, label: 'Daily Operations' },
+                  { key: 'transactions', label: 'Cash Transactions', icon: Banknote },
+                  { key: 'gl', label: 'General Ledger', icon: FileText },
+                  { key: 'staff', label: 'Branch Staff', icon: Users },
+                  { key: 'config', label: 'Branch Config', icon: Settings }
+                ].map(item => (
+                  item.isSection ? (
+                    <p key={item.label} className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-4 mb-1 px-3">
+                      {t(item.label)}
+                    </p>
+                  ) : (
+                  <button key={item.key} onClick={() => setActiveTab(item.key!)}
+                    className={`w-full flex-1 flex items-center px-3 rounded-xl text-[13px] font-semibold transition-all border min-h-[36px] ${
+                      activeTab === item.key 
+                        ? 'bg-blue-500/15 border-blue-500/50 text-blue-400 shadow-sm' 
+                        : 'bg-slate-800/20 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-600'
                     }`}>
-                    <Icon size={18} className={`mr-3 shrink-0 ${activeTab === key ? 'text-blue-400' : 'text-slate-500'}`} />
-                    <span className="text-left leading-tight">{t(label as string)}</span>
+                    <item.icon size={16} className={`mr-2.5 shrink-0 ${activeTab === item.key ? 'text-blue-400' : 'text-slate-500'}`} />
+                    <span className="flex-1 text-left tracking-wide line-clamp-1">{t(item.label)}</span>
                   </button>
+                  )
                 ))}
+              </div>
+              <div className="px-2 mt-3 pt-3 border-t border-slate-800/80 shrink-0">
+                <button onClick={() => { handleClearBranch(); setMainTab('overview'); }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-white rounded-xl text-[14px] font-bold transition shadow-sm border border-slate-700 group">
+                  <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> {t('Back')}
+                </button>
               </div>
             </div>
           )}
@@ -557,10 +606,10 @@ export default function SystemAdminDashboard() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 md:ml-64">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
+      <main className="flex-1 md:ml-64 flex flex-col h-screen">
+        <header className="h-16 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">{t('System Administration Panel')}</h1>
+            <h1 className="text-lg font-bold text-slate-800">{activeBranch ? t(activeBranch.name) : t('System Administration Panel')}</h1>
             <p className="text-xs text-slate-400">{t('HMCS Integrated Banking System · All 8 Branches')}</p>
           </div>
           <div className="flex items-center gap-4">
@@ -575,15 +624,23 @@ export default function SystemAdminDashboard() {
           </div>
         </header>
 
-        <div className="p-8">
+        <div className="flex-1 flex flex-col min-h-0 px-8 pt-8 pb-6">
           {mainTab === 'rates' && <GlobalSettings currentTab='rates' />}
           {mainTab === 'account_types' && <GlobalSettings currentTab='account_types' />}
           {mainTab === 'settings' && <GlobalSettings currentTab='settings' />}
           {mainTab === 'overview' && (
             activeBranch ? (
-            <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => setActiveBranch(null)} innerTab={activeTab} />
-          ) : (
-            <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} />
+              (activeTab === 'staff' || activeTab === 'config') ? (
+                <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => handleClearBranch()} innerTab={activeTab === 'staff' ? 'users' : 'config'} />
+              ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                    <BranchDashboard key={activeBranch.id} overrideActiveTab={activeTab} hideSidebar={true} overrideRole="SENIOR_OFFICER" readOnly={true} />
+                  </div>
+                </div>
+              )
+            ) : (
+              <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} />
             )
           )}
         </div>

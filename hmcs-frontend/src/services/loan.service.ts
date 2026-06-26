@@ -89,10 +89,12 @@ export const deleteLoanType = async (id: string): Promise<void> => {
 
 // ── Loan Applications ─────────────────────────────────────────────────────────
 
-// Returns ONLY current branch loans
 export const getLoans = async (): Promise<Loan[]> => {
   const user = getCurrentUser();
-  const response = await axios.get(`${API_URL}?branchId=${user?.branchId}`, { headers: authHeader() });
+  const overrideBranchId = localStorage.getItem('overrideBranchId');
+  const bId = (user?.role === 'SYSTEM_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
+  const url = bId ? `${API_URL}?branchId=${bId}` : API_URL;
+  const response = await axios.get(url, { headers: authHeader() });
   return response.data;
 };
 
