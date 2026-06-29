@@ -539,12 +539,12 @@ export default function SystemAdminDashboard() {
           )}
           
           {activeBranch && (
-            <div className="mt-2 mb-1 flex flex-col flex-1 h-full overflow-hidden">
-              <div className="px-3 mb-3 flex items-center gap-2 bg-slate-800/30 py-2 rounded-lg border border-slate-700/50 shrink-0">
+            <div className="mt-1 mb-1 flex flex-col flex-1 h-full overflow-hidden">
+              <div className="px-3 mb-2 flex items-center gap-2 bg-slate-800/30 py-2 rounded-lg border border-slate-700/50 shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse shrink-0"></div>
                 <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider line-clamp-1">{t(activeBranch.name)}</p>
               </div>
-              <div className="flex flex-col flex-1 px-1 gap-2 overflow-hidden">
+              <div className="flex flex-col flex-1 px-1 gap-1 overflow-y-auto pb-2">
                 {[
                   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
                   { key: 'members', label: 'Members', icon: Users },
@@ -560,12 +560,12 @@ export default function SystemAdminDashboard() {
                   { key: 'config', label: 'Branch Config', icon: Settings }
                 ].map(item => (
                   item.isSection ? (
-                    <p key={item.label} className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-4 mb-1 px-3">
+                    <p key={item.label} className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-2 mb-0.5 px-3 shrink-0">
                       {t(item.label)}
                     </p>
                   ) : (
                   <button key={item.key} onClick={() => setActiveTab(item.key!)}
-                    className={`w-full flex-1 flex items-center px-3 rounded-xl text-[13px] font-semibold transition-all border min-h-[36px] ${
+                    className={`w-full flex items-center px-3 py-2 rounded-xl text-[13px] font-semibold transition-all border shrink-0 ${
                       activeTab === item.key 
                         ? 'bg-blue-500/15 border-blue-500/50 text-blue-400 shadow-sm' 
                         : 'bg-slate-800/20 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-600'

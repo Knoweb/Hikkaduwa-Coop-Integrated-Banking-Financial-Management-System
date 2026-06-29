@@ -131,7 +131,6 @@ const translations: Translations = {
   'Total Non-Members': { en: 'Total Non-Members', si: 'මුළු සාමාජික නොවන අය' },
   'Active Non-Members': { en: 'Active Non-Members', si: 'සක්‍රිය සාමාජික නොවන අය' },
   'Register Non-Member': { en: 'Register Non-Member', si: 'සාමාජික නොවන අය ලියාපදිංචි කරන්න' },
-  'Total Members': { en: 'Total Members', si: 'මුළු සාමාජිකයන්' },
   'Share Amount (Rs.)': { en: 'Share Capital (Rs.)', si: 'කොටස් අරමුදල (රු.)' },
   'Number of Shares': { en: 'Number of Shares', si: 'මිලදී ගත් කොටස් ප්‍රමාණය' },
   'Belongs to another society?': { en: 'Belongs to another society?', si: 'වෙනත් සමිතියකට අයත්ද?' },
@@ -197,7 +196,6 @@ const translations: Translations = {
   'Add Type': { en: 'Add Type', si: '+ අලුතින් එක් කරන්න' },
   'Branch Config': { en: 'Branch Config', si: 'ශාඛා සැකසුම්' },
   'Add User': { en: 'Add User', si: 'පරිශීලක එක් කරන්න' },
-  'Username': { en: 'Username', si: 'පරිශීලක නාමය' },
   'Role': { en: 'Role', si: 'භූමිකාව' },
   'Actions': { en: 'Actions', si: 'ක්‍රියා' },
   'Edit': { en: 'Edit', si: 'සංස්කරණය' },
@@ -263,17 +261,8 @@ const translations: Translations = {
   'Pawning Interest Rate (% p.a.)': { en: 'Pawning Interest Rate (% p.a.)', si: 'උකස් පොලී අනුපාතය (වාර්ෂික %)' },
   'Advance per Gold Sovereign (Rs.)': { en: 'Advance per Gold Sovereign (Rs.)', si: 'රන් පවුමකට අත්තිකාරම් (රු.)' },
   'Advance per Gold Sovereign': { en: 'Advance per Gold Sovereign', si: 'රන් පවුමකට අත්තිකාරම්' },
+  // Save All Rates
   'Save All Rates': { en: 'Save All Rates', si: 'සියලුම අනුපාත සුරකින්න' },
-  
-  // Branches
-  'Main Branch - Hikkaduwa': { en: 'Main Branch - Hikkaduwa', si: 'ප්‍රධාන ශාඛාව - හික්කඩුව' },
-  'Dodanduwa Branch': { en: 'Dodanduwa Branch', si: 'දොඩන්දූව ශාඛාව' },
-  'Rathgama Branch': { en: 'Rathgama Branch', si: 'රත්ගම ශාඛාව' },
-  'Seenigama Branch': { en: 'Seenigama Branch', si: 'සීනිගම ශාඛාව' },
-  'Thiranagama Branch': { en: 'Thiranagama Branch', si: 'තිරණගම ශාඛාව' },
-  'Peraliya Branch': { en: 'Peraliya Branch', si: 'පේරලිය ශාඛාව' },
-  'Kalupe Branch': { en: 'Kalupe Branch', si: 'කළුපේ ශාඛාව' },
-  'Gonapinuwala Branch': { en: 'Gonapinuwala Branch', si: 'ගොනාපීනුවල ශාඛාව' },
   
   // Locations
   'Hikkaduwa Town': { en: 'Hikkaduwa Town', si: 'හික්කඩුව නගරය' },

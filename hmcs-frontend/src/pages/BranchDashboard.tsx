@@ -1823,39 +1823,32 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
 
         {/* Action Buttons (Only for non-readOnly) */}
         {!readOnly && (
-          <div className="flex justify-center items-center gap-4 py-1">
-            {/* Deposit */}
-            <button
-              onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
-              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
-            >
-              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <ArrowDownLeft size={18} className="drop-shadow" /> {t('Deposit')}
-            </button>
+          <div className="flex justify-center items-center py-2">
+            <div className="inline-flex items-center p-1.5 bg-white border border-slate-200 rounded-full shadow-sm">
+              {/* Deposit */}
+              <button
+                onClick={() => { setRowTxAccount(null); setRowTxAction('DEPOSIT'); }}
+                className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 bg-emerald-500 text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600 hover:shadow-emerald-500/40"
+              >
+                <ArrowDownLeft size={16} /> {t('Deposit')}
+              </button>
 
-            {/* Divider dot */}
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+              {/* Withdraw */}
+              <button
+                onClick={() => { setRowTxAccount(null); setRowTxAction('WITHDRAW'); }}
+                className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 bg-rose-500 text-white shadow-md shadow-rose-500/20 hover:bg-rose-600 hover:shadow-rose-500/40 ml-1.5"
+              >
+                <ArrowUpRight size={16} /> {t('Withdraw')}
+              </button>
 
-            {/* Withdraw */}
-            <button
-              onClick={() => { setRowTxAccount(null); setRowTxAction('WITHDRAW'); }}
-              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-rose-500 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
-            >
-              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <ArrowUpRight size={18} className="drop-shadow" /> {t('Withdraw')}
-            </button>
-
-            {/* Divider dot */}
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-
-            {/* Open Account */}
-            <button
-              onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
-              className="group relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all duration-300 bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/60 hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-95"
-            >
-              <span className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <CreditCard size={18} className="drop-shadow" /> {t('Open Account')}
-            </button>
+              {/* Open Account */}
+              <button
+                onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
+                className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/40 ml-1.5"
+              >
+                <CreditCard size={16} /> {t('Open Account')}
+              </button>
+            </div>
           </div>
         )}
 
