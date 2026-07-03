@@ -255,12 +255,52 @@ public class LoanService {
     public List<Loan> getLoansByMemberId(UUID memberId) { return loanRepository.findByMemberId(memberId); }
     public List<Loan> getLoansByStatus(String status) { return loanRepository.findByStatus(status); }
 
+    @Transactional
+    public void deleteLoan(UUID loanId) {
+        // Delete related entities first to avoid foreign key constraint violations
+        approvalActionRepository.deleteByLoanId(loanId);
+        loanScheduleRepository.deleteByLoanId(loanId);
+        loanRepaymentRepository.deleteByLoanId(loanId);
+        applicantDetailRepository.deleteByLoanId(loanId);
+        assetDetailRepository.deleteByLoanId(loanId);
+        guarantorRepository.deleteByLoanId(loanId);
+        familyMemberRepository.deleteByLoanId(loanId);
+        
+        // Ledger entries are associated by loanId, but they might be important for auditing.
+        // If the system requires complete deletion:
+        ledgerEntryRepository.deleteByLoanId(loanId);
+
+        loanRepository.deleteById(loanId);
+    }
+
     public List<LoanSchedule> getLoanSchedules(UUID loanId) {
         return loanScheduleRepository.findByLoanIdOrderByInstallmentNumberAsc(loanId);
     }
 
     public List<LoanRepayment> getLoanRepayments(UUID loanId) {
         return loanRepaymentRepository.findByLoanIdOrderByPaymentDateDesc(loanId);
+    }
+
+    
+    // ── Field Officer Workflows ────────────────────────────────────────────────
+    public Loan assignEvaluator(UUID loanId, UUID evaluatorId) {
+        return loanRepository.findById(loanId).map(loan -> {
+            loan.setEvaluatorId(evaluatorId);
+            loan.setEvaluationStatus("ASSIGNED");
+            return loanRepository.save(loan);
+        }).orElseThrow(() -> new RuntimeException("Loan not found"));
+    }
+
+    public Loan submitEvaluation(UUID loanId, String status, String notes) {
+        return loanRepository.findById(loanId).map(loan -> {
+            loan.setEvaluationStatus(status);
+            loan.setEvaluationNotes(notes);
+            return loanRepository.save(loan);
+        }).orElseThrow(() -> new RuntimeException("Loan not found"));
+    }
+
+    public List<Loan> getLoansByEvaluatorId(UUID evaluatorId) {
+        return loanRepository.findByEvaluatorId(evaluatorId);
     }
 
     // ── Stage Management ───────────────────────────────────────────────────────
@@ -496,7 +536,9 @@ public class LoanService {
 
 
         // ── AUTO-CREATE GENERAL LEDGER ENTRY ─────────────────────────────────
-        String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod) ? "SAVINGS_DEPOSITS" : "CASH_IN_VAULT";
+        String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod) ? "SAVINGS_DEPOSITS" : 
+                              "FIELD_COLLECTION".equalsIgnoreCase(paymentMethod) ? "FIELD_CASH_" + actorUsername.toUpperCase() : 
+                              "CASH_IN_VAULT";
         
         LedgerEntry cashIn = new LedgerEntry();
         cashIn.setLoanId(loanId);
@@ -565,5 +607,32 @@ public class LoanService {
         }
 
         return repayment;
+    }
+
+    // ── Field Collection Handover ──────────────────────────────────────────────
+    public java.math.BigDecimal getFieldCollectionBalance(String username) {
+        String account = "FIELD_CASH_" + username.toUpperCase();
+        return ledgerEntryRepository.getAccountBalance(account);
+    }
+
+    @Transactional
+    public void handoverFieldCash(String fieldOfficerUsername, java.math.BigDecimal amount, String tellerUsername, Integer branchId) {
+        String fieldAccount = "FIELD_CASH_" + fieldOfficerUsername.toUpperCase();
+        java.math.BigDecimal currentBalance = ledgerEntryRepository.getAccountBalance(fieldAccount);
+        if (currentBalance.compareTo(amount) < 0) {
+            throw new RuntimeException("Handover amount exceeds field cash balance.");
+        }
+
+        LedgerEntry entry = new LedgerEntry();
+        entry.setEntryDate(java.time.LocalDate.now());
+        entry.setDescription("Field Cash Handover by " + fieldOfficerUsername);
+        entry.setDebitAccount("CASH_IN_VAULT");
+        entry.setCreditAccount(fieldAccount);
+        entry.setAmount(amount);
+        entry.setEntryType("FIELD_CASH_HANDOVER");
+        entry.setPaymentMethod("CASH");
+        entry.setBranchId(branchId != null ? branchId : 1);
+        entry.setCreatedBy(tellerUsername != null ? tellerUsername : fieldOfficerUsername);
+        ledgerEntryRepository.save(entry);
     }
 }
