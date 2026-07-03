@@ -21,6 +21,7 @@ import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
 import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
+import GlobalLoanSearchModal from '../components/GlobalLoanSearchModal';
 
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 import PawningModule from '../components/PawningModule';
@@ -1054,6 +1055,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   const [showRegModal, setShowRegModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [globalSelectedLoan, setGlobalSelectedLoan] = useState<any>(null);
   const [viewAccount, setViewAccount] = useState<AccountService.AccountData | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1668,12 +1671,20 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             </div>
           </div>
           {!readOnly && (
-            <button
-              onClick={() => setShowLoanModal(true)}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
-            >
-              <FileText size={14} /> නව ණයක් ඉල්ලුම් කරන්න
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowGlobalSearch(true)}
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+              >
+                <Search size={14} /> වාරික ගෙවීම
+              </button>
+              <button
+                onClick={() => setShowLoanModal(true)}
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+              >
+                <FileText size={14} /> නව ණයක් ඉල්ලුම් කරන්න
+              </button>
+            </div>
           )}
         </div>
 
@@ -1844,6 +1855,25 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             onUpdated={() => {
               setViewLoan(null);
               LoanService.getLoans().then(setLoans).catch(() => {});
+            }}
+          />
+        )}
+        {showGlobalSearch && (
+          <GlobalLoanSearchModal
+            onClose={() => setShowGlobalSearch(false)}
+            onSelectLoan={(loan) => {
+              setShowGlobalSearch(false);
+              setGlobalSelectedLoan(loan);
+            }}
+            currentBranchId={user?.branchId}
+          />
+        )}
+        {globalSelectedLoan && (
+          <LoanDetailModal
+            loan={globalSelectedLoan}
+            onClose={() => setGlobalSelectedLoan(null)}
+            onUpdated={() => {
+              setGlobalSelectedLoan(null);
             }}
           />
         )}
