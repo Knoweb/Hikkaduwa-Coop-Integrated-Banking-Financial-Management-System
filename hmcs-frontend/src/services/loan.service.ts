@@ -39,6 +39,10 @@ export interface Loan {
   disbursementDate?: string;
   disbursedAmount?: number;
   disbursedBy?: string;
+  // Field Officer fields
+  evaluatorId?: string;
+  evaluationStatus?: string;
+  evaluationNotes?: string;
 }
 
 export interface LoanApprovalAction {
@@ -107,6 +111,10 @@ export const getGlobalLoans = async (): Promise<Loan[]> => {
 export const getLoanById = async (id: string): Promise<Loan> => {
   const response = await axios.get(API_URL + '/' + id, { headers: authHeader() });
   return response.data;
+};
+
+export const deleteLoan = async (id: string): Promise<void> => {
+  await axios.delete(API_URL + '/' + id, { headers: authHeader() });
 };
 
 export const getLoansByStatus = async (status: string): Promise<Loan[]> => {
@@ -220,7 +228,7 @@ export const getRepayments = async (loanId: string): Promise<any[]> => {
 export const repayInstallment = async (
   loanId: string,
   amount: number,
-  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER',
+  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER' | 'FIELD_COLLECTION',
   reference: string,
   actorUsername: string,
   paymentBranchId: number,
@@ -240,4 +248,40 @@ export const STAGE_LABELS: Record<string, { label: string; labelSi: string; role
   STAGE_1_MANAGER_APPROVAL:        { label: 'Manager Approval Awaiting',   labelSi: 'කළමනාකාර අනුමැතිය බලාපොරොත්තුවෙන්', role: 'BRANCH_MANAGER', color: 'bg-blue-100 text-blue-700' },
   STAGE_2_LOAN_COMMITTEE_APPROVAL: { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු ඡන්දය',                    role: 'LOAN_COMMITTEE', color: 'bg-amber-100 text-amber-700' },
   STAGE_3_APPROVED:                { label: 'Approved',                    labelSi: 'අනුමත කරන ලදී',                     role: 'BRANCH_MANAGER', color: 'bg-emerald-100 text-emerald-700' },
+};
+
+// ── Field Officer Workflows ───────────────────────────────────────────────────
+
+export const assignEvaluator = async (loanId: string, evaluatorId: string): Promise<Loan> => {
+  const response = await axios.post(
+    `${API_URL}/${loanId}/assign-evaluator`,
+    { evaluatorId },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
+export const submitEvaluation = async (loanId: string, evaluationStatus: string, evaluationNotes: string): Promise<Loan> => {
+  const response = await axios.post(
+    `${API_URL}/${loanId}/evaluate`,
+    { evaluationStatus, evaluationNotes },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
+export const getLoansByEvaluatorId = async (evaluatorId: string): Promise<Loan[]> => {
+  const response = await axios.get(`${API_URL}/evaluator/${evaluatorId}`, { headers: authHeader() });
+  return response.data;
+};
+
+// ── Field Collection ──────────────────────────────────────────────────────────
+
+export const getFieldCollectionBalance = async (username: string): Promise<number> => {
+  const response = await axios.get(`${API_URL}/field-collection/balance/${username}`, { headers: authHeader() });
+  return response.data.balance || 0;
+};
+
+export const handoverFieldCash = async (payload: { fieldOfficerUsername: string; amount: number; tellerUsername?: string; branchId?: number }): Promise<void> => {
+  await axios.post(`${API_URL}/field-collection/handover`, payload, { headers: authHeader() });
 };

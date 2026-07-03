@@ -11,7 +11,7 @@ import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as LedgerService from '../services/ledger.service';
-import { printAccountStatement } from '../utils/print';
+import { printAccountStatement, printLoanAgreement, printDisbursementReceipt, printPawnTicket } from '../utils/print';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { FdViewModal } from '../components/FdViewModal';
@@ -112,10 +112,13 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
   FIELD_OFFICER:        [
-    { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
-    { isSection: true, label: 'Field Tasks' },
-    { icon: ClipboardList, label: 'Mobile Collection', key: 'tasks' }
+    { icon: LayoutDashboard, label: 'දළ විශ්ලේෂණය', key: 'overview' }, 
+    { isSection: true, label: 'ක්ෂේත්‍ර රාජකාරි' },
+    { icon: FileText, label: 'ණය පරීක්ෂණ', key: 'evaluations' },
+    { icon: ClipboardList, label: 'මුදල් එකතු කිරීම', key: 'collection' },
+    { icon: Banknote, label: 'මුදල් භාරදීම', key: 'handover' }
   ],
+
   TELLER:               [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
     { isSection: true, label: 'Transactions' },
@@ -192,6 +195,40 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
         .finally(() => setFetchingAccounts(false));
     }
   }, [paymentMethod, loan.memberId]);
+
+  
+  // Field Officer Assignment
+  const [fieldOfficers, setFieldOfficers] = useState<any[]>([]);
+  const [selectedFo, setSelectedFo] = useState('');
+  const [assigningFo, setAssigningFo] = useState(false);
+
+  useEffect(() => {
+    if (loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL') {
+      import('../services/auth.service').then(Auth => {
+        Auth.getUsers().then(users => {
+          setFieldOfficers(users.filter(u => u.role === 'ROLE_FIELD_OFFICER' || u.role === 'FIELD_OFFICER' || u.role.includes('FIELD')));
+        }).catch(() => {});
+      });
+    }
+  }, [loan]);
+
+  const handleAssignFo = async () => {
+    if (!selectedFo) {
+      alert('කරුණාකර ක්ෂේත්‍ර නිලධාරියෙකු තෝරන්න.');
+      return;
+    }
+    setAssigningFo(true);
+    try {
+      await LoanService.assignEvaluator(loan.loanId, selectedFo);
+      alert('සාර්ථකව පැවරුවා!');
+      onAction();
+      onClose();
+    } catch (e: any) {
+      alert('පැවරීමේ දෝෂයකි.');
+    } finally {
+      setAssigningFo(false);
+    }
+  };
 
   const handle = async (action: 'approve' | 'reject') => {
     setLoading(true);
@@ -319,6 +356,47 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
             </div>
           )}
 
+
+          
+          {/* Field Officer Evaluation */}
+          {loan.evaluatorId && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-emerald-800 mb-2">🔍 ක්ෂේත්‍ර නිලධාරී වාර්තාව (Field Officer Evaluation)</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-emerald-600 font-semibold mb-1">තත්ත්වය (Status)</p>
+                  <span className={`px-2 py-1 rounded font-bold text-xs ${loan.evaluationStatus === 'RECOMMENDED' ? 'bg-emerald-200 text-emerald-800' : loan.evaluationStatus === 'NOT_RECOMMENDED' ? 'bg-red-200 text-red-800' : 'bg-amber-200 text-amber-800'}`}>
+                    {loan.evaluationStatus}
+                  </span>
+                </div>
+                {loan.evaluationNotes && (
+                  <div className="col-span-2 mt-2">
+                    <p className="text-xs text-emerald-600 font-semibold mb-1">සටහන් (Notes)</p>
+                    {(() => {
+                      try {
+                        const parsed = JSON.parse(loan.evaluationNotes);
+                        return (
+                          <div className="space-y-3">
+                            <p className="p-3 bg-white border border-emerald-200 rounded-lg text-slate-700 whitespace-pre-wrap">{parsed.text}</p>
+                            {parsed.documents && parsed.documents.length > 0 && (
+                              <div className="flex gap-2 flex-wrap">
+                                {parsed.documents.map((d: string, i: number) => (
+                                  <img key={i} src={d} alt="Report Doc" className="h-24 w-auto rounded-lg border border-slate-200 object-cover shadow-sm cursor-pointer hover:scale-105 transition" onClick={() => window.open(d, '_blank')} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } catch {
+                        return <p className="p-3 bg-white border border-emerald-200 rounded-lg text-slate-700">{loan.evaluationNotes}</p>;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Decision */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <h3 className="text-sm font-bold text-amber-800 mb-2">⑤ අදහස් / Comments</h3>
@@ -329,7 +407,25 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
               rows={3}
               className="w-full border border-amber-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
             />
+            {loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
+              <div className="mt-4 pt-4 border-t border-amber-200">
+                <h4 className="text-xs font-bold text-amber-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
+                <div className="flex gap-2">
+                  <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <option value="">-- නිලධාරියා තෝරන්න --</option>
+                    {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
+                  </select>
+                  <button onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
+                    {assigningFo ? '...' : 'පවරන්න'}
+                  </button>
+                </div>
+                {loan.evaluatorId && (
+                   <p className="mt-2 text-xs font-semibold text-blue-700">දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
+                )}
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* Footer */}
@@ -506,8 +602,8 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
               <tr key={m.memberId} className="hover:bg-slate-50 transition">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-xs">{m.fullName.charAt(0)}</div>
-                    <span className="font-medium text-slate-800">{m.fullName}</span>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-xs">{(m.nameWithInitials || m.fullName).charAt(0)}</div>
+                    <span className="font-medium text-slate-800">{m.nameWithInitials || m.fullName}</span>
                   </div>
                 </td>
                 <td className="px-5 py-3 text-slate-600">{m.nic}</td>
@@ -579,18 +675,18 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <FileText size={16} /> 
               {isCommitteeApprovedTab 
-                ? 'කමිටුව අනුමත කළ ණය (Committee Approved)' 
+                ? 'කමිටුව අනුමත කළ ණය' 
                 : isManagerApprovedTab
-                  ? 'කළමනාකරු අනුමත කළ ණය (Manager Approved)'
-                  : 'ණය නිර්දේශ පෝලිම (Manager Approval Queue)'}
+                  ? 'කළමනාකරු අනුමත කළ ණය'
+                  : 'ණය නිර්දේශ පෝලිම'}
             </h3>
             <span className={`text-xs px-3 py-1 rounded-full font-semibold ${(isCommitteeApprovedTab || isManagerApprovedTab) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-              {displayedLoans.length} {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'Approved' : 'Pending'}
+              {displayedLoans.length} {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'අනුමතයි' : 'පොරොත්තු'}
             </span>
           </div>
           {displayedLoans.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
-              {isCommitteeApprovedTab ? 'No approved loans from the committee.' : isManagerApprovedTab ? 'No loans approved by the manager yet.' : 'No loan applications awaiting manager review.'}
+              {isCommitteeApprovedTab ? 'කමිටුව විසින් අනුමත කළ ණය නොමැත.' : isManagerApprovedTab ? 'කළමනාකරු විසින් අනුමත කළ ණය නොමැත.' : 'කළමනාකරුගේ අනුමැතිය සඳහා පොරොත්තු ණය නොමැත.'}
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -601,7 +697,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                   <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">ඉල්ලූ මුදල</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">කාලය</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">දිනය</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">අදියර (Stage)</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">අදියර (STAGE)</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">තත්ත්වය</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">ක්‍රියාව</th>
                 </tr>
@@ -615,12 +711,10 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                     </td>
                     <td className="px-5 py-3 text-slate-600">{l.loanType?.name || '—'}</td>
                     <td className="px-5 py-3 text-right font-semibold text-slate-800">Rs. {l.requestedAmount?.toLocaleString()}</td>
-                    <td className="px-5 py-3 text-center text-slate-600">{l.termMonths} mo.</td>
+                    <td className="px-5 py-3 text-center text-slate-600">මාස {l.termMonths}</td>
                     <td className="px-5 py-3 text-center text-slate-400 text-xs">{l.appliedDate?.slice(0,10)}</td>
                     <td className="px-5 py-3 text-center text-xs font-semibold text-indigo-600">
-                      {language === 'si' 
-                        ? (LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage) 
-                        : (LoanService.STAGE_LABELS[l.currentStage]?.label || l.currentStage)}
+                      {LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage)}
                     </td>
                     <td className="px-5 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
@@ -628,12 +722,20 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                         l.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
                         l.status === 'ACTIVE'   ? 'bg-blue-100 text-blue-700' :
                         l.currentStage === 'DISBURSED' ? 'bg-blue-100 text-blue-700' :
+                        l.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                         'bg-red-100 text-red-700'
-                      }`}>{l.status === 'ACTIVE' ? '✓ DISBURSED' : l.status}</span>
+                      }`}>
+                        {l.status === 'ACTIVE' ? '✓ නිකුත් කර ඇත' : 
+                         l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' :
+                         l.status === 'COMPLETED' ? 'අවසන්' :
+                         l.status === 'PENDING' ? 'පොරොත්තු' :
+                         l.status === 'APPROVED' ? 'අනුමතයි' :
+                         l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපයි' : l.status}
+                      </span>
                     </td>
                     <td className="px-5 py-3 text-center">
                       <button onClick={() => setSelectedLoan(l)} className="text-xs px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center gap-1 mx-auto">
-                        <Eye size={12}/> {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'View' : 'සමාලෝචනය'}
+                        <Eye size={12}/> {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'බලන්න' : 'සමාලෝචනය'}
                       </button>
                     </td>
                   </tr>
@@ -667,6 +769,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
+  const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const loadData = () => {
     LoanService.getLoans().then(setLoans).catch(() => {});
@@ -681,29 +784,97 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   return (
     <div className="space-y-6">
       {selectedLoan && <LoanReviewModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} onAction={loadData} />}
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={Clock}        label="Pending Votes"  value={pendingLoans.length.toString()} color="text-amber-600" />
-        <StatCard icon={CheckCircle}  label="Approved List" value={approvedLoans.length.toString()} color="text-green-600" />
-        <StatCard icon={AlertTriangle} label="Rejected List" value={rejectedLoans.length.toString()} color="text-red-600" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div onClick={() => setActiveListTab('pending')} className={`bg-white rounded-2xl p-5 cursor-pointer shadow-sm border-2 transition-all flex items-center gap-4 ${activeListTab === 'pending' ? 'border-amber-500 scale-[1.02] shadow-md' : 'border-slate-100 hover:border-amber-200'}`}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-100">
+            <Clock size={22} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">පොරොත්තු අනුමැතියන්</p>
+            <p className="text-2xl font-bold text-slate-800">{pendingLoans.length}</p>
+          </div>
+        </div>
+
+        <div onClick={() => setActiveListTab('approved')} className={`bg-white rounded-2xl p-5 cursor-pointer shadow-sm border-2 transition-all flex items-center gap-4 ${activeListTab === 'approved' ? 'border-emerald-500 scale-[1.02] shadow-md' : 'border-slate-100 hover:border-emerald-200'}`}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-100">
+            <CheckCircle size={22} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">අනුමත කළ ණය</p>
+            <p className="text-2xl font-bold text-slate-800">{approvedLoans.length}</p>
+          </div>
+        </div>
+
+        <div onClick={() => setActiveListTab('rejected')} className={`bg-white rounded-2xl p-5 cursor-pointer shadow-sm border-2 transition-all flex items-center gap-4 ${activeListTab === 'rejected' ? 'border-red-500 scale-[1.02] shadow-md' : 'border-slate-100 hover:border-red-200'}`}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-100">
+            <AlertTriangle size={22} className="text-red-600" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">ප්‍රතික්ෂේප කළ ණය</p>
+            <p className="text-2xl font-bold text-slate-800">{rejectedLoans.length}</p>
+          </div>
+        </div>
       </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} /> Loan Applications — Cast Your Vote</h3>
-        {pendingLoans.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">No pending loan applications awaiting committee vote.</p>
-        ) : pendingLoans.map(l => (
-          <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
-                <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · {l.termMonths} months · Rs. {l.requestedAmount?.toLocaleString()}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setSelectedLoan(l)} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition">Review & Vote</button>
+
+      {activeListTab === 'pending' && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> ණය අයදුම්පත් — ඔබගේ අනුමැතිය ලබා දෙන්න</h3>
+          {pendingLoans.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින ණය අයදුම්පත් නොමැත.</p>
+          ) : pendingLoans.map(l => (
+            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
+                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · මාස {l.termMonths} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setSelectedLoan(l)} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition">පරීක්ෂා කර අනුමත කරන්න</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {activeListTab === 'approved' && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අනුමත කළ ණය අයදුම්පත්</h3>
+          {approvedLoans.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">දැනට අනුමත කළ ණය අයදුම්පත් නොමැත.</p>
+          ) : approvedLoans.map(l => (
+            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
+                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                </div>
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">අනුමත කර ඇත</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeListTab === 'rejected' && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-red-600" /> ප්‍රතික්ෂේප කළ ණය අයදුම්පත්</h3>
+          {rejectedLoans.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">ප්‍රතික්ෂේප කළ ණය අයදුම්පත් නොමැත.</p>
+          ) : rejectedLoans.map(l => (
+            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
+                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                </div>
+                <span className="px-3 py-1 bg-red-100 text-red-800 rounded font-bold text-xs">ප්‍රතික්ෂේප කර ඇත</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -862,8 +1033,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
 
   const getMemberName = (memberId: string, accNo?: string) => {
     const m = members.find(mem => mem.memberId === memberId);
-    if (m && (m.fullName || m.fullNameSinhala)) {
-      return m.fullName || m.fullNameSinhala;
+    if (m && (m.nameWithInitials || m.fullName || m.fullNameSinhala)) {
+      return m.nameWithInitials || m.fullName || m.fullNameSinhala;
     }
     if (accNo) {
       const acc = accounts.find(a => a.accountNumber === accNo);
@@ -875,7 +1046,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [loanSearch, setLoanSearch] = useState('');
-  const [loanFilter, setLoanFilter] = useState<'COMMITTEE_APPROVED' | 'ALL'>('COMMITTEE_APPROVED');
+  const [loanFilter, setLoanFilter] = useState<'ALL' | 'MANAGER_APPROVED' | 'COMMITTEE_APPROVED'>('ALL');
   const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
@@ -1184,7 +1355,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
 
     const getMemberName = (memberId: string) => {
       const m = members.find(mem => mem.memberId === memberId);
-      return m ? (m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
+      return m ? (m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
     };
 
     const getFdCategory = (fd: any): string => {
@@ -1469,8 +1640,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   }
 
   if (activeTab === 'loans') {
+    const totalLoansCount = loans.length;
+    const activeLoansCount = loans.filter(l => l.status === 'ACTIVE' || l.status === 'DISBURSED').length;
+    const committeeApprovedCount = loans.filter(l => l.status === 'APPROVED').length;
+    const totalLoanAmount = loans.reduce((sum, l) => sum + (Number(l.requestedAmount) || 0), 0);
+    
     const filteredLoans = loans.filter(l => {
-      if (loanFilter === 'COMMITTEE_APPROVED' && l.status !== 'APPROVED' && l.status !== 'ACTIVE') return false;
+      if (loanFilter === 'COMMITTEE_APPROVED' && l.status !== 'APPROVED' && l.status !== 'ACTIVE' && l.currentStage !== 'STAGE_3_APPROVED') return false;
+      if (loanFilter === 'MANAGER_APPROVED' && l.currentStage !== 'STAGE_2_LOAN_COMMITTEE_APPROVAL') return false;
       const member = members.find(m => m.memberId === l.memberId);
       const nameMatch = member ? (member.fullName || member.fullNameSinhala || '').toLowerCase().includes(loanSearch.toLowerCase()) : false;
       const typeMatch = (l.loanType?.name || '').toLowerCase().includes(loanSearch.toLowerCase());
@@ -1478,112 +1655,171 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
     });
 
     return (
-      <div className="space-y-6">
-        {/* Module Header */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FileText className="text-indigo-600" size={22} /> ණය ගිණුම් අංශය
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">ණය ඉල්ලුම්පත් සහ සක්‍රීය ණය ගිණුම් {filteredLoans.length} ක් කළමනාකරණය කරන්න.</p>
+      <div className="space-y-4">
+        {/* Header bar */}
+        <div className="bg-gradient-to-r from-indigo-700 to-indigo-500 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center shadow-inner">
+              <FileText size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">ණය ගිණුම් (Loan Accounts)</h3>
+              <p className="text-indigo-200 text-[11px] font-medium mt-0.5">ණය කළමනාකරණය (Loan Management)</p>
+            </div>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            {!readOnly && (
-              <button onClick={() => setShowLoanModal(true)}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-                <FileText size={18} /> නව ණයක් ඉල්ලුම් කරන්න
-              </button>
-            )}
+          {!readOnly && (
+            <button
+              onClick={() => setShowLoanModal(true)}
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              <FileText size={14} /> නව ණයක් ඉල්ලුම් කරන්න
+            </button>
+          )}
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ගිණුම්</p>
+            <p className="text-2xl font-black text-slate-800">{totalLoansCount}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">සියලු ණය ගිණුම්</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ණය මුදල</p>
+            <p className="text-xl font-black text-indigo-700">Rs. {totalLoanAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">ඉල්ලුම් කළ ණය එකතුව</p>
+          </div>
+          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 shadow-sm">
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">කමිටුව අනුමත කළ</p>
+            <p className="text-2xl font-black text-emerald-700">{committeeApprovedCount}</p>
+            <p className="text-[10px] text-emerald-500 mt-0.5">අනුමත වූ ණය</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 shadow-sm">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">සක්‍රීය ණය</p>
+            <p className="text-2xl font-black text-blue-600">{activeLoansCount}</p>
+            <p className="text-[10px] text-blue-400 mt-0.5">දැනට ගෙවන ණය</p>
           </div>
         </div>
 
         {/* Unified Data Table Card */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col ring-1 ring-slate-900/5">
-          
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
           {/* Table Toolbar */}
-          <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50/80">
-            {/* Filter Toggle */}
-            <div className="flex bg-slate-100/80 rounded-xl p-1 border border-slate-200">
-              <button onClick={() => setLoanFilter('COMMITTEE_APPROVED')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  loanFilter === 'COMMITTEE_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}>
-                කමිටුව අනුමත කළ
-              </button>
-              <button onClick={() => setLoanFilter('ALL')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  loanFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}>
-                සියලුම ණය
-              </button>
-            </div>
-            {/* Search Bar */}
-            <div className="relative w-full md:w-[450px]">
+          <div className="p-4 border-b border-slate-100 flex flex-col gap-3">
+            {/* Search - full width row */}
+            <div className="relative w-full">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="සාමාජිකයා හෝ වර්ගය අනුව සොයන්න..."
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all" />
+              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="ගිණුම් අංකය, සාමාජිකයා හෝ වර්ගය සොයන්න..."
+                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
+            </div>
+
+            {/* Dropdowns / Tabs row */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex bg-slate-100/80 rounded-xl p-1 border border-slate-200 overflow-x-auto w-full md:w-auto hide-scrollbar">
+                <button onClick={() => setLoanFilter('ALL')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    loanFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  සියලුම ණය
+                </button>
+                <button onClick={() => setLoanFilter('MANAGER_APPROVED')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    loanFilter === 'MANAGER_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  කළමනාකරු අනුමත කළ
+                </button>
+                <button onClick={() => setLoanFilter('COMMITTEE_APPROVED')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    loanFilter === 'COMMITTEE_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  කමිටුව අනුමත කළ
+                </button>
+              </div>
+              <p className="ml-auto text-xs text-slate-400">පෙන්වන්නේ <span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
             </div>
           </div>
 
-          <table className="w-full text-sm">
-            <thead className="bg-indigo-50/80 border-b border-indigo-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">ගිණුම් අංකය</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">දිනය</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">සාමාජිකයා</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">ණය වර්ගය</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">මුදල</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">අදියර</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-indigo-900 uppercase tracking-wider">තත්ත්වය</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-indigo-900 uppercase tracking-wider">ක්‍රියා</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-indigo-50 bg-white">
-              {filteredLoans.length === 0 ? (
-                <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">ණය ගිණුම් කිසිවක් හමු නොවීය</td></tr>
-              ) : filteredLoans.map(l => {
-                const member = members.find(m => m.memberId === l.memberId);
-                return (
-                <tr key={l.loanId} className="hover:bg-indigo-50/40 transition-colors group">
-                  <td className="px-6 py-4 font-mono font-bold text-indigo-700 bg-indigo-50/50 rounded-l-lg">{l.accountNumber || 'N/A'}</td>
-                  <td className="px-6 py-4 text-slate-500 font-medium">{l.appliedDate || 'N/A'}</td>
-                  <td className="px-6 py-4 text-slate-800 font-bold">
-                    {member ? (member.fullName || member.fullNameSinhala) : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide">
-                      {l.loanType?.name || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-black text-slate-800 text-base">Rs. {Number(l.requestedAmount).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-xs font-bold text-indigo-600">
-                    {l.currentStage === 'DISBURSED' ? 'මුදා හැර ඇත' : 
-                     l.currentStage === 'COMPLETED' ? 'සම්පූර්ණයි' : 
-                     l.currentStage === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
-                     l.currentStage === 'ACTIVE' ? 'සක්‍රීයයි' :
-                     LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                      {l.status === 'PENDING' ? 'විනිශ්චය වෙමින් පවතී' : 
-                       l.status === 'APPROVED' ? 'අනුමතයි' : 
-                       l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
-                       l.status === 'DISBURSED' ? 'මුදා හැර ඇත' : 
-                       l.status === 'ACTIVE' ? 'සක්‍රීයයි' : 
-                       l.status === 'COMPLETED' ? 'සම්පූර්ණයි' : 
-                       l.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button onClick={() => setViewLoan(l)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition" title={t('View Loan')}>
-                      බලන්න
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse min-w-[800px]">
+              <thead className="bg-slate-100 border-b-2 border-slate-200">
+                <tr>
+                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">ගිණුම්<br/>අංකය</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">සාමාජිකයා</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ණය වර්ගය</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">මුදල (Rs.)</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">අදියර</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">ක්‍රියා</th>
                 </tr>
-              )})}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {filteredLoans.length === 0 ? (
+                  <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400">
+                    <FileText size={28} className="mx-auto mb-2 opacity-30" />
+                    <p className="font-semibold">ණය ගිණුම් කිසිවක් හමු නොවීය</p>
+                  </td></tr>
+                ) : filteredLoans.map(l => {
+                  const member = members.find(m => m.memberId === l.memberId);
+                  return (
+                  <tr key={l.loanId} className="hover:bg-indigo-50/30 transition-colors group">
+                    <td className="px-3 py-3 border-r border-slate-100">
+                      <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg text-[11px]">{l.accountNumber || 'N/A'}</span>
+                    </td>
+                    <td className="px-3 py-3 border-r border-slate-100 min-w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm">
+                          {member ? (member.nameWithInitials || member.fullName || member.fullNameSinhala || 'U').charAt(0) : (l.applicationData?.applicantName || l.applicationData?.name || 'U').charAt(0)}
+                        </div>
+                        <div>
+                          <span className="block font-bold text-slate-800 text-sm">{member ? (member.nameWithInitials || member.fullName || member.fullNameSinhala) : (l.applicationData?.applicantName || l.applicationData?.name || 'N/A')}</span>
+                          <span className="block text-[10px] text-slate-500">{l.appliedDate || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-center border-r border-slate-100">
+                      <span className="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] px-2 py-1 rounded-full font-bold uppercase">
+                        {l.loanType?.name || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100">
+                      <span className="font-mono font-black text-slate-800 text-sm">Rs. {Number(l.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className="text-xs font-bold text-indigo-600">
+                        {l.currentStage === 'DISBURSED' ? 'මුදා හැර ඇත' : 
+                         l.currentStage === 'COMPLETED' ? 'සම්පූර්ණයි' : 
+                         l.currentStage === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
+                         l.currentStage === 'ACTIVE' ? 'සක්‍රීයයි' :
+                         LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                        {l.status === 'PENDING' ? 'විනිශ්චය වෙමින් පවතී' : 
+                         l.status === 'APPROVED' ? 'අනුමතයි' : 
+                         l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
+                         l.status === 'DISBURSED' ? 'මුදා හැර ඇත' : 
+                         l.status === 'ACTIVE' ? 'සක්‍රීයයි' : 
+                         l.status === 'COMPLETED' ? 'සම්පූර්ණයි' : 
+                         l.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => setViewLoan(l)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm" title={t('View Loan')}>
+                          බලන්න
+                        </button>
+                        {!readOnly && (
+                          <button onClick={() => { if(window.confirm('මෙම ණය ගිණුම මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { LoanService.deleteLoan(l.loanId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); LoanService.getLoans().then(setLoans); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm" title="මකා දමන්න">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )})}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Loan Application Modal */}
@@ -1614,7 +1850,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
       </div>
     );
   }
-
   if (activeTab === 'transactions') {
       return (
         <div className="space-y-6">
@@ -2829,43 +3064,374 @@ function BankServiceManagerView() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-function FieldOfficerView() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={MapPin}        label="Assigned Area"    value="Hikkaduwa South" color="text-teal-600" />
-        <StatCard icon={Users}         label="Today's Visits"   value="24"             color="text-blue-600" />
-        <StatCard icon={Banknote}      label="Daily Collection" value="Rs. 0.00"       color="text-green-600" />
-        <StatCard icon={AlertTriangle} label="Overdue Loans"    value="3"              color="text-red-600" />
-      </div>
+function FieldOfficerView({ activeTab }: { activeTab: string }) {
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const [evaluationNotes, setEvaluationNotes] = useState('');
+  const [evaluationStatus, setEvaluationStatus] = useState('RECOMMENDED');
+  const [submitting, setSubmitting] = useState(false);
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><ClipboardList size={16} className="text-blue-600" /> Today's Collection Route</h3>
-        <p className="text-sm text-slate-500 mb-4">Mobile collection features (offline sync, Bluetooth receipt printing) will be integrated here.</p>
-        <div className="space-y-3">
-          {[
-            { name: 'K.D. Perera', address: '45 Beach Road, Hikkaduwa', type: 'Loan Repayment', amount: '2,500' },
-            { name: 'S.M. Silva', address: '12 Temple Road, Hikkaduwa', type: 'Savings Deposit', amount: '1,000' },
-            { name: 'R.P. Jayasinghe', address: '89 Galle Road, Hikkaduwa', type: 'Loan Repayment', amount: '5,000' }
-          ].map((v, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{v.name.charAt(0)}</div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{v.name}</p>
-                  <p className="text-xs text-slate-500">{v.address}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-800">Rs. {v.amount}</p>
-                <p className="text-xs text-slate-500">{v.type}</p>
-              </div>
-            </div>
-          ))}
+  const [evaluationDocs, setEvaluationDocs] = useState<string[]>([]);
+
+  const fetchLoans = () => {
+    setLoading(true);
+    LoanService.getLoans().then(setLoans).catch(() => {}).finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchLoans();
+  }, []);
+
+  const user = AuthService.getCurrentUser();
+  // Fallback to known UUID if the auth service hasn't been restarted to provide user.userId
+  const currentUserId = user?.userId || (user?.username === 'field_hkw' ? '5c64fca7-e8d7-454f-b882-467b904d5dbb' : null);
+  const assignedLoans = loans.filter(l => l.evaluatorId === currentUserId && l.evaluationStatus === 'ASSIGNED');
+  const completedLoans = loans.filter(l => l.evaluatorId === currentUserId && l.evaluationStatus !== 'ASSIGNED');
+
+  const [collectionBalance, setCollectionBalance] = useState(0);
+  const [showCollectModal, setShowCollectModal] = useState(false);
+  const [collectAmount, setCollectAmount] = useState('');
+  const [collectionLoan, setCollectionLoan] = useState<any>(null);
+  const [selectedLoanForDetails, setSelectedLoanForDetails] = useState<any>(null);
+
+  const fetchFieldBalance = async () => {
+    try {
+      if (user?.username) {
+        const bal = await LoanService.getFieldCollectionBalance(user.username);
+        setCollectionBalance(bal);
+      }
+    } catch(e) {}
+  };
+
+  useEffect(() => {
+    if (activeTab === 'handover' || activeTab === 'overview') {
+      fetchFieldBalance();
+    }
+  }, [activeTab]);
+
+  const collectionList = loans.filter(l => l.status === 'ACTIVE' && (l.repaymentMethod === 'FIELD_COLLECTION' || l.applicationData?.repaymentMethod === 'FIELD_COLLECTION'));
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEvaluationDocs(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleSubmit = async (loanId: string) => {
+    if (!evaluationNotes.trim()) return alert('කරුණාකර සටහන් ඇතුලත් කරන්න');
+    setSubmitting(true);
+    try {
+      const payload = JSON.stringify({ text: evaluationNotes, documents: evaluationDocs });
+      await LoanService.submitEvaluation(loanId, evaluationStatus, payload);
+      alert('වාර්තාව සාර්ථකව යවන ලදී!');
+      setSelectedLoan(null);
+      setEvaluationNotes('');
+      setEvaluationDocs([]);
+      fetchLoans();
+    } catch(e) {
+      alert('දෝෂයකි');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCollect = async () => {
+    if (!collectAmount || isNaN(Number(collectAmount))) return alert('කරුණාකර නිවැරදි මුදලක් ඇතුලත් කරන්න');
+    setSubmitting(true);
+    try {
+      await LoanService.repayInstallment(
+        collectionLoan.loanId,
+        Number(collectAmount),
+        'FIELD_COLLECTION',
+        'Mobile Collection',
+        user?.username || 'system',
+        user?.branchId || 1
+      );
+      alert('මුදල සාර්ථකව එකතු කරන ලදී!');
+      setShowCollectModal(false);
+      setCollectAmount('');
+      fetchLoans();
+      fetchFieldBalance();
+    } catch(e) {
+      alert('දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleHandover = async () => {
+    if (collectionBalance <= 0) return alert('භාරදීමට මුදල් නොමැත.');
+    setSubmitting(true);
+    try {
+      await LoanService.handoverFieldCash({
+        fieldOfficerUsername: user?.username || '',
+        amount: collectionBalance
+      });
+      alert('මුදල් භාරදීම සාර්ථකයි!');
+      fetchFieldBalance();
+    } catch(e) {
+      alert('දෝෂයක්!');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (activeTab === 'overview') {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={FileText}      label="පොරොත්තු පරීක්ෂණ" value={assignedLoans.length} color="text-amber-600" />
+          <StatCard icon={Users}         label="අද දින ගමන්"      value="0"             color="text-blue-600" />
+          <StatCard icon={Banknote}      label="එකතු කළ මුළු මුදල"     value="Rs. 0"     color="text-green-600" />
+          <StatCard icon={AlertTriangle} label="ප්‍රමාද වූ ණය"       value="0"              color="text-red-600" />
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><LayoutDashboard size={16} className="text-blue-600" /> ක්ෂේත්‍ර නිලධාරී සාරාංශය</h3>
+          <p className="text-sm text-slate-500 mb-4">අද දින සඳහා ඔබට පවරා ඇති ණය පරීක්ෂණ සහ මුදල් එකතු කිරීමේ කාර්යයන් පහතින් දැක්වේ.</p>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (activeTab === 'evaluations') {
+    return (
+      <div className="space-y-4">
+        <div className="bg-gradient-to-r from-amber-600 to-amber-500 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shadow-inner">
+              <FileText size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">ක්ෂේත්‍ර පරීක්ෂණ (Loan Evaluations)</h3>
+              <p className="text-amber-100 text-[11px] font-medium mt-0.5">පෙර විපරම සහ පසු විපරම</p>
+            </div>
+          </div>
+        </div>
+        
+        {selectedLoan ? (
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> වාර්තාව ඇතුලත් කිරීම</h3>
+            <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
+               <div className="flex justify-between items-start mb-4">
+                 <div>
+                   <h4 className="font-bold text-lg">{selectedLoan.applicationData?.name || selectedLoan.applicationData?.applicantName || 'N/A'}</h4>
+                   <p className="text-sm text-amber-700">Rs. {Number(selectedLoan.requestedAmount).toLocaleString()} - {selectedLoan.loanType?.name || 'ණය'}</p>
+                 </div>
+                 <button onClick={() => { setSelectedLoan(null); setEvaluationDocs([]); }} className="text-amber-500 hover:text-amber-700"><X size={20}/></button>
+               </div>
+
+               <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
+                 <h5 className="font-bold text-slate-800 text-sm">Customer Details (ගනුදෙනුකරුගේ විස්තර)</h5>
+                 <p className="text-sm text-slate-600"><strong>ලිපිනය (Address):</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
+                 <p className="text-sm text-slate-600"><strong>දුරකථන (Phone):</strong> {selectedLoan.applicationData?.phone}</p>
+                 <p className="text-sm text-slate-600"><strong>හැඳුනුම්පත (NIC):</strong> {selectedLoan.applicationData?.nic}</p>
+                 <p className="text-sm text-slate-600"><strong>ණය අරමුණ (Purpose):</strong> {selectedLoan.applicationData?.loanPurpose}</p>
+               </div>
+               
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">නිර්දේශය (Recommendation)</label>
+                   <select value={evaluationStatus} onChange={e => setEvaluationStatus(e.target.value)} className="w-full border border-amber-300 rounded-lg p-2 bg-white">
+                     <option value="RECOMMENDED">අනුමත කිරීමට නිර්දේශ කරමි (Recommend)</option>
+                     <option value="NOT_RECOMMENDED">නිර්දේශ නොකරමි (Not Recommend)</option>
+                     <option value="NEEDS_MORE_INFO">වැඩිදුර තොරතුරු අවශ්‍යයි (Needs More Info)</option>
+                   </select>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">ඇගයීම් සටහන් (Evaluation Notes)</label>
+                   <textarea value={evaluationNotes} onChange={e => setEvaluationNotes(e.target.value)} rows={4} className="w-full border border-amber-300 rounded-lg p-2 bg-white" placeholder="පරීක්ෂාවේදී නිරීක්ෂණය කළ කරුණු..."></textarea>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">ඡායාරූප / ලියකියවිලි (Documents/Photos)</label>
+                   <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
+                   {evaluationDocs.length > 0 && (
+                     <div className="flex gap-2 mt-2 flex-wrap">
+                       {evaluationDocs.map((doc, i) => (
+                         <img key={i} src={doc} alt="Preview" className="h-16 w-auto rounded border border-amber-200 object-cover" />
+                       ))}
+                     </div>
+                   )}
+                 </div>
+                 <button onClick={() => handleSubmit(selectedLoan.loanId)} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50">
+                   {submitting ? 'යැවෙමින් පවතී...' : 'වාර්තාව යවන්න (Submit)'}
+                 </button>
+               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> පවරා ඇති ණය පරීක්ෂණ (Pending)</h3>
+               <div className="space-y-3">
+                 {loading ? (
+                   <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
+                 ) : assignedLoans.length === 0 ? (
+                   <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">පවරා ඇති ණය පරීක්ෂණ නොමැත.</p>
+                 ) : (
+                   assignedLoans.map((l: any) => {
+                     const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                     return (
+                       <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
+                         <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{loanName.charAt(0)}</div>
+                           <div>
+                             <p className="text-sm font-semibold text-slate-800">{loanName}</p>
+                             <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
+                           </div>
+                         </div>
+                         <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">වාර්තාව ඇතුලත් කරන්න</button>
+                       </div>
+                     );
+                   })
+                 )}
+               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අවසන් කළ ණය පරීක්ෂණ (Completed)</h3>
+               <div className="space-y-3">
+                 {loading ? (
+                   <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
+                 ) : completedLoans.length === 0 ? (
+                   <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">අවසන් කළ ණය පරීක්ෂණ නොමැත.</p>
+                 ) : (
+                   completedLoans.map((l: any) => {
+                     const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                     return (
+                       <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
+                         <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{loanName.charAt(0)}</div>
+                           <div>
+                             <p className="text-sm font-semibold text-slate-800">{loanName}</p>
+                             <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - {l.evaluationStatus}</p>
+                           </div>
+                         </div>
+                         <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">යවා ඇත</span>
+                       </div>
+                     );
+                   })
+                 )}
+               </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (activeTab === 'collection') {
+    return (
+      <div className="space-y-4">
+        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shadow-inner">
+              <ClipboardList size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">දෛනික එකතු කිරීම් (Mobile Collection)</h3>
+              <p className="text-emerald-100 text-[11px] font-medium mt-0.5">ණය සහ ඉතුරුම් වාරික එකතු කිරීම</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative">
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-emerald-600" /> අද දින මුදල් එකතු කිරීමේ මාර්ගය</h3>
+          
+          <div className="space-y-3">
+            {loading ? (
+              <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
+            ) : collectionList.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">එකතු කිරීමට නියමිත ගනුදෙනුකරුවන් නොමැත.</p>
+            ) : (
+              collectionList.map((l: any) => {
+                const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                return (
+                  <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">{loanName.charAt(0)}</div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{loanName}</p>
+                        <p className="text-xs text-slate-500">{l.applicationData?.addressLine1} | {l.applicationData?.nic}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSelectedLoanForDetails(l)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300 flex items-center gap-2">
+                        <Eye size={14} /> විස්තර බලන්න
+                      </button>
+                      <button onClick={() => { setCollectionLoan(l); setShowCollectModal(true); setCollectAmount(''); }} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center gap-2">
+                        <DollarSign size={14} /> වාරිකය ලබාගන්න
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Collection Modal */}
+        {showCollectModal && collectionLoan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                <h3 className="text-lg font-bold text-slate-800 mb-2">වාරිකය එකතු කිරීම</h3>
+                <p className="text-sm text-slate-500 mb-4">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName}</p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">මුදල (Rs.)</label>
+                  <input type="number" value={collectAmount} onChange={e => setCollectAmount(e.target.value)} className="w-full border-2 border-emerald-500 rounded-xl p-3 text-lg font-bold text-emerald-800 focus:outline-none" autoFocus placeholder="1000" />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setShowCollectModal(false)} className="px-4 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-sm">අවලංගු කරන්න</button>
+                  <button onClick={handleCollect} disabled={submitting} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50 flex items-center gap-2">
+                    {submitting ? 'එකතු කරමින්...' : 'එකතු කරන්න'}
+                  </button>
+                </div>
+             </div>
+          </div>
+        )}
+        {/* View Details Modal */}
+        {selectedLoanForDetails && (
+          <LoanDetailModal loan={selectedLoanForDetails} onClose={() => setSelectedLoanForDetails(null)} />
+        )}
+      </div>
+    );
+  }
+
+  if (activeTab === 'handover') {
+    return (
+      <div className="space-y-4">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shadow-inner">
+              <Banknote size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">මුදල් භාරදීම (Cash Handover)</h3>
+              <p className="text-blue-100 text-[11px] font-medium mt-0.5">අද දින එකතු කරන ලද මුදල් ශාඛාවට භාරදීම</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center">
+           <Banknote size={48} className="text-blue-200 mx-auto mb-4" />
+           <h2 className="text-4xl font-black text-slate-800 mb-2">Rs. {collectionBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2>
+           <p className="text-sm text-slate-500 mb-6">අද දින එකතු කළ මුළු මුදල (භාරදීමට නියමිත)</p>
+           <button onClick={handleHandover} disabled={collectionBalance <= 0 || submitting} className={`px-6 py-3 font-bold rounded-xl shadow-md transition ${collectionBalance > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
+             {submitting ? 'භාර දෙමින්...' : 'Teller වෙත මුදල් භාරදීම තහවුරු කරන්න'}
+           </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // ── General Ledger View ──────────────────────────────────────────────────────
@@ -3113,7 +3679,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
-      case 'FIELD_OFFICER':        return <FieldOfficerView />;
+      case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} />;
       case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
