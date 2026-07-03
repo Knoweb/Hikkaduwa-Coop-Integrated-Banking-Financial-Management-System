@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -23,6 +24,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/login").permitAll()
+                // Allow branch staff to view users for assignment purposes
+                .requestMatchers(HttpMethod.GET, "/api/v1/auth/users").hasAnyRole("SYSTEM_ADMIN", "BRANCH_MANAGER", "GENERAL_MANAGER", "SENIOR_OFFICER")
                 // Strictly lock the user management APIs to SYSTEM_ADMIN
                 .requestMatchers("/api/v1/auth/users/**").hasRole("SYSTEM_ADMIN")
                 .anyRequest().authenticated()

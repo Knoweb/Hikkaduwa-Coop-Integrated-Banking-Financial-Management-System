@@ -41,6 +41,7 @@ public class AuthController {
             LoginResponse res = new LoginResponse();
             // branchId is embedded INSIDE the JWT — frontend cannot tamper with it
             res.setToken(jwtUtil.generateToken(user.getUsername(), user.getRole().getRoleName(), branchId));
+            res.setUserId(user.getUserId());
             res.setUsername(user.getUsername());
             res.setRole(user.getRole().getRoleName());
             res.setBranchId(branchId);
