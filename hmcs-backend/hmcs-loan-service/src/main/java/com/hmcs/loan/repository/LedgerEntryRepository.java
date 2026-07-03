@@ -27,4 +27,8 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> 
     List<LedgerEntry> findByBranchIdAndEntryDateBetweenOrderByEntryDateDesc(
             Integer branchId, LocalDate from, LocalDate to
     );
+    void deleteByLoanId(UUID loanId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(CASE WHEN e.debitAccount = :account THEN e.amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN e.creditAccount = :account THEN e.amount ELSE 0 END), 0) FROM LedgerEntry e")
+    java.math.BigDecimal getAccountBalance(@org.springframework.data.repository.query.Param("account") String account);
 }

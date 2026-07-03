@@ -24,12 +24,8 @@ public class LoanController {
     // ── Apply ────────────────────────────────────────────────────────────────
     @PostMapping("/apply/{loanTypeId}")
     public ResponseEntity<Loan> applyForLoan(@PathVariable UUID loanTypeId, @RequestBody Loan loanRequest) {
-        try {
-            Loan createdLoan = loanService.applyForLoan(loanRequest, loanTypeId);
-            return ResponseEntity.ok(createdLoan);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        Loan createdLoan = loanService.applyForLoan(loanRequest, loanTypeId);
+        return ResponseEntity.ok(createdLoan);
     }
 
     // ── Queries ──────────────────────────────────────────────────────────────
@@ -67,6 +63,50 @@ public class LoanController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteLoan(@PathVariable UUID id) {
+        try {
+            loanService.deleteLoan(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    
+    // ── Field Officer Operations ─────────────────────────────────────────────
+    @PostMapping("/{id}/assign-evaluator")
+    public ResponseEntity<Loan> assignEvaluator(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        try {
+            UUID evaluatorId = UUID.fromString(body.get("evaluatorId"));
+            Loan updated = loanService.assignEvaluator(id, evaluatorId);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PostMapping("/{id}/evaluate")
+    public ResponseEntity<Loan> submitEvaluation(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        try {
+            String status = body.get("evaluationStatus");
+            String notes = body.get("evaluationNotes");
+            Loan updated = loanService.submitEvaluation(id, status, notes);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @GetMapping("/evaluator/{evaluatorId}")
+    public List<Loan> getLoansByEvaluator(@PathVariable UUID evaluatorId) {
+        return loanService.getLoansByEvaluatorId(evaluatorId);
     }
 
     // ── Approval Workflow ────────────────────────────────────────────────────
@@ -216,6 +256,29 @@ public class LoanController {
 
             LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate);
             return ResponseEntity.ok(repayment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── Field Collection ─────────────────────────────────────────────────────
+    @GetMapping("/field-collection/balance/{username}")
+    public ResponseEntity<Map<String, BigDecimal>> getFieldCollectionBalance(@PathVariable String username) {
+        BigDecimal balance = loanService.getFieldCollectionBalance(username);
+        return ResponseEntity.ok(Map.of("balance", balance));
+    }
+
+    @PostMapping("/field-collection/handover")
+    public ResponseEntity<?> handoverFieldCash(@RequestBody Map<String, Object> body) {
+        try {
+            String fieldOfficerUsername = body.get("fieldOfficerUsername").toString();
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String tellerUsername = body.getOrDefault("tellerUsername", "system").toString();
+            Integer branchId = body.containsKey("branchId") && body.get("branchId") != null ? 
+                    Integer.valueOf(body.get("branchId").toString()) : 1;
+                    
+            loanService.handoverFieldCash(fieldOfficerUsername, amount, tellerUsername, branchId);
+            return ResponseEntity.ok(Map.of("message", "Handover successful"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

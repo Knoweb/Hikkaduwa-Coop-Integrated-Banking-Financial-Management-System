@@ -11,8 +11,8 @@ const authHeader = () => {
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // If we get an unauthorized or forbidden response, the token is likely expired.
+    if (error.response && error.response.status === 401) {
+      // If we get an unauthorized response, the token is likely expired.
       const currentUrl = window.location.pathname;
       if (currentUrl !== '/' && currentUrl !== '/login') {
         localStorage.removeItem('user');

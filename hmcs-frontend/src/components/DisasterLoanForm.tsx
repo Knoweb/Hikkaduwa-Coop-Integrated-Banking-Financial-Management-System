@@ -94,8 +94,8 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.requestedAmount || !formData.termMonths || !formData.guarantor1Name || !formData.guarantor2Name) {
-      alert("කරුණාකර සියලුම අත්‍යවශ්‍ය තොරතුරු (නම, ණය මුදල, මාස ගණන සහ ඇපකරුවන්) පුරවන්න. (Please fill all essential fields)");
+    if (!formData.appliedDate || !formData.name || !formData.requestedAmount || !formData.termMonths || !formData.guarantor1Name || !formData.guarantor2Name) {
+      alert("කරුණාකර අයදුම් කළ දිනය ඇතුළු සියලුම අත්‍යවශ්‍ය තොරතුරු පුරවන්න. (Please fill all essential fields including Applied Date)");
       return;
     }
     
@@ -138,9 +138,14 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
         await applyForLoan(loanTypeId, payload);
         alert('ආකෘති පත්‍රය සාර්ථකව ඇතුළත් කළා! (Application Submitted Successfully)');
         onClose();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting loan application", error);
-        alert("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.");
+        if (error.response && error.response.data) {
+            const errorMsg = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+            alert(`දෝෂයක්! ${errorMsg}`);
+        } else {
+            alert("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.");
+        }
     } finally {
         setLoading(false);
     }

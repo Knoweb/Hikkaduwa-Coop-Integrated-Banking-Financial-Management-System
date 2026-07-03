@@ -7,6 +7,7 @@ import {
 import * as LoanService from '../services/loan.service';
 import * as AuthService from '../services/auth.service';
 import { printLoanAgreement } from '../utils/print';
+import { getBranchName } from '../pages/BranchDashboard';
 
 interface Props {
   loan: LoanService.Loan;
@@ -281,7 +282,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {/* Loan Details Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { label: 'Requested Amount', value: `Rs. ${Number(loan.requestedAmount).toLocaleString()}`, icon: '💰' },
+                  { label: 'Requested Amount', value: `Rs. ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
                   { label: 'Term', value: `${loan.termMonths} months`, icon: '📅' },
                   { label: 'Interest Rate', value: `${loan.interestRate}% p.a.`, icon: '📈' },
                   { label: 'Loan Type', value: loan.loanType?.name || '—', icon: '🏷️' },
@@ -309,9 +310,9 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       const monthlyPrincipal = p / m;
                       const monthlyInterest = (p * r * 30) / 36500;
                       return [
-                        { label: 'Monthly Principal', value: `Rs. ${monthlyPrincipal.toLocaleString('en', { maximumFractionDigits: 0 })}` },
-                        { label: '+ Monthly Interest (est.)', value: `Rs. ${monthlyInterest.toLocaleString('en', { maximumFractionDigits: 0 })}` },
-                        { label: '= Total EMI', value: `Rs. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en', { maximumFractionDigits: 0 })}`, highlight: true },
+                        { label: 'Monthly Principal', value: `Rs. ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '+ Monthly Interest (est.)', value: `Rs. ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '= Total EMI', value: `Rs. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
                       ];
                     })().map(item => (
                       <div key={item.label} className={`rounded-xl p-3 ${(item as any).highlight ? 'bg-indigo-600 text-white' : 'bg-white border border-indigo-100'}`}>
@@ -521,6 +522,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">දිනය</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">විස්තරය (Description)</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ මූලික මුදල</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ පොලිය</th>
                       <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">මුළු ගෙවූ මුදල</th>
@@ -528,13 +530,21 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {loadingRepayments ? (
-                      <tr><td colSpan={4} className="p-8 text-center"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                      <tr><td colSpan={5} className="p-8 text-center"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                     ) : repayments.length === 0 ? (
-                      <tr><td colSpan={4} className="p-8 text-center text-slate-500 font-medium">ගෙවීම් කිසිවක් තවම සිදුකර නොමැත</td></tr>
+                      <tr><td colSpan={5} className="p-8 text-center text-slate-500 font-medium">ගෙවීම් කිසිවක් තවම සිදුකර නොමැත</td></tr>
                     ) : (
                       repayments.map((r: any) => (
                         <tr key={r.repaymentId || r.id} className="hover:bg-slate-50 transition">
                           <td className="px-4 py-3 text-slate-600 font-mono text-xs">{new Date(r.paymentDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-xs text-slate-600">
+                            <div className="font-medium text-slate-800">{r.reference || 'Manual Payment'}</div>
+                            {r.paymentBranchId && r.paymentBranchId !== loan.branchId && (
+                              <div className="text-[10px] font-bold text-amber-700 mt-1 bg-amber-100 inline-block px-1.5 py-0.5 rounded border border-amber-200">
+                                {getBranchName(r.paymentBranchId)} මගින්
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 font-semibold text-slate-800">රු. {Number(r.principalPortion).toLocaleString()}</td>
                           <td className="px-4 py-3 text-rose-600 font-semibold">රු. {Number(r.interestPortion).toLocaleString()}</td>
                           <td className="px-4 py-3 font-black text-emerald-700 text-right">රු. {Number(r.totalPaid).toLocaleString()}</td>

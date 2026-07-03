@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface LoanScheduleRepository extends JpaRepository<LoanSchedule, UUID> {
     List<LoanSchedule> findByLoanIdOrderByInstallmentNumberAsc(UUID loanId);
     List<LoanSchedule> findByLoanIdAndStatusOrderByInstallmentNumberAsc(UUID loanId, LoanSchedule.ScheduleStatus status);
+    void deleteByLoanId(UUID loanId);
 }

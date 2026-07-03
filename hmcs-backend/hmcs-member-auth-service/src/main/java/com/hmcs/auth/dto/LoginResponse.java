@@ -3,6 +3,7 @@ import lombok.Data;
 
 @Data
 public class LoginResponse {
+    private java.util.UUID userId;
     private String token;
     private String username;
     private String role;

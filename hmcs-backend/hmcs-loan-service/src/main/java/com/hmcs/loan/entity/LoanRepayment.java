@@ -48,6 +48,7 @@ public class LoanRepayment {
 
     public enum PaymentMethod {
         CASH,
-        SAVINGS_TRANSFER
+        SAVINGS_TRANSFER,
+        FIELD_COLLECTION
     }
 }

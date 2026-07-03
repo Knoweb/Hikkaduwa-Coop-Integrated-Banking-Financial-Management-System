@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface LoanAssetDetailRepository extends JpaRepository<LoanAssetDetail, UUID> {
     Optional<LoanAssetDetail> findByLoanId(UUID loanId);
+    void deleteByLoanId(UUID loanId);
 }
