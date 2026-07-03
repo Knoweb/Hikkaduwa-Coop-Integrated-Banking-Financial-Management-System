@@ -281,7 +281,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {/* Loan Details Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { label: 'Requested Amount', value: `Rs. ${Number(loan.requestedAmount).toLocaleString()}`, icon: '💰' },
+                  { label: 'Requested Amount', value: `Rs. ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
                   { label: 'Term', value: `${loan.termMonths} months`, icon: '📅' },
                   { label: 'Interest Rate', value: `${loan.interestRate}% p.a.`, icon: '📈' },
                   { label: 'Loan Type', value: loan.loanType?.name || '—', icon: '🏷️' },
@@ -309,9 +309,9 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       const monthlyPrincipal = p / m;
                       const monthlyInterest = (p * r * 30) / 36500;
                       return [
-                        { label: 'Monthly Principal', value: `Rs. ${monthlyPrincipal.toLocaleString('en', { maximumFractionDigits: 0 })}` },
-                        { label: '+ Monthly Interest (est.)', value: `Rs. ${monthlyInterest.toLocaleString('en', { maximumFractionDigits: 0 })}` },
-                        { label: '= Total EMI', value: `Rs. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en', { maximumFractionDigits: 0 })}`, highlight: true },
+                        { label: 'Monthly Principal', value: `Rs. ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '+ Monthly Interest (est.)', value: `Rs. ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '= Total EMI', value: `Rs. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
                       ];
                     })().map(item => (
                       <div key={item.label} className={`rounded-xl p-3 ${(item as any).highlight ? 'bg-indigo-600 text-white' : 'bg-white border border-indigo-100'}`}>
