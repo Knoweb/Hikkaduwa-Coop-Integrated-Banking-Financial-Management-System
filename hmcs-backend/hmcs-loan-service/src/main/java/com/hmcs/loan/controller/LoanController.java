@@ -20,6 +20,9 @@ public class LoanController {
 
     @Autowired
     private LoanService loanService;
+    
+    @Autowired
+    private com.hmcs.loan.repository.LedgerEntryRepository ledgerEntryRepository;
 
     // ── Apply ────────────────────────────────────────────────────────────────
     @PostMapping("/apply/{loanTypeId}")
@@ -282,5 +285,25 @@ public class LoanController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/transactions/branch/{branchId}")
+    public ResponseEntity<?> getTransactionsByBranch(@PathVariable Integer branchId) {
+        List<com.hmcs.loan.entity.LedgerEntry> ledgers = ledgerEntryRepository.findByBranchIdOrderByEntryDateDesc(branchId);
+        List<Map<String, Object>> txs = new java.util.ArrayList<>();
+        for (com.hmcs.loan.entity.LedgerEntry l : ledgers) {
+            if ("DISBURSEMENT".equals(l.getEntryType()) || "REPAYMENT_CASH_IN".equals(l.getEntryType())) {
+                Map<String, Object> tx = new java.util.HashMap<>();
+                tx.put("transactionId", l.getEntryId());
+                tx.put("transactionType", "DISBURSEMENT".equals(l.getEntryType()) ? "LOAN_DISBURSEMENT" : "LOAN_REPAYMENT");
+                tx.put("amount", l.getAmount());
+                tx.put("transactionTimestamp", l.getCreatedAt() != null ? l.getCreatedAt() : l.getEntryDate().atStartOfDay());
+                tx.put("reference", l.getReferenceNumber());
+                tx.put("processedBy", l.getCreatedBy());
+                tx.put("balanceAfter", java.math.BigDecimal.ZERO);
+                txs.add(tx);
+            }
+        }
+        return ResponseEntity.ok(txs);
     }
 }

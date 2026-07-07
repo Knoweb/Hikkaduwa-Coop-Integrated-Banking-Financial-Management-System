@@ -10,6 +10,7 @@ import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
+import * as PawningService from '../services/pawning.service';
 import * as LedgerService from '../services/ledger.service';
 import { printAccountStatement, printLoanAgreement, printDisbursementReceipt, printPawnTicket } from '../utils/print';
 import logo from '../assets/logo.jpg';
@@ -891,7 +892,40 @@ function TellerView() {
   const [activityDate, setActivityDate] = useState<string>('');
 
   const fetchActivities = () => {
-    AccountService.getBranchActivities(activityDate).then(setActivities).catch(() => {});
+    setLoadingActivity(true);
+    const branchId = AuthService.getCurrentUser()?.branchId || 1;
+    Promise.all([
+      AccountService.getBranchActivities(activityDate),
+      LoanService.getBranchTransactions(branchId).catch(() => []),
+      PawningService.getBranchTransactions(branchId).catch(() => [])
+    ]).then(([accActivities, loanTxs, pawnTxs]) => {
+      const mappedLoan = loanTxs.map((tx: any) => ({
+        id: tx.transactionId,
+        type: tx.transactionType,
+        amount: tx.amount,
+        timestamp: tx.transactionTimestamp,
+        reference: tx.reference,
+        memberId: tx.processedBy,
+        balanceAfter: tx.balanceAfter
+      }));
+      const mappedPawn = pawnTxs.map((tx: any) => ({
+        id: tx.transactionId,
+        type: tx.transactionType,
+        amount: tx.amount,
+        timestamp: tx.transactionTimestamp,
+        reference: tx.reference,
+        memberId: tx.processedBy,
+        balanceAfter: tx.balanceAfter
+      }));
+      
+      let combined = [...accActivities, ...mappedLoan, ...mappedPawn];
+      if (activityDate) {
+         combined = combined.filter(c => c.timestamp && c.timestamp.startsWith(activityDate));
+      }
+      combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setActivities(combined);
+    }).catch(() => {})
+      .finally(() => setLoadingActivity(false));
   };
 
   useEffect(() => {
@@ -953,6 +987,14 @@ function TellerView() {
                 icon = <ArrowDownLeft size={16} />; colorClass = "bg-emerald-100 text-emerald-700"; label = "ආරම්භක තැන්පතුව (Initial Deposit)";
               } else if (act.type === 'FD_MATURED') {
                 icon = <CheckCircle size={16} />; colorClass = "bg-amber-100 text-amber-700"; label = "ස්ථාවර තැන්පතුවක් කල් පිරීම (FD Matured)";
+              } else if (act.type === 'LOAN_DISBURSEMENT') {
+                icon = <ArrowUpRight size={16} />; colorClass = "bg-indigo-100 text-indigo-700"; label = "ණය මුදා හැරීම (Loan Disbursement)";
+              } else if (act.type === 'LOAN_REPAYMENT') {
+                icon = <ArrowDownLeft size={16} />; colorClass = "bg-teal-100 text-teal-700"; label = "ණය වාරික ගෙවීම (Loan Repayment)";
+              } else if (act.type === 'PAWN_ISSUE') {
+                icon = <ArrowUpRight size={16} />; colorClass = "bg-yellow-100 text-yellow-700"; label = "උකස් අත්තිකාරම් නිකුතුව (Pawn Advance)";
+              } else if (act.type === 'PAWN_REPAYMENT') {
+                icon = <ArrowDownLeft size={16} />; colorClass = "bg-orange-100 text-orange-700"; label = "උකස් වාරික ගෙවීම (Pawn Repayment)";
               }
 
               return (
@@ -1097,6 +1139,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   const [viewingFd, setViewingFd] = useState<any>(null);
   const [monitoringFd, setMonitoringFd] = useState<any>(null);
   const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
+  const [loanLedgers, setLoanLedgers] = useState<any[]>([]);
+  const [loanActivityDate, setLoanActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [activities, setActivities] = useState<any[]>([]);
   const [activityDate, setActivityDate] = useState<string>('');
   const [activityDetails, setActivityDetails] = useState<any>(null);
@@ -1161,7 +1205,40 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   };
 
   const fetchActivities = () => {
-    AccountService.getBranchActivities(activityDate).then(setActivities).catch(() => {});
+    setLoadingActivity(true);
+    const branchId = AuthService.getCurrentUser()?.branchId || 1;
+    Promise.all([
+      AccountService.getBranchActivities(activityDate),
+      LoanService.getBranchTransactions(branchId).catch(() => []),
+      PawningService.getBranchTransactions(branchId).catch(() => [])
+    ]).then(([accActivities, loanTxs, pawnTxs]) => {
+      const mappedLoan = loanTxs.map((tx: any) => ({
+        id: tx.transactionId,
+        type: tx.transactionType,
+        amount: tx.amount,
+        timestamp: tx.transactionTimestamp,
+        reference: tx.reference,
+        memberId: tx.processedBy,
+        balanceAfter: tx.balanceAfter
+      }));
+      const mappedPawn = pawnTxs.map((tx: any) => ({
+        id: tx.transactionId,
+        type: tx.transactionType,
+        amount: tx.amount,
+        timestamp: tx.transactionTimestamp,
+        reference: tx.reference,
+        memberId: tx.processedBy,
+        balanceAfter: tx.balanceAfter
+      }));
+      
+      let combined = [...accActivities, ...mappedLoan, ...mappedPawn];
+      if (activityDate) {
+         combined = combined.filter(c => c.timestamp && c.timestamp.startsWith(activityDate));
+      }
+      combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setActivities(combined);
+    }).catch(() => {})
+      .finally(() => setLoadingActivity(false));
   };
 
   useEffect(() => {
@@ -1176,6 +1253,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
     AccountService.getBranchMembers().then(setMembers).catch(() => {});
     AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
     LoanService.getLoans().then(setLoans).catch(() => {});
+    const bId = AuthService.getCurrentUser()?.branchId || 1;
+    LoanService.getBranchLedger(bId).then(setLoanLedgers).catch(() => {});
     AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
     AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
     setFdLoading(true);
@@ -1832,7 +1911,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             </table>
           </div>
         </div>
-
         {/* Loan Application Modal */}
         {showLoanModal && (
           <LoanApplicationModal 
@@ -1914,6 +1992,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                   icon = <ArrowDownLeft size={16} />; colorClass = "bg-emerald-100 text-emerald-700"; label = "ආරම්භක තැන්පතුව (Initial Deposit)";
                 } else if (act.type === 'FD_MATURED') {
                   icon = <CheckCircle size={16} />; colorClass = "bg-amber-100 text-amber-700"; label = "ස්ථාවර තැන්පතුවක් කල් පිරීම (FD Matured)";
+                } else if (act.type === 'LOAN_DISBURSEMENT') {
+                  icon = <ArrowUpRight size={16} />; colorClass = "bg-indigo-100 text-indigo-700"; label = "ණය මුදා හැරීම (Loan Disbursement)";
+                } else if (act.type === 'LOAN_REPAYMENT') {
+                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-teal-100 text-teal-700"; label = "ණය වාරික ගෙවීම (Loan Repayment)";
+                } else if (act.type === 'PAWN_ISSUE') {
+                  icon = <ArrowUpRight size={16} />; colorClass = "bg-yellow-100 text-yellow-700"; label = "උකස් අත්තිකාරම් නිකුතුව (Pawn Advance)";
+                } else if (act.type === 'PAWN_REPAYMENT') {
+                  icon = <ArrowDownLeft size={16} />; colorClass = "bg-orange-100 text-orange-700"; label = "උකස් වාරික ගෙවීම (Pawn Repayment)";
                 }
 
                 return (

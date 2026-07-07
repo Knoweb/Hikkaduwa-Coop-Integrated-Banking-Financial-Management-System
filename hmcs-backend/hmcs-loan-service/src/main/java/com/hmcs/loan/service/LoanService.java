@@ -26,6 +26,7 @@ public class LoanService {
     @Autowired private LoanTypeRepository loanTypeRepository;
     @Autowired private LoanApprovalActionRepository approvalActionRepository;
     @Autowired private LedgerEntryRepository ledgerEntryRepository;
+
     @Autowired private LoanScheduleRepository loanScheduleRepository;
     @Autowired private LoanRepaymentRepository loanRepaymentRepository;
     @Autowired private RestTemplate restTemplate;
@@ -424,6 +425,7 @@ public class LoanService {
         glEntry.setBranchId(loan.getBranchId());
         glEntry.setCreatedBy(actorUsername);
         ledgerEntryRepository.save(glEntry);
+
         // ── AUTO-CREATE LOAN SCHEDULE ────────────────────────────────────────
         Map<String, Object> appData = loan.getApplicationData();
         Integer termMonths = null;
@@ -582,7 +584,8 @@ public class LoanService {
         interestIncome.setBranchId(Math.toIntExact(repayment.getPaymentBranchId()));
         interestIncome.setCreatedBy(actorUsername);
         ledgerEntryRepository.save(interestIncome);
-        // ─────────────────────────────────────────────────────────────────────
+
+
 
         // If Savings Transfer, we need to call Savings Service to deduct the amount
         if ("SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod)) {

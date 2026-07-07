@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8085/api/pawning/tickets'; // We'll configure proxy later if needed, or point directly to port
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/pawning/tickets` : 'http://localhost:8080/api/v1/pawning/tickets';
 
 export const getTicketsByBranch = async (branchId: number) => {
   const token = localStorage.getItem('hmcs_token');
@@ -55,6 +55,14 @@ export const getAllSettings = async () => {
 export const updateSetting = async (key: string, value: string, description?: string) => {
   const token = localStorage.getItem('hmcs_token');
   const res = await axios.put(`${API_URL.replace('/tickets', '/settings')}/${key}`, { settingValue: value, description }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const getBranchTransactions = async (branchId: number) => {
+  const token = localStorage.getItem('hmcs_token');
+  const res = await axios.get(`${API_URL}/transactions/branch/${branchId}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return res.data;

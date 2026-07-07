@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const API_URL = 'http://localhost:8080/api/v1/loans';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/loans` : 'http://localhost:8080/api/v1/loans';
 
 const authHeader = () => {
   const user = getCurrentUser();
@@ -239,6 +239,16 @@ export const repayInstallment = async (
     { amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate },
     { headers: authHeader() }
   );
+  return response.data;
+};
+
+export const getBranchLedger = async (branchId: number): Promise<any[]> => {
+  const response = await axios.get(`${API_URL.replace('/loans', '/ledger')}/branch/${branchId}`, { headers: authHeader() });
+  return response.data;
+};
+
+export const getBranchTransactions = async (branchId: number): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/transactions/branch/${branchId}`, { headers: authHeader() });
   return response.data;
 };
 
