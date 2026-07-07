@@ -26,17 +26,7 @@ import TransactionModal, { type TransactionAction } from '../components/Transact
 import PawningModule from '../components/PawningModule';
 
 export const getBranchName = (branchId: number) => {
-  switch (branchId) {
-    case 1: return 'Hikkaduwa Branch';
-    case 2: return 'Dodanduwa Branch';
-    case 3: return 'Rathgama Branch';
-    case 4: return 'Seenigama Branch';
-    case 5: return 'Thiranagama Branch';
-    case 6: return 'Peraliya Branch';
-    case 7: return 'Kalupe Branch';
-    case 8: return 'Gonapinuwala Branch';
-    default: return `Branch ${branchId}`; // Fallback to Branch ID for dynamic tenants
-  }
+  return `Branch ${branchId}`; // Fallback to Branch ID for dynamic tenants
 };
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
@@ -2833,7 +2823,7 @@ function FieldOfficerView() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={MapPin}        label="Assigned Area"    value="Hikkaduwa South" color="text-teal-600" />
+        <StatCard icon={MapPin}        label="Assigned Area"    value="Branch Area South" color="text-teal-600" />
         <StatCard icon={Users}         label="Today's Visits"   value="24"             color="text-blue-600" />
         <StatCard icon={Banknote}      label="Daily Collection" value="Rs. 0.00"       color="text-green-600" />
         <StatCard icon={AlertTriangle} label="Overdue Loans"    value="3"              color="text-red-600" />
@@ -2844,9 +2834,9 @@ function FieldOfficerView() {
         <p className="text-sm text-slate-500 mb-4">Mobile collection features (offline sync, Bluetooth receipt printing) will be integrated here.</p>
         <div className="space-y-3">
           {[
-            { name: 'K.D. Perera', address: '45 Beach Road, Hikkaduwa', type: 'Loan Repayment', amount: '2,500' },
-            { name: 'S.M. Silva', address: '12 Temple Road, Hikkaduwa', type: 'Savings Deposit', amount: '1,000' },
-            { name: 'R.P. Jayasinghe', address: '89 Galle Road, Hikkaduwa', type: 'Loan Repayment', amount: '5,000' }
+            { name: 'K.D. Perera', address: '45 Beach Road', type: 'Loan Repayment', amount: '2,500' },
+            { name: 'S.M. Silva', address: '12 Temple Road', type: 'Savings Deposit', amount: '1,000' },
+            { name: 'R.P. Jayasinghe', address: '89 Main Road', type: 'Loan Repayment', amount: '5,000' }
           ].map((v, i) => (
             <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
               <div className="flex items-center gap-3">

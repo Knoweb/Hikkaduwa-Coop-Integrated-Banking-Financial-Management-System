@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react';
 import logo from '../assets/logo.jpg';
+import { useTenantInfo } from '../hooks/useTenantInfo';
 import { getSinhalaAmountInWords } from '../utils/sinhalaNumberWords';
 
 interface PrintableFdReceiptProps {
@@ -7,7 +8,9 @@ interface PrintableFdReceiptProps {
   memberName: string;
 }
 
-const PrintableFdReceipt: React.FC<PrintableFdReceiptProps> = ({ fdData, memberName }) => {
+const PrintableFdReceipt = forwardRef<HTMLDivElement, PrintableFdReceiptProps>(({ fdData, memberName }, ref) => {
+  const { societyNameSi } = useTenantInfo();
+  
   const [data, setData] = useState({
     receiptNo: '',
     fdNumber: '',
@@ -51,7 +54,7 @@ const PrintableFdReceipt: React.FC<PrintableFdReceiptProps> = ({ fdData, memberN
   };
 
   return (
-    <div className="w-full bg-white print:m-0 print:p-0" style={{ fontFamily: 'sans-serif' }}>
+    <div ref={ref} className="w-full bg-white print:m-0 print:p-0" style={{ fontFamily: 'sans-serif' }}>
       
       {/* Container simulating the receipt book page */}
       <div className="flex w-full max-w-[1200px] mx-auto min-h-[450px] bg-[#eef7fa] border border-slate-200 shadow-sm print:border-none print:shadow-none print:max-w-none print:w-full overflow-hidden">
@@ -127,9 +130,7 @@ const PrintableFdReceipt: React.FC<PrintableFdReceiptProps> = ({ fdData, memberN
                 {/* Header */}
                 <div className="text-center mb-8 pointer-events-none">
                   <div className="flex justify-center items-end gap-2 text-[16px] font-bold text-slate-900 mb-1">
-                    <span>සීමාසහිත</span>
-                    <span className="border-b-[1.5px] border-dotted border-slate-800 w-48 inline-block pb-1 text-center">හික්කඩුව</span>
-                    <span>විවිධ සේවා සමුපකාර සමිතිය</span>
+                    <span className="pb-1 text-center font-black text-[22px]">{societyNameSi}</span>
                   </div>
                   <h1 className="text-[30px] font-black text-slate-800 tracking-wider mt-1" style={{ textShadow: '1px 1px 0px rgba(0,0,0,0.2), -1px -1px 0px rgba(255,255,255,0.5)' }}>
                     ස්ථිර තැන්පත් කුවිතාන්සිය

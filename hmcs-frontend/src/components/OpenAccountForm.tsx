@@ -118,8 +118,8 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
 
   const [formData, setFormData] = useState({
     // පද්ධති සහ ආයතනික තොරතුරු (Institutional Fields)
-    branchName: 'හික්කඩුව', // පද්ධතියෙන් ස්වයංක්රීයව පිරේ [cite: 71, 72]
-    societyName: 'හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය', // [cite: 76, 78]
+    branchName: '', // පද්ධතියෙන් ස්වයංක්රීයව පිරේ [cite: 71, 72]
+    societyName: '', // [cite: 76, 78]
     // ගිණුම් සැකසුම්
     date: new Date().toISOString().split('T')[0], // [cite: 75]
     openedDate: new Date().toISOString().split('T')[0],

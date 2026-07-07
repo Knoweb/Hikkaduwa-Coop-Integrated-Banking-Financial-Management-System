@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Printer, Download, FileText, CheckCircle2, ShieldCheck, Download as DownloadIcon } from 'lucide-react';
 import PrintableFdReceipt from './PrintableFdReceipt';
+import { useTenantInfo } from '../hooks/useTenantInfo';
 
 interface FdViewModalProps {
   fd: any;
@@ -10,6 +11,7 @@ interface FdViewModalProps {
 }
 
 export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
+  const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = useTenantInfo();
   const [activeTab, setActiveTab] = useState<'APP' | 'RECEIPT'>('APP');
   const printRef = useRef<HTMLDivElement>(null);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
@@ -154,12 +156,10 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
               <div className="space-y-8 animate-in fade-in duration-300">
                 
                 {/* Common Bank Header for Print */}
-                <div className="text-center mb-10 border-b-2 border-[#025a4e] pb-6">
-                  <h1 className="text-2xl font-black text-[#025a4e] tracking-tight">HIKKADUWA CO-OP BANK</h1>
-
-                  <div className="mt-4 inline-block bg-slate-100 text-slate-700 px-4 py-1 rounded-full text-xs font-bold border border-slate-200">
-                    ස්ථාවර තැන්පතු විස්තරය
-                  </div>
+                <div className="text-center mb-6">
+                  <h1 className="text-2xl font-black text-[#025a4e] tracking-tight">{societyNameEn.toUpperCase()}</h1>
+                  <p className="text-emerald-700 text-sm font-medium mt-1">FIXED DEPOSIT CERTIFICATE</p>
+                  <p className="text-emerald-600/70 text-xs mt-0.5">{branchNameEn} Branch</p>
                 </div>
 
                 {/* Step 1: Member Details */}
@@ -286,6 +286,11 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                       )}
                     </div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase">තැන්පත්කරුගේ අත්සන</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-40 border-b-2 border-emerald-800/20 mx-auto mb-2 border-dashed"></div>
+                    <p className="text-xs font-semibold text-emerald-900">Authorized Signature</p>
+                    <p className="text-[10px] text-emerald-600/70 mt-0.5">{societyNameEn}</p>
                   </div>
                   <div>
                     <div className="border-b-2 border-slate-300 w-full mb-2 h-20 flex items-end justify-center pb-1 text-slate-800 font-bold text-lg">

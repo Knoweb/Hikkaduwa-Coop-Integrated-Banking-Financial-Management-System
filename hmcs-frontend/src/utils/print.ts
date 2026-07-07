@@ -1,8 +1,9 @@
+import { getTenantInfo } from '../hooks/useTenantInfo';
+
 export const printLoanAgreement = (loan: any, ad: any) => {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : {};
-  const orgName = user.organizationName || 'HMCS Bank';
-  const branchName = user.branchName || 'Main Branch';
+  const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = getTenantInfo();
+  const orgName = societyNameEn;
+  const branchName = branchNameEn;
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
@@ -61,8 +62,8 @@ export const printLoanAgreement = (loan: any, ad: any) => {
 </head>
 <body>
   <div class="header">
-    <h1 class="bank-name"></h1>
-    <p class="branch-name">Hikkaduwa Branch (හික්කඩුව ශාඛාව)</p>
+    <h1 class="bank-name">${societyNameEn}</h1>
+    <p class="branch-name">${branchNameEn} (${branchNameSi})</p>
   </div>
 
   <div class="title">Loan Agreement (ණය ගිවිසුම)</div>
@@ -97,8 +98,10 @@ export const printLoanAgreement = (loan: any, ad: any) => {
     assets, or through my guarantors.
     <br/><br/>
     ඉහත සඳහන් කළ සියලුම තොරතුරු සත්‍ය සහ නිවැරදි බවට මම මෙයින් සහතික කරමි. මෙම ණය මුදලට
-    අදාළව හික්කඩුව සමූපකාර බැංකුව විසින් පනවා ඇති සියලුම නියමයන් සහ කොන්දේසිවලට එකඟ වන
-    අතර, පොලිය සහ මාසික වාරික නිසි පරිදි ගෙවීමට මම එකඟ වෙමි.
+    අදාළව ${societyNameSi} විසින් පනවා ඇති සියලුම නියමයන් සහ කොන්දේසිවලට එකඟ වන
+    අතර, නියමිත පොලී අනුපාතය සහ මාසික වාරික අනුව අදාළ ණය මුදල ගෙවීමට බැඳී සිටිමි.
+    කිසියම් හෙයකින් මා ණය මුදල ගෙවීම පැහැර හැරියහොත්, මාගේ ඉතිරිකිරීම්, වත්කම් හෝ ඇපකරුවන්
+    මගින් අදාළ ශේෂය අයකර ගැනීමට බැංකුවට ඇති අයිතිය මම මෙයින් පිළිගනිමි.
   </p>
 
   <div class="signatures">
@@ -127,10 +130,7 @@ export const printLoanAgreement = (loan: any, ad: any) => {
 };
 
 export const printDisbursementReceipt = (loan: any, ad: any, officerName: string) => {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : {};
-  const orgName = user.organizationName || 'HMCS Bank';
-  const branchName = user.branchName || 'Main Branch';
+  const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = getTenantInfo();
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
@@ -192,7 +192,7 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
   <div class="slip-container">
     <div class="header">
       <div class="logo-text"></div>
-      <div class="branch-text">හික්කඩුව ශාඛාව &bull; HIKKADUWA BRANCH</div>
+      <div class="branch-text">${branchNameSi} &bull; ${branchNameEn.toUpperCase()}</div>
     </div>
     
     <div class="meta-row">
@@ -267,10 +267,7 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
 };
 
 export const printPawnTicket = (ticket: any) => {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : {};
-  const orgName = user.organizationName || 'HMCS Bank';
-  const branchName = user.branchName || 'Main Branch';
+  const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = getTenantInfo();
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
@@ -340,8 +337,8 @@ export const printPawnTicket = (ticket: any) => {
     <div class="bg-watermark">HMCS PAWNING</div>
     
     <div class="header">
-      <h1 class="bank-name"></h1>
-      <p class="branch-name">Hikkaduwa Branch (හික්කඩුව ශාඛාව)</p>
+      <h1 class="bank-name">${societyNameEn}</h1>
+      <p class="branch-name">${branchNameEn} (${branchNameSi})</p>
     </div>
 
     <div class="title-row">
@@ -413,10 +410,7 @@ export const printPawnTicket = (ticket: any) => {
   printWindow.document.close();
 };
 export const printAccountStatement = (passbookData: any) => {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : {};
-  const orgName = user.organizationName || 'HMCS Bank';
-  const branchName = user.branchName || 'Main Branch';
+  const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = getTenantInfo();
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
@@ -484,7 +478,7 @@ export const printAccountStatement = (passbookData: any) => {
 </head>
 <body>
   <div class="header">
-    <div class="bank-name">HMCS Bank</div>
+    <div class="bank-name">${societyNameEn} - PASSBOOK</div>
     <div class="bank-sub"> Integrated Banking System</div>
   </div>
   
