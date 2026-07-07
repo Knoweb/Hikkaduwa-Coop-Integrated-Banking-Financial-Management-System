@@ -29,8 +29,7 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
     fetchAllLoans();
   }, []);
 
-  const filteredLoans = loans.filter(l => {
-    if (!search) return true;
+  const filteredLoans = search.trim() ? loans.filter(l => {
     const s = search.toLowerCase();
     const appData = l.applicationData || {};
     const name = (appData.name || appData.applicantName || appData.fullName || '').toLowerCase();
@@ -38,7 +37,7 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
     const memNo = (appData.membershipNumber || '').toLowerCase();
     const accNo = (l.accountNumber || '').toLowerCase();
     return name.includes(s) || nic.includes(s) || memNo.includes(s) || accNo.includes(s);
-  });
+  }) : [];
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
@@ -79,6 +78,11 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
             <div className="flex flex-col items-center justify-center h-48 text-slate-400">
               <Loader2 size={32} className="animate-spin mb-3 text-blue-500" />
               <p className="text-sm font-medium">දත්ත ලබා ගනිමින් පවතී...</p>
+            </div>
+          ) : !search.trim() ? (
+            <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+              <Search size={48} className="mb-3 opacity-20" />
+              <p className="text-sm font-medium">කරුණාකර ගනුදෙනුකරුගේ නම, ජා.හැ.අ, සාමාජික අංකය හෝ ගිණුම් අංකය ඇතුලත් කරන්න.</p>
             </div>
           ) : filteredLoans.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-slate-400">
