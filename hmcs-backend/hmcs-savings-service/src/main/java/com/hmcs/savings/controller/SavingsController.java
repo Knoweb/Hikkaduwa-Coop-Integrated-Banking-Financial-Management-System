@@ -161,6 +161,9 @@ public class SavingsController {
             tx.setBalanceAfter(body.initialDeposit);
             tx.setBranchId(branchId);
             tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
+            if (savedAccount.getOpenedDate() != null) {
+                tx.setTransactionTimestamp(savedAccount.getOpenedDate().atStartOfDay());
+            }
             transactionRepository.save(tx);
         }
 
