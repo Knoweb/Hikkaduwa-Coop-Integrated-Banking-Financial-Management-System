@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle
+  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -1919,6 +1919,22 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                     </button>
                     <button onClick={() => handleViewPassbook(a.accountId!)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition flex items-center gap-1" title={t('View Passbook')}>
                       <BookOpen size={14} /> Passbook
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to ${a.status === 'ACTIVE' ? 'deactivate' : 'activate'} this account?`)) {
+                          try {
+                            await AccountService.updateAccountStatus(a.accountId!, a.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+                            fetchData();
+                          } catch (e) {
+                            alert('Failed to update account status');
+                          }
+                        }
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg transition flex items-center justify-center border shadow-sm ${a.status === 'ACTIVE' ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}
+                      title={a.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
+                    >
+                      <Power size={14} />
                     </button>
                     </div>
                   </td>
