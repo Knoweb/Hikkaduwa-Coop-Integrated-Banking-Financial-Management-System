@@ -2012,7 +2012,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             <div className="w-full max-w-6xl relative shadow-2xl rounded-2xl">
               <OpenAccountForm 
                 isSocietyMember={savingsTab === 'SOCIETY'} 
-                onClose={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} 
+                onClose={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); fetchData(); }} 
               />
             </div>
           </div>
@@ -2103,7 +2103,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                                         <td className="px-4 py-3">
                                           <div className="flex items-center gap-2">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${isCredit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                              {isInterest ? 'MONTHLY INTEREST' : isFdInterest ? 'FD INTEREST' : tx.transactionType.replace('_', ' ')}
+                                              {isInterest ? 'මාසික පොලිය (MONTHLY INTEREST)' : 
+                                               isFdInterest ? 'ස්ථාවර තැන්පතු පොලිය (FD INTEREST)' : 
+                                               tx.transactionType === 'INITIAL_DEPOSIT' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
+                                               tx.transactionType === 'BROUGHT_FORWARD' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
+                                               tx.transactionType === 'WITHDRAWAL' ? 'මුදල් ආපසු ගැනීම (WITHDRAWAL)' :
+                                               tx.transactionType === 'DEPOSIT' ? 'තැන්පතුව (DEPOSIT)' :
+                                               tx.transactionType.replace('_', ' ')}
                                             </span>
                                             {isInterest && (
                                               <span className="text-[10px] text-blue-500 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">

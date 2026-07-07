@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -89,7 +90,7 @@ public class SavingsController {
         public String witnessAddress;
         public String specimenSignature;
         public Boolean hasSubmittedTaxForm;
-        public Boolean isMigration;
+        public Boolean migrationAccount;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -162,7 +163,7 @@ public class SavingsController {
             tx.setBranchId(branchId);
             tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
             
-            if (Boolean.TRUE.equals(body.isMigration)) {
+            if (Boolean.TRUE.equals(body.migrationAccount)) {
                 tx.setTransactionType("BROUGHT_FORWARD");
                 tx.setTransactionTimestamp(LocalDateTime.now());
             } else {

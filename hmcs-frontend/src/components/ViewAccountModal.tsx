@@ -186,11 +186,11 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
 
           {/* ================= STEP 4: Initial Deposit Info ================= */}
           <div className="space-y-6 pt-4">
-            <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">මූලික තැන්පතුව (Initial Deposit)</h3>
+            <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">පෙර ශේෂය / මූලික තැන්පතුව (Brought Forward / Initial Deposit)</h3>
             
             <div className="bg-[#025a4e]/5 border border-[#025a4e]/20 p-5 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">මූලික තැන්පතු මුදල (Initial Deposit Amount)</p>
+                <p className="text-sm text-gray-600 font-medium">පෙර ශේෂය / මූලික තැන්පතු මුදල (Brought Forward / Initial Deposit Amount)</p>
                 <p className="text-2xl font-bold text-[#025a4e]">Rs. {(account.initialDeposit || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
               </div>
               <div className="text-right">

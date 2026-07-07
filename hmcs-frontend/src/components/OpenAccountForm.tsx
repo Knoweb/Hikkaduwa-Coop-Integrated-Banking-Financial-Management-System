@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { X, Search, Loader2 } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format, parseISO } from 'date-fns';
 import * as AccountService from '../services/account.service';
 
 const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?: boolean, onClose?: () => void }) => {
@@ -232,7 +235,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         witnessName: formData.witnessName,
         witnessAddress: formData.witnessAddress,
         specimenSignature: signaturePreview || undefined,
-        isMigration: formData.openedDate !== formData.date
+        migrationAccount: formData.openedDate !== formData.date
       };
 
       const res = await AccountService.openAccount(accountData);
@@ -359,11 +362,27 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම ආරම්භ කළ දිනය (Opened Date)</label>
-                <input type="date" name="openedDate" value={formData.openedDate} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                <DatePicker 
+                  selected={formData.openedDate ? parseISO(formData.openedDate) : null} 
+                  onChange={(date: Date | null) => {
+                    handleInputChange({ target: { name: 'openedDate', value: date ? format(date, 'yyyy-MM-dd') : '' } });
+                  }} 
+                  dateFormat="yyyy/MM/dd"
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" 
+                  required 
+                />
                 {formData.openedDate !== formData.date && (
-                  <p className="text-[11px] font-bold text-amber-700 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                    මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)
-                  </p>
+                  <div className="mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                    <p className="text-[11px] font-bold text-amber-800">
+                      මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)
+                    </p>
+                    <p className="text-[10px] text-amber-700 mt-1 italic">
+                      * එබැවින් 4 වන පියවරේදී ලබා ගන්නේ වර්තමාන ශේෂය පමණි.
+                    </p>
+                  </div>
                 )}
               </div>
 
