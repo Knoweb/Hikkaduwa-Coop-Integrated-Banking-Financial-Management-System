@@ -61,6 +61,9 @@ public class Loan {
     @Column(name = "applied_date")
     private LocalDate appliedDate;
 
+    @Column(name = "repayment_method", length = 30)
+    private String repaymentMethod = "BRANCH_TELLER";
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "application_data", columnDefinition = "jsonb")
     private Map<String, Object> applicationData;
@@ -76,6 +79,15 @@ public class Loan {
 
     @Column(name = "disbursed_by", length = 100)
     private String disbursedBy;
+
+    @Column(name = "evaluator_id")
+    private UUID evaluatorId;
+
+    @Column(name = "evaluation_status", length = 50)
+    private String evaluationStatus;
+
+    @Column(name = "evaluation_notes", columnDefinition = "text")
+    private String evaluationNotes;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

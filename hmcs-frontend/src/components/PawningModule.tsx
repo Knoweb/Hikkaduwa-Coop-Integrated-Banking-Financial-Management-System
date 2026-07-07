@@ -18,6 +18,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   const [interestRate, setInterestRate] = useState('13');
   const [filter, setFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pawnActivityDate, setPawnActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [snackbar, setSnackbar] = useState<{open: boolean, msg: string, severity: 'success' | 'error' | 'warning'}>({ open: false, msg: '', severity: 'success' });
 
@@ -250,6 +251,9 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           </table>
         </div>
       </div>
+
+
+      {/* Modals */}
 
       {showIssueModal && (
         <IssuePawnTicketModal 

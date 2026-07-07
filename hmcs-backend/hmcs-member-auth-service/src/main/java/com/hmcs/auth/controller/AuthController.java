@@ -72,6 +72,7 @@ public class AuthController {
 
             LoginResponse res = new LoginResponse();
             res.setToken(jwtUtil.generateToken(username, roleName, branchId, tenantId));
+            res.setUserId(userRow[0] != null ? java.util.UUID.fromString(userRow[0].toString()) : null);
             res.setUsername(username);
             res.setRole(roleName);
             res.setBranchId(branchId);

@@ -43,6 +43,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     requiredLoanGoods: '',
     loanPurpose: '',
     repaymentPeriodMonths: '',
+    repaymentMethod: 'FIELD_COLLECTION',
     primaryJob: '',
     employerDetails: '',
     spouseJobTitle: '',
@@ -101,8 +102,8 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
   const validateStep = (step: number) => {
     if (step === 1) {
-      if (!formData.applicantName || !formData.nic || !formData.phone || !formData.memberNo) {
-        alert('කරුණාකර සියලුම අත්‍යවශ්‍ය මූලික තොරතුරු පුරවන්න. (Please fill all essential basic details - Name, NIC, Phone, Member No)');
+      if (!formData.appliedDate || !formData.applicantName || !formData.nic || !formData.phone || !formData.memberNo) {
+        alert('කරුණාකර සියලුම අත්‍යවශ්‍ය මූලික තොරතුරු සහ අයදුම් කළ දිනය පුරවන්න. (Please fill all essential basic details including Applied Date)');
         return false;
       }
     }
@@ -247,15 +248,21 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
             branchId: currentUser?.branchId || 1,
             appliedDate: formData.appliedDate,
             accountNumber: formData.accountNumber || undefined,
+            repaymentMethod: formData.repaymentMethod,
             applicationData: formData
         };
 
         await applyForLoan(loanTypeId, payload);
         alert('ණය ඉල්ලුම් පත්රය සාර්ථකව පද්ධතියට ඇතුළත් කරන ලදී!');
         onClose();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting loan application", error);
-        alert("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.");
+        if (error.response && error.response.data) {
+            const errorMsg = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+            alert(`දෝෂයක්! ${errorMsg}`);
+        } else {
+            alert("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.");
+        }
     } finally {
         setLoading(false);
     }
@@ -477,6 +484,14 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                 <div>
                   <label className="block text-sm font-medium mb-1">14. ණය ආපසු ගෙවීමේ කාලය (මාසික වාරික සංඛ්යාව)</label>
                   <input type="number" name="repaymentPeriodMonths" value={formData.repaymentPeriodMonths} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-bold text-emerald-800 mb-1">15. වාරික ගෙවීමේ ක්‍රමය (Repayment Method)</label>
+                  <select name="repaymentMethod" value={formData.repaymentMethod} onChange={handleInputChange} className="w-full rounded-lg border-emerald-300 p-2.5 border-2 focus:ring-2 focus:ring-emerald-500 bg-emerald-50/50 font-semibold text-emerald-900">
+                    <option value="FIELD_COLLECTION">ක්ෂේත්‍ර නිලධාරී හරහා නිවසට පැමිණ (Field Collection)</option>
+                    <option value="BRANCH_TELLER">ශාඛාවට පැමිණ (Branch Visit)</option>
+                    <option value="SAVINGS_STANDING_ORDER">ඉතුරුම් ගිණුමෙන් මාසිකව කැපීම (Standing Order)</option>
+                  </select>
                 </div>
               </div>
 

@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface LoanApprovalActionRepository extends JpaRepository<LoanApprovalAction, UUID> {
     List<LoanApprovalAction> findByLoanIdOrderByCreatedAtAsc(UUID loanId);
+    void deleteByLoanId(UUID loanId);
 }

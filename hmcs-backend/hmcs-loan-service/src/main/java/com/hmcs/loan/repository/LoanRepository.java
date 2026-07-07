@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface LoanRepository extends JpaRepository<Loan, UUID> {
     List<Loan> findByMemberId(UUID memberId);
     List<Loan> findByStatus(String status);
+    List<Loan> findByEvaluatorId(UUID evaluatorId);
 }

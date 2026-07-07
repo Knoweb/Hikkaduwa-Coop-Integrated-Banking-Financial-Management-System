@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/pawning/tickets")
+@RequestMapping("/api/v1/pawning/tickets")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class PawnController {
 
     private final PawnService pawnService;
+    private final com.hmcs.pawning.repository.PawnTicketRepository pawnTicketRepository;
+    private final com.hmcs.pawning.repository.PawnPaymentRepository pawnPaymentRepository;
 
     @PostMapping
     public ResponseEntity<PawnTicketResponse> issueTicket(@RequestBody IssueTicketRequest request) {
@@ -48,5 +49,38 @@ public class PawnController {
                 ? java.time.LocalDate.parse(request.get("date").toString()) 
                 : java.time.LocalDate.now();
         return ResponseEntity.ok(pawnService.makePayment(ticketId, amount, date));
+    }
+
+    @GetMapping("/transactions/branch/{branchId}")
+    public ResponseEntity<?> getTransactionsByBranch(@PathVariable Integer branchId) {
+        List<com.hmcs.pawning.entity.PawnTicket> tickets = pawnTicketRepository.findByBranchIdOrderByIssueDateDesc(branchId);
+        List<java.util.Map<String, Object>> txs = new java.util.ArrayList<>();
+        
+        for (com.hmcs.pawning.entity.PawnTicket t : tickets) {
+            java.util.Map<String, Object> issueTx = new java.util.HashMap<>();
+            issueTx.put("transactionId", t.getTicketId());
+            issueTx.put("transactionType", "PAWN_ISSUE");
+            issueTx.put("amount", t.getAdvanceAmount());
+            issueTx.put("transactionTimestamp", t.getIssueDate() != null ? t.getIssueDate().atStartOfDay() : java.time.LocalDateTime.now());
+            issueTx.put("reference", t.getTicketNumber());
+            issueTx.put("processedBy", t.getMemberId());
+            issueTx.put("balanceAfter", t.getAdvanceAmount());
+            txs.add(issueTx);
+            
+            List<com.hmcs.pawning.entity.PawnPayment> payments = pawnPaymentRepository.findByTicketIdOrderByPaymentDateDesc(t.getTicketId());
+            for (com.hmcs.pawning.entity.PawnPayment p : payments) {
+                java.util.Map<String, Object> payTx = new java.util.HashMap<>();
+                payTx.put("transactionId", p.getPaymentId() != null ? p.getPaymentId() : UUID.randomUUID());
+                payTx.put("transactionType", "PAWN_REPAYMENT");
+                payTx.put("amount", p.getPaymentAmount());
+                payTx.put("transactionTimestamp", p.getPaymentDate() != null ? p.getPaymentDate() : java.time.LocalDateTime.now());
+                payTx.put("reference", t.getTicketNumber());
+                payTx.put("processedBy", t.getMemberId());
+                payTx.put("balanceAfter", java.math.BigDecimal.ZERO);
+                txs.add(payTx);
+            }
+        }
+        txs.sort((a, b) -> ((java.time.LocalDateTime)b.get("transactionTimestamp")).compareTo((java.time.LocalDateTime)a.get("transactionTimestamp")));
+        return ResponseEntity.ok(txs);
     }
 }

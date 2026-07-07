@@ -61,6 +61,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
         if (category === 'general' && id === 'gen_share_price') {
           localStorage.setItem('SYS_SHARE_PRICE', newVal.toString());
         }
+        if (category === 'pawning') {
+          await PawningService.updateSetting(id, newVal.toString());
+        }
         setRatesData(prev => ({
           ...prev,
           [category]: (prev[category as keyof typeof prev] as any[]).map(item => item.id === id ? { ...item, value: newVal } : item)
@@ -428,10 +431,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     </tr>
                   ) : (
                     <tr>
-                      <th className="px-8 py-5 w-2/5">{t('Product / Type')}</th>
-                      <th className="px-8 py-5 w-1/5">{t('Target')}</th>
-                      <th className="px-8 py-5 w-1/5 text-right">{t('Current Rate')}</th>
-                      <th className="px-8 py-5 w-1/5 text-right">{t('Actions')}</th>
+                      <th className="px-8 py-5 w-1/2">{t('Product / Type')}</th>
+                      <th className="px-8 py-5 w-1/4 text-right">{t('Current Rate')}</th>
+                      <th className="px-8 py-5 w-1/4 text-right">{t('Actions')}</th>
                     </tr>
                   )}
                 </thead>
@@ -444,11 +446,13 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     
                     return (
                       <tr key={id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-8 py-5 font-bold text-slate-800">{name}</td>
                         <td className="px-8 py-5">
-                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-slate-800">{name}</span>
+                            <span className={`px-2 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-widest ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
@@ -590,15 +594,12 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                         return (
                           <tr key={lt.loanTypeId} className="hover:bg-amber-50/30 transition-colors">
                             <td className="px-8 py-5">
-                              <p className="font-bold text-slate-800">{lt.name}</p>
-                              {nameSi && <p className="text-xs text-slate-400 mt-0.5">{nameSi}</p>}
-                            </td>
-                            <td className="px-8 py-5">
-                              <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest ${
-                                category === 'SOCIETY' ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'
-                              }`}>
-                                {category === 'SOCIETY' ? 'සමාජ' : 'සමාජ නොවන'}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <p className="font-bold text-slate-800">{lt.name}</p>
+                                  {nameSi && <p className="text-xs text-slate-400 mt-0.5">{nameSi}</p>}
+                                </div>
+                              </div>
                             </td>
                             <td className="px-8 py-5 text-right">
                               {isEditing ? (
@@ -639,7 +640,6 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-8 py-5 font-bold text-slate-800">{name}</td>
-                        <td className="px-8 py-5 text-slate-400 text-xs uppercase tracking-widest font-extrabold">{t('All')}</td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">
