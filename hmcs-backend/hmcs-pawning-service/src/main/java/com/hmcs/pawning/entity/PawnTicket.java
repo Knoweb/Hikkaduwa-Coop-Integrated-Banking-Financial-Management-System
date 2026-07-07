@@ -1,6 +1,7 @@
 package com.hmcs.pawning.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
@@ -12,6 +13,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "pawn_tickets", schema = "pawning_service")
 public class PawnTicket {
+    @TenantId
+    private Integer tenantId;
+
 
     @Id
     @GeneratedValue(generator = "UUID")

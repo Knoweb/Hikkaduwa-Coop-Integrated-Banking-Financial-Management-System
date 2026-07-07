@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { applyForLoan } from '../services/loan.service';
 import { searchMembers } from '../services/account.service';
@@ -67,6 +68,8 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   }, [searchQuery, showDropdown]);
 
   const selectMember = (member: any) => {
+
+
     setSearchQuery(member.membershipNumber || member.nic || '');
     setShowDropdown(false);
     setFormData(prev => ({
@@ -151,8 +154,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
       
       {/* Header */}
       <div className="bg-[#025a4e] text-white p-5 border-b-4 border-teal-500 rounded-t-2xl shrink-0">
-        <h1 className="text-xl font-bold tracking-wide text-center">සීමාසහිත හික්කඩුව විවිධ සේවා සමූපකාර සමිතිය</h1>
-        <h2 className="text-sm text-teal-100 mt-1 text-center">සේවක ආපදා ණය ඉල්ලුම්පත</h2>
+        <h1 className="text-xl font-bold tracking-wide text-center">සේවක ආපදා ණය ඉල්ලුම්පත</h1>
       </div>
 
       {/* Form Details with Scroll */}

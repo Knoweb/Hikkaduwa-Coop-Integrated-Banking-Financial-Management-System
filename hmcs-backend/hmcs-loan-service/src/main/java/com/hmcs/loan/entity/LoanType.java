@@ -1,6 +1,7 @@
 package com.hmcs.loan.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +13,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name = "loan_types")
 @Data
 public class LoanType {
+    @TenantId
+    private Integer tenantId;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

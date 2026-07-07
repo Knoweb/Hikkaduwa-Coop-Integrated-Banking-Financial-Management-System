@@ -8,4 +8,6 @@ public class LoginResponse {
     private String role;
     private Integer branchId;   // returned to frontend for display only — never trusted for filtering
     private String branchName;
+    private Integer tenantId;
+    private String organizationName;
 }

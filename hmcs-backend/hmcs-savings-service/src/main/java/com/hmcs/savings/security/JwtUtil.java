@@ -23,6 +23,10 @@ public class JwtUtil {
         return extractAllClaims(token).get("role", String.class);
     }
 
+    public Integer extractTenantId(String token) {
+        return extractAllClaims(token).get("tenantId", Integer.class);
+    }
+
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }

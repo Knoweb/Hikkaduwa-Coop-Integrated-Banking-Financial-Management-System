@@ -1,6 +1,7 @@
 package com.hmcs.savings.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,7 +11,11 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "fixed_deposits", schema = "account_service")
+
 public class FixedDeposit {
+    @TenantId
+    private Integer tenantId;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID fdId;

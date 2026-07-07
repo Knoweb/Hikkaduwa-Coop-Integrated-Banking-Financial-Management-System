@@ -1,12 +1,16 @@
 package com.hmcs.savings.entity;
 
 import jakarta.persistence.Entity;
+import org.hibernate.annotations.TenantId;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
 public class SavingsAccountType {
+    @TenantId
+    private Integer tenantId;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

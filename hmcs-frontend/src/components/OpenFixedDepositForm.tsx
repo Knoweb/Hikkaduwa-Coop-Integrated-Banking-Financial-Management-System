@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import * as AccountService from '../services/account.service';
@@ -238,9 +239,6 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
               <span className="bg-amber-500 text-amber-950 text-xs px-3 py-1 rounded-full font-bold">ස්ථාවර තැන්පතු</span>
             </h2>
             <p className="text-xs text-emerald-200/70 mt-1">නව ස්ථාවර තැන්පතු ගිණුමක් ආරම්භ කිරීම</p>
-          </div>
-          <div className="text-right mt-1">
-            <p className="text-xs text-white font-semibold">ප්‍රධාන ශාඛාව - හික්කඩුව (Main Branch - Hikkaduwa)</p>
           </div>
         </div>
 

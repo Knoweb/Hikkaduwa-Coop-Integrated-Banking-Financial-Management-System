@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Printer, Download, FileText, CheckCircle2, ShieldCheck, Download as DownloadIcon } from 'lucide-react';
 import PrintableFdReceipt from './PrintableFdReceipt';
@@ -20,6 +21,8 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
   }, []);
 
   const getMemberName = (id: string) => {
+
+
     if (!id) return '-';
     const member = members.find(m => m.memberId === id);
     return member ? member.fullName || member.fullNameSinhala : 'Unknown Member';
@@ -153,7 +156,7 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                 {/* Common Bank Header for Print */}
                 <div className="text-center mb-10 border-b-2 border-[#025a4e] pb-6">
                   <h1 className="text-2xl font-black text-[#025a4e] tracking-tight">HIKKADUWA CO-OP BANK</h1>
-                  <p className="text-sm font-semibold text-slate-500 mt-1">විවිධ සේවා සමුපකාර සමිතිය ලිමිටඩ් - හික්කඩුව</p>
+
                   <div className="mt-4 inline-block bg-slate-100 text-slate-700 px-4 py-1 rounded-full text-xs font-bold border border-slate-200">
                     ස්ථාවර තැන්පතු විස්තරය
                   </div>

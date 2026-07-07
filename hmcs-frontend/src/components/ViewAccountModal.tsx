@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Search, ArrowDownLeft, ArrowUpRight, Lock, FileText } from 'lucide-react';
 import type { AccountData, MemberData } from '../services/account.service';
@@ -13,6 +14,8 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
   const [txAction, setTxAction] = useState<TransactionAction | null>(null);
 
   const getMemberDetails = (memberId?: string) => {
+
+
     if (!memberId) return null;
     return members.find(m => m.memberId === memberId) || null;
   };
@@ -109,23 +112,7 @@ export default function ViewAccountModal({ account, members, onClose }: Props) {
           
           {/* ================= STEP 1: Institutional & Classification ================= */}
           <div className="space-y-6">
-            <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100/70">
-              <h4 className="text-xs font-bold text-[#025a4e] uppercase tracking-wider mb-3">ආයතනික පද්ධති දත්ත (Institutional Read-Only)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">ග්රාමීය බැංකු ශාඛාව</label>
-                  <input type="text" value="හික්කඩුව ග්රාමීය බැංකුව" disabled className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">සමුපකාර සමිතිය</label>
-                  <input type="text" value="සීමාසහිත හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය" disabled className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">සාමාජිකත්වය</label>
-                  <input type="text" value={primaryMember?.isMember ? 'සමාජික ගිණුමක්' : 'සමාජික නොවන ගිණුමක්'} disabled className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed" />
-                </div>
-              </div>
-            </div>
+
 
             <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">ගිණුම් වර්ගීකරණය</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

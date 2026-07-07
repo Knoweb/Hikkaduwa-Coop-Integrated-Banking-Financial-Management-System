@@ -268,14 +268,13 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       <div className="bg-[#025a4e] text-white p-5 border-b-4 border-amber-500 shrink-0">
         <div className="flex justify-between items-start">
           <div>
+            <p className="text-xs text-emerald-200/80 mb-1 font-semibold">විවිධ සේවා සමුපකාර සමිතිය</p>
             <h2 className="text-xl font-bold tracking-wide flex items-center gap-4">
               මුදල් ඉතිරිකිරීමේ තැන්පත් ගිණුම් පෝරමය
               <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${isSocietyMember ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-amber-500 text-[#01443b] border border-amber-400'}`}>
                 {isSocietyMember ? 'සමාජික ගිණුමක්' : 'සමාජික නොවන ගිණුමක්'}
               </span>
             </h2>
-            <p className="text-xs text-emerald-100 mt-2">සීමාසහිත {formData.societyName}</p>
-            <p className="text-xs text-amber-300 font-medium mt-0.5">{formData.branchName} සමූපකාර ග්රාමීය බැංකුව</p>
           </div>
           <div className="flex items-start gap-4">
             <div className="text-right bg-[#01443b] p-2 rounded-lg border border-emerald-700 text-xs shadow-inner">
@@ -327,25 +326,6 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         {/* ================= STEP 1 ================= */}
         {step === 1 && (
           <div className="space-y-6">
-            {/* ආයතනික තොරතුරු (Auto-Filled Fields) */}
-            <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100/70">
-              <h4 className="text-xs font-bold text-[#025a4e] uppercase tracking-wider mb-3">ආයතනික පද්ධති දත්ත (Institutional Read-Only)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">ග්රාමීය බැංකු ශාඛාව</label>
-                  <input type="text" value={`${formData.branchName} ග්රාමීය බැංකුව`} readOnly className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">සමුපකාර සමිතිය</label>
-                  <input type="text" value={`සීමාසහිත ${formData.societyName}`} readOnly className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">සාමාජිකත්වය</label>
-                  <input type="text" value={isSocietyMember ? 'සමාජික ගිණුමක්' : 'සමාජික නොවන ගිණුමක්'} readOnly className="w-full border border-emerald-200 rounded-lg p-2 bg-emerald-50 text-sm font-medium text-emerald-900 cursor-not-allowed focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
             <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">ගිණුම් වර්ගීකරණය</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

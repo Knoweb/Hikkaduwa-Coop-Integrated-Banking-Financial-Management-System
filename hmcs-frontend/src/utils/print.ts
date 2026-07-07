@@ -1,4 +1,9 @@
 export const printLoanAgreement = (loan: any, ad: any) => {
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : {};
+  const orgName = user.organizationName || 'HMCS Bank';
+  const branchName = user.branchName || 'Main Branch';
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -56,7 +61,7 @@ export const printLoanAgreement = (loan: any, ad: any) => {
 </head>
 <body>
   <div class="header">
-    <h1 class="bank-name">Hikkaduwa Co-operative Society Bank</h1>
+    <h1 class="bank-name"></h1>
     <p class="branch-name">Hikkaduwa Branch (හික්කඩුව ශාඛාව)</p>
   </div>
 
@@ -86,7 +91,7 @@ export const printLoanAgreement = (loan: any, ad: any) => {
 
   <p style="font-size: 12px; margin-top: 30px; text-align: justify;">
     I, the undersigned applicant, hereby confirm that the information provided above is true and accurate.
-    I agree to abide by the terms and conditions set forth by the Hikkaduwa Co-operative Society Bank
+    I agree to abide by the terms and conditions set forth by the 
     regarding the repayment of this loan, including the agreed interest rate and monthly installments.
     In the event of default, the bank reserves the right to recover the outstanding balance from my savings,
     assets, or through my guarantors.
@@ -122,6 +127,11 @@ export const printLoanAgreement = (loan: any, ad: any) => {
 };
 
 export const printDisbursementReceipt = (loan: any, ad: any, officerName: string) => {
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : {};
+  const orgName = user.organizationName || 'HMCS Bank';
+  const branchName = user.branchName || 'Main Branch';
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -181,7 +191,7 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
 <body>
   <div class="slip-container">
     <div class="header">
-      <div class="logo-text">HIKKADUWA CO-OP BANK</div>
+      <div class="logo-text"></div>
       <div class="branch-text">හික්කඩුව ශාඛාව &bull; HIKKADUWA BRANCH</div>
     </div>
     
@@ -257,6 +267,11 @@ export const printDisbursementReceipt = (loan: any, ad: any, officerName: string
 };
 
 export const printPawnTicket = (ticket: any) => {
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : {};
+  const orgName = user.organizationName || 'HMCS Bank';
+  const branchName = user.branchName || 'Main Branch';
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -325,7 +340,7 @@ export const printPawnTicket = (ticket: any) => {
     <div class="bg-watermark">HMCS PAWNING</div>
     
     <div class="header">
-      <h1 class="bank-name">Hikkaduwa Co-operative Society Bank</h1>
+      <h1 class="bank-name"></h1>
       <p class="branch-name">Hikkaduwa Branch (හික්කඩුව ශාඛාව)</p>
     </div>
 
@@ -398,6 +413,11 @@ export const printPawnTicket = (ticket: any) => {
   printWindow.document.close();
 };
 export const printAccountStatement = (passbookData: any) => {
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : {};
+  const orgName = user.organizationName || 'HMCS Bank';
+  const branchName = user.branchName || 'Main Branch';
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -465,7 +485,7 @@ export const printAccountStatement = (passbookData: any) => {
 <body>
   <div class="header">
     <div class="bank-name">HMCS Bank</div>
-    <div class="bank-sub">Hikkaduwa Co-op Integrated Banking Financial Management System</div>
+    <div class="bank-sub"> Integrated Banking System</div>
   </div>
   
   <div class="title">ACCOUNT PASSBOOK / STATEMENT</div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LogOut, LayoutDashboard, Users, CreditCard, FileText, Settings } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
+import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.jpg';
 
 interface LayoutProps {
@@ -11,6 +12,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
   const user = AuthService.getCurrentUser();
 
   const handleLogout = () => {
@@ -48,7 +50,7 @@ export default function Layout({ children }: LayoutProps) {
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex fixed h-full z-10">
         <div className="h-16 flex items-center px-6 border-b border-slate-200">
           <img src={logo} alt="HMCS Logo" className="w-8 h-8 rounded-lg object-cover mr-3 border border-slate-200" />
-          <span className="font-bold text-slate-800 text-lg">HMCS Bank</span>
+          <span className="font-bold text-slate-800 text-lg">{user.organizationName ? t(user.organizationName) : 'HMCS Bank'}</span>
         </div>
         
         <div className="flex-1 overflow-y-auto py-4">

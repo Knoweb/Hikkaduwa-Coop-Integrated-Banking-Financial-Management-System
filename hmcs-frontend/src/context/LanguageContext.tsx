@@ -193,7 +193,7 @@ const translations: Translations = {
   'Staff & Users': { en: 'Staff & Users', si: 'කාර්ය මණ්ඩලය සහ පරිශීලකයින්' },
   'Interest Rates': { en: 'Interest Rates', si: 'පොලී අනුපාත' },
   'Account Types': { en: 'Account Types', si: 'ගිණුම් වර්ග' },
-  'Add Type': { en: 'Add Type', si: '+ අලුතින් එක් කරන්න' },
+  'Add Type': { en: 'Add Type', si: 'අලුතින් එක් කරන්න' },
   'Branch Config': { en: 'Branch Config', si: 'ශාඛා සැකසුම්' },
   'Add User': { en: 'Add User', si: 'පරිශීලක එක් කරන්න' },
   'Role': { en: 'Role', si: 'භූමිකාව' },
@@ -263,6 +263,9 @@ const translations: Translations = {
   'Advance per Gold Sovereign': { en: 'Advance per Gold Sovereign', si: 'රන් පවුමකට අත්තිකාරම්' },
   // Save All Rates
   'Save All Rates': { en: 'Save All Rates', si: 'සියලුම අනුපාත සුරකින්න' },
+  'Branch updated successfully!': { en: 'Branch updated successfully!', si: 'ශාඛාව සාර්ථකව යාවත්කාලීන කරන ලදී!' },
+  'Failed to update branch': { en: 'Failed to update branch', si: 'ශාඛාව යාවත්කාලීන කිරීම අසාර්ථකයි' },
+  'Saving...': { en: 'Saving...', si: 'සුරකිමින්...' },
   
   // Locations
   'Hikkaduwa Town': { en: 'Hikkaduwa Town', si: 'හික්කඩුව නගරය' },

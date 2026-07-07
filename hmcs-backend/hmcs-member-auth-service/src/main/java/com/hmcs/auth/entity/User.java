@@ -1,6 +1,7 @@
 package com.hmcs.auth.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -9,6 +10,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "users", schema = "auth_service")
 public class User {
+    @TenantId
+    private Integer tenantId;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID userId;

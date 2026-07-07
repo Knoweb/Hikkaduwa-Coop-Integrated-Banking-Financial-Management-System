@@ -1,6 +1,7 @@
 package com.hmcs.loan.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -16,6 +17,9 @@ import java.util.UUID;
 @Table(name = "loan_applicant_details", schema = "loan_service")
 @Data
 public class LoanApplicantDetail {
+    @TenantId
+    private Integer tenantId;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -11,12 +11,13 @@ import java.security.Key;
 public class JwtUtil {
     private final Key key = Keys.hmacShaKeyFor("hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system".getBytes());
 
-    // branchId is now embedded in the token — can never be tampered with from the frontend
-    public String generateToken(String username, String role, Integer branchId) {
+    // branchId and tenantId are embedded in the token
+    public String generateToken(String username, String role, Integer branchId, Integer tenantId) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
                 .claim("branchId", branchId)
+                .claim("tenantId", tenantId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 86400000))
                 .signWith(key)
@@ -34,6 +35,10 @@ public class JwtUtil {
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
+    public Integer extractTenantId(String token) {
+        return extractAllClaims(token).get("tenantId", Integer.class);
+    }
+
 
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();

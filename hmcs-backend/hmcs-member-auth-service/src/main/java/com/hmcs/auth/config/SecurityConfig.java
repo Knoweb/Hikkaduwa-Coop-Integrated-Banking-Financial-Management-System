@@ -25,6 +25,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 // Strictly lock the user management APIs to SYSTEM_ADMIN
                 .requestMatchers("/api/v1/auth/users/**").hasRole("SYSTEM_ADMIN")
+                .requestMatchers("/api/v1/auth/branches/**").hasRole("SYSTEM_ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

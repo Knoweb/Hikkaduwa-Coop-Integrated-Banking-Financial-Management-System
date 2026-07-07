@@ -1,6 +1,7 @@
 package com.hmcs.loan.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -13,6 +14,9 @@ import java.util.UUID;
 @Table(name = "ledger_entries")
 @Data
 public class LedgerEntry {
+    @TenantId
+    private Integer tenantId;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

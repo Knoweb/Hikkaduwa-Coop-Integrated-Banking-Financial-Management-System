@@ -1,12 +1,16 @@
 package com.hmcs.auth.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 
 @Data
 @Entity
 @Table(name = "branches", schema = "auth_service")
 public class Branch {
+    @TenantId
+    private Integer tenantId;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer branchId;

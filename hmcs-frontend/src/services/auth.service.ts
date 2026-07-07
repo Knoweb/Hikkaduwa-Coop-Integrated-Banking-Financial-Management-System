@@ -23,13 +23,25 @@ axios.interceptors.response.use(
   }
 );
 
+export const getTenantCode = (): string => {
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'hikkaduwa'; // Default tenant for local development
+  }
+  return hostname.split('.')[0];
+};
+
 export const login = async (username: string, password: string) => {
   const response = await axios.post(API_URL + 'login', {
     username,
     password,
   });
   if (response.data.token) {
-    localStorage.setItem('user', JSON.stringify(response.data));
+    const userObj = {
+      ...response.data,
+      tenantId: response.data.tenantId
+    };
+    localStorage.setItem('user', JSON.stringify(userObj));
   }
   return response.data;
 };

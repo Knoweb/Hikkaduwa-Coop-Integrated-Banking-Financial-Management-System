@@ -11,6 +11,7 @@ import com.hmcs.auth.repository.UserRepository;
 import com.hmcs.auth.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.persistence.EntityManager;
 
 import java.util.Optional;
 
@@ -21,33 +22,68 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
     private final JwtUtil jwtUtil;
+    private final EntityManager entityManager;
 
-    public AuthController(UserRepository userRepo, RoleRepository roleRepo, BranchRepository branchRepo, JwtUtil jwtUtil) {
+    public AuthController(UserRepository userRepo, RoleRepository roleRepo, BranchRepository branchRepo, JwtUtil jwtUtil, EntityManager entityManager) {
         this.userRepository = userRepo;
         this.roleRepository = roleRepo;
         this.branchRepository = branchRepo;
         this.jwtUtil = jwtUtil;
+        this.entityManager = entityManager;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
+        if (request.getUsername() == null || request.getUsername().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username is required");
+        }
 
-        if (userOpt.isPresent() && userOpt.get().getPasswordHash().equals(request.getPassword())) {
-            User user = userOpt.get();
-            Integer branchId = user.getBranch() != null ? user.getBranch().getBranchId() : null;
-            String branchName = user.getBranch() != null ? user.getBranch().getBranchName() : "System-wide";
+        try {
+            // Find user globally across all tenants using native query to bypass Hibernate @TenantId
+            java.util.List<Object[]> users = entityManager.createNativeQuery(
+                "SELECT u.user_id, u.username, u.password_hash, u.tenant_id, r.role_name, b.branch_id, b.branch_name, o.name as organization_name " +
+                "FROM auth_service.users u " +
+                "JOIN auth_service.roles r ON u.role_id = r.role_id " +
+                "LEFT JOIN auth_service.branches b ON u.branch_id = b.branch_id " +
+                "LEFT JOIN auth_service.organizations o ON u.tenant_id = o.organization_id " +
+                "WHERE u.username = :username AND u.status = 'ACTIVE'"
+            ).setParameter("username", request.getUsername()).getResultList();
+
+            if (users.isEmpty()) {
+                System.out.println("Login Failed: users.isEmpty() for " + request.getUsername());
+                return ResponseEntity.status(401).body("Invalid credentials or inactive user");
+            }
+
+            Object[] userRow = users.get(0);
+            String dbPassword = (String) userRow[2];
+            
+            if (!dbPassword.equals(request.getPassword())) {
+                System.out.println("Login Failed: password mismatch for " + request.getUsername() + ". DB: [" + dbPassword + "], Req: [" + request.getPassword() + "]");
+                return ResponseEntity.status(401).body("Invalid credentials");
+            }
+
+            System.out.println("Login Success: " + request.getUsername());
+            String username = (String) userRow[1];
+            Integer tenantId = userRow[3] != null ? ((Number) userRow[3]).intValue() : null;
+            String roleName = (String) userRow[4];
+            Integer branchId = userRow[5] != null ? ((Number) userRow[5]).intValue() : null;
+            String branchName = userRow[6] != null ? (String) userRow[6] : "System-wide";
+            String orgName = userRow[7] != null ? (String) userRow[7] : "HMCS Platform";
 
             LoginResponse res = new LoginResponse();
-            // branchId is embedded INSIDE the JWT — frontend cannot tamper with it
-            res.setToken(jwtUtil.generateToken(user.getUsername(), user.getRole().getRoleName(), branchId));
-            res.setUsername(user.getUsername());
-            res.setRole(user.getRole().getRoleName());
+            res.setToken(jwtUtil.generateToken(username, roleName, branchId, tenantId));
+            res.setUsername(username);
+            res.setRole(roleName);
             res.setBranchId(branchId);
             res.setBranchName(branchName);
+            res.setTenantId(tenantId);
+            res.setOrganizationName(orgName);
             return ResponseEntity.ok(res);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Internal server error during login");
         }
-        return ResponseEntity.status(401).body("Invalid credentials");
     }
 
     @PostMapping("/seed-admin")

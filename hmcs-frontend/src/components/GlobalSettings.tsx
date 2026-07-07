@@ -496,7 +496,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                             {/* Category Header Row */}
                             <tr 
                               className="bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors border-b border-slate-100"
-                              onClick={() => toggleFdCategory(cat)}
+                              onClick={() => toggleFdCategory(cat.code)}
                             >
                               <td colSpan={4} className="px-6 py-4">
                                 <div className="font-bold text-slate-800 flex items-center gap-2">
@@ -793,7 +793,6 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 { id: 'savings', label: 'Savings', icon: PiggyBank, color: 'text-blue-600', activeBg: 'bg-blue-600 text-white shadow-md shadow-blue-500/20 border-blue-600' },
                 { id: 'fd', label: 'Fixed Deposits', icon: Lock, color: 'text-emerald-600', activeBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 border-emerald-600' },
                 { id: 'loans', label: 'Loans', icon: Briefcase, color: 'text-amber-600', activeBg: 'bg-amber-500 text-white shadow-md shadow-amber-500/20 border-amber-500' },
-                { id: 'pawning', label: 'Pawning', icon: Scale, color: 'text-purple-600', activeBg: 'bg-purple-600 text-white shadow-md shadow-purple-500/20 border-purple-600' },
               ].map(tab => {
                 const isActive = accountCategory === tab.id;
                 return (
@@ -894,7 +893,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                     </button>
                                   )}
                                 </div>
-                                {expandedFdCategories.includes(cat) && (
+                                {expandedFdCategories.includes(cat.code) && (
                                   <div className="divide-y divide-slate-50">
                                     {items.length === 0 ? (
                                       <div className="px-8 py-4 text-xs font-semibold text-slate-400">

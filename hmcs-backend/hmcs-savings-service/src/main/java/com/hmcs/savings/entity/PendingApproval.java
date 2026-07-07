@@ -1,6 +1,7 @@
 package com.hmcs.savings.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,7 +10,11 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "pending_approvals", schema = "account_service")
+
 public class PendingApproval {
+    @TenantId
+    private Integer tenantId;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID approvalId;

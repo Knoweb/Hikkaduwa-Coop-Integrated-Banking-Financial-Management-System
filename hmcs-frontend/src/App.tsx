@@ -16,7 +16,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           {/* System Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'PLATFORM_ADMIN']} />}>
             <Route path="/dashboard" element={<SystemAdminDashboard />} />
             <Route path="/admin/branch/:id" element={<BranchDashboard />} />
           </Route>

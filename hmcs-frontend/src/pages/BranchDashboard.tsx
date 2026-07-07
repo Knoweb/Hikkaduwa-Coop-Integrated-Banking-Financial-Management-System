@@ -35,7 +35,7 @@ export const getBranchName = (branchId: number) => {
     case 6: return 'Peraliya Branch';
     case 7: return 'Kalupe Branch';
     case 8: return 'Gonapinuwala Branch';
-    default: return 'Hikkaduwa Branch'; // Fallback
+    default: return `Branch ${branchId}`; // Fallback to Branch ID for dynamic tenants
   }
 };
 
@@ -2397,7 +2397,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
               <div className="flex items-center gap-4">
                 <img src={logo} alt="HMCS Logo" className="w-12 h-12 rounded-md object-cover border border-white/20 shadow-sm bg-white" />
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t(getBranchName(user.branchId))}</h2>
+                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{user.branchName ? t(user.branchName) : t(getBranchName(user.branchId))}</h2>
                   <p className="text-slate-300 text-sm">{(form as any).memberId ? t('Edit Profile') : form.isMember ? t('Register New Member') : t('Register Non-Member')}</p>
                 </div>
               </div>
@@ -3125,56 +3125,56 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
       {/* Sidebar */}
       {!hideSidebar && (
         <aside className={`w-64 bg-gradient-to-b ${config.gradient} flex flex-col fixed h-full z-10`}>
-        <div className="h-16 flex items-center px-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#01443b] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+        <div className="h-14 flex items-center px-4 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-[#01443b] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
               <img src={logo} alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div>
-              <p className="font-bold text-white text-sm">{t(getBranchName(user.branchId))}</p>
-              <p className="text-white/50 text-xs">HMCS Bank</p>
+              <p className="font-bold text-white text-[14px] leading-tight">{user.organizationName ? t(user.organizationName) : 'HMCS Bank'}</p>
+              <p className="text-white/70 text-[10px] leading-tight">{user.branchName ? t(user.branchName) : t(getBranchName(user.branchId))}</p>
             </div>
           </div>
         </div>
 
-        <div className="px-4 py-4 border-b border-white/10">
-          <div className={`${config.bg} bg-opacity-30 rounded-xl px-3 py-2 flex items-center gap-2`}>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
+        <div className="px-3 py-2.5 border-b border-white/10">
+          <div className={`${config.bg} bg-opacity-30 rounded-lg px-2.5 py-1.5 flex items-center gap-2`}>
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs">
               {user.username?.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="text-white text-sm font-semibold">{user.username}</p>
-              <p className="text-white/60 text-xs">{t(config.label)}</p>
+              <p className="text-white text-[13px] font-semibold leading-tight">{user.username}</p>
+              <p className="text-white/60 text-[10px] leading-tight">{t(config.label)}</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
           {navItems.map((item, idx) => {
             if (item.isSection) {
               return (
-                <div key={`sec-${idx}`} className={idx === 0 ? "mb-2 px-3" : "mt-6 mb-2 px-3"}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t(item.label)}</p>
+                <div key={`sec-${idx}`} className={idx === 0 ? "mb-1.5 px-4" : "mt-4 mb-1.5 px-4"}>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/50">{t(item.label)}</p>
                 </div>
               );
             }
             if (item.subItems) {
               return (
                 <div key={item.key} className="relative group">
-                  <button className="flex items-center w-full px-3 py-3 mb-2 rounded-xl text-sm font-bold transition-all border text-left leading-tight bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white">
-                    <item.icon size={18} className="mr-3 shrink-0 text-white/70" />
+                  <button className="flex items-center w-full px-4 py-2.5 mb-1.5 rounded-xl text-[15px] font-bold transition-all border text-left leading-tight bg-white/5 border-white/30 text-white/80 hover:bg-white/15 hover:border-white/50 hover:text-white">
+                    <item.icon size={20} className="mr-3.5 shrink-0 text-white/80" />
                     <span className="flex-1">{t(item.label)}</span>
-                    <ChevronRight size={16} className="text-white/50 group-hover:rotate-90 transition-transform" />
+                    <ChevronRight size={18} className="text-white/50 group-hover:rotate-90 transition-transform" />
                   </button>
-                  <div className="hidden group-hover:block pl-8 space-y-1 mb-2">
+                  <div className="hidden group-hover:block pl-8 space-y-0.5 mb-1">
                     {item.subItems.map((sub: any) => (
                       <button key={sub.key} onClick={() => setTab(sub.key)}
-                        className={`flex items-center w-full px-3 py-2 rounded-xl text-sm font-semibold transition-all border text-left leading-tight ${
+                        className={`flex items-center w-full px-4 py-2 mt-1 rounded-xl text-[14px] font-semibold transition-all border text-left leading-tight ${
                           tab === sub.key 
-                            ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)]' 
-                            : 'bg-transparent border-transparent text-white/60 hover:text-white hover:bg-white/10'
+                            ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)]' 
+                            : 'bg-white/5 border-white/30 text-white/70 hover:text-white hover:bg-white/10'
                         }`}>
-                        {sub.icon && <sub.icon size={16} className={`mr-2 shrink-0 ${tab === sub.key ? config.color : 'text-white/60'}`} />}
+                        {sub.icon && <sub.icon size={18} className={`mr-2.5 shrink-0 ${tab === sub.key ? config.color : 'text-white/70'}`} />}
                         <span className="flex-1">{t(sub.label)}</span>
                       </button>
                     ))}
@@ -3184,28 +3184,28 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
             }
             return (
               <button key={item.key} onClick={() => setTab(item.key!)}
-                className={`flex items-center w-full px-4 py-2.5 mb-2 rounded-xl text-sm font-semibold transition-all border ${
+                className={`flex items-center w-full px-4 py-2.5 mb-1.5 rounded-xl text-[15px] font-bold transition-all border ${
                   tab === item.key 
-                    ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)] scale-[1.02]' 
-                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white'
+                    ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)] scale-[1.02]' 
+                    : 'bg-white/5 border-white/30 text-white/80 hover:bg-white/15 hover:border-white/50 hover:text-white'
                 }`}>
-                <item.icon size={18} className={`mr-3 shrink-0 ${tab === item.key ? config.color : 'text-white/70'}`} />
+                <item.icon size={20} className={`mr-3.5 shrink-0 ${tab === item.key ? config.color : 'text-white/80'}`} />
                 <span className="flex-1">{t(item.label)}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="px-3 py-2 border-t border-white/10">
           {onBack ? (
             <button onClick={onBack}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
-              <LogOut size={16} className="mr-2 rotate-180" /> {t('Back to Admin')}
+              className="flex items-center w-full px-3 py-1.5 text-[13px] font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
+              <LogOut size={14} className="mr-2 rotate-180" /> {t('Back to Admin')}
             </button>
           ) : (
             <button onClick={() => { AuthService.logout(); navigate('/login'); }}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
-              <LogOut size={16} className="mr-2" /> {t('Sign Out')}
+              className="flex items-center w-full px-3 py-1.5 text-[13px] font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition">
+              <LogOut size={14} className="mr-2" /> {t('Sign Out')}
             </button>
           )}
         </div>
@@ -3218,7 +3218,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
         {!hideSidebar && (
           <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
             <div>
-              <h1 className="text-lg font-bold text-slate-800">{t(getBranchName(user.branchId))}</h1>
+              <h1 className="text-lg font-bold text-slate-800">{user.branchName ? t(user.branchName) : t(getBranchName(user.branchId))}</h1>
               <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
             </div>
             <div className="flex items-center gap-4">

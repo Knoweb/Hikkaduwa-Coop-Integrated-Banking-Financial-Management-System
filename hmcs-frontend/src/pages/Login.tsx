@@ -20,9 +20,12 @@ export default function Login() {
     try {
       const response = await AuthService.login(username, password);
       
+      // Clear any previous session state to prevent tab leakage between different users
+      sessionStorage.clear();
+      
       // Redirect based on user role
       const role = response.role;
-      if (role === 'SYSTEM_ADMIN') {
+      if (role === 'SYSTEM_ADMIN' || role === 'PLATFORM_ADMIN') {
         navigate('/dashboard');
       } else if (role === 'GENERAL_MANAGER') {
         navigate('/manager/dashboard');
@@ -77,7 +80,7 @@ export default function Login() {
           
           <div className="text-center mb-10 w-full">
             <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 mb-2 tracking-tight">
-              HMCS බැංකුව
+              සමුපකාර බැංකු පද්ධතිය
             </h1>
             <p className="text-yellow-500/80 text-sm font-medium tracking-wide uppercase">සුරක්ෂිත පිවිසුම</p>
           </div>
@@ -148,9 +151,9 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-10 text-center w-full">
-            <p className="text-xs text-slate-500 font-medium">හික්කඩුව විවිධ සේවා සමුපකාර සමිතිය</p>
-            <p className="text-[10px] text-slate-600 mt-1 uppercase tracking-widest">© 2026 ඒකාබද්ධ බැංකු පද්ධතිය</p>
+          <div className="mt-8 text-center">
+            <p className="text-slate-500 text-xs font-medium">සමුපකාර බැංකු පද්ධතිය</p>
+            <p className="text-slate-600 text-[10px] mt-1">© 2026 එනොවිටිව් බැංකු පද්ධතිය</p>
           </div>
         </div>
       </div>

@@ -1,0 +1,62 @@
+package com.hmcs.pawning.multitenancy;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+import java.util.Base64;
+
+@Component
+public class TenantInterceptor implements HandlerInterceptor {
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        String authHeader = request.getHeader("Authorization");
+        Integer tenantId = null;
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                String[] parts = token.split("\\.");
+                if (parts.length == 3) {
+                    String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+                    String search = "\"tenantId\":";
+                    int idx = payload.indexOf(search);
+                    if (idx != -1) {
+                        int start = idx + search.length();
+                        int end = payload.indexOf(",", start);
+                        if (end == -1) end = payload.indexOf("}", start);
+                        if (end != -1) {
+                            String idStr = payload.substring(start, end).trim();
+                            tenantId = Integer.parseInt(idStr);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+
+        if (tenantId == null) {
+            String tenantHeader = request.getHeader("X-Tenant-ID");
+            if (tenantHeader != null) {
+                try {
+                    tenantId = Integer.parseInt(tenantHeader);
+                } catch (NumberFormatException e) {
+                }
+            }
+        }
+
+        if (tenantId != null) {
+            TenantContext.setTenantId(tenantId);
+        } else {
+            TenantContext.setTenantId(1);
+        }
+
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        TenantContext.clear();
+    }
+}
