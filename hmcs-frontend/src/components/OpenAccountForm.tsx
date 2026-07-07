@@ -360,6 +360,11 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම ආරම්භ කළ දිනය (Opened Date)</label>
                 <input type="date" name="openedDate" value={formData.openedDate} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                {formData.openedDate !== formData.date && (
+                  <p className="text-[11px] font-bold text-amber-700 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)
+                  </p>
+                )}
               </div>
 
 
