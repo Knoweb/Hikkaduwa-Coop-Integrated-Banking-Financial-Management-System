@@ -177,6 +177,26 @@ public class SavingsController {
         return ResponseEntity.ok(savedAccount);
     }
 
+    public static class UpdateStatusRequest {
+        public String status;
+    }
+
+    @PutMapping("/accounts/{accountId}/status")
+    public ResponseEntity<?> updateAccountStatus(@PathVariable UUID accountId, @RequestBody UpdateStatusRequest body, HttpServletRequest request) {
+        Integer branchId = branchContext.extractBranchId(request);
+        Optional<Account> accOpt = accountRepository.findById(accountId);
+        if (accOpt.isEmpty()) return ResponseEntity.badRequest().body("Account not found");
+        
+        Account acc = accOpt.get();
+        if (branchId != null && branchId != 1 && !acc.getBranchId().equals(branchId)) {
+            return ResponseEntity.status(403).body("Unauthorized to modify this account");
+        }
+
+        acc.setStatus(body.status.toUpperCase());
+        accountRepository.save(acc);
+        return ResponseEntity.ok(acc);
+    }
+
     // DTO for transaction
     public static class TransactionRequest {
         public String accountNumber;

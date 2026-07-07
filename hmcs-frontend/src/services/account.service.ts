@@ -138,6 +138,11 @@ export const getAdminSummary = async () => {
   return res.data;
 };
 
+export const updateAccountStatus = async (accountId: string, status: string): Promise<any> => {
+  const res = await axios.put(`${API_URL}accounts/${accountId}/status`, { status }, { headers: authHeader() });
+  return res.data;
+};
+
 // --- Savings Account Types API ---
 export interface SavingsAccountType {
   id?: number;

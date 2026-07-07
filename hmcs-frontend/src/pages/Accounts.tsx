@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen } from 'lucide-react';
+import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen, Power } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 import ViewAccountModal from '../components/ViewAccountModal';
@@ -250,6 +250,22 @@ export default function Accounts() {
                           title="Withdraw"
                         >
                           <ArrowUpRight size={18} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to ${acc.status === 'ACTIVE' ? 'deactivate' : 'activate'} this account?`)) {
+                              try {
+                                await AccountService.updateAccountStatus(acc.accountId!, acc.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+                                fetchData();
+                              } catch (e) {
+                                alert('Failed to update account status');
+                              }
+                            }
+                          }}
+                          className={`${acc.status === 'ACTIVE' ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} p-1.5 rounded-lg transition-colors`}
+                          title={acc.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
+                        >
+                          <Power size={18} />
                         </button>
                       </td>
                     </tr>
