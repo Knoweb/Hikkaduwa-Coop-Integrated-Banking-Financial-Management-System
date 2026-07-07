@@ -89,6 +89,7 @@ public class SavingsController {
         public String witnessAddress;
         public String specimenSignature;
         public Boolean hasSubmittedTaxForm;
+        public Boolean isMigration;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -156,13 +157,19 @@ public class SavingsController {
 
             Transaction tx = new Transaction();
             tx.setAccount(savedAccount);
-            tx.setTransactionType("INITIAL_DEPOSIT");
             tx.setAmount(body.initialDeposit);
             tx.setBalanceAfter(body.initialDeposit);
             tx.setBranchId(branchId);
             tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
-            if (savedAccount.getOpenedDate() != null) {
-                tx.setTransactionTimestamp(savedAccount.getOpenedDate().atStartOfDay());
+            
+            if (Boolean.TRUE.equals(body.isMigration)) {
+                tx.setTransactionType("BROUGHT_FORWARD");
+                tx.setTransactionTimestamp(LocalDateTime.now());
+            } else {
+                tx.setTransactionType("INITIAL_DEPOSIT");
+                if (savedAccount.getOpenedDate() != null) {
+                    tx.setTransactionTimestamp(savedAccount.getOpenedDate().atStartOfDay());
+                }
             }
             transactionRepository.save(tx);
         }

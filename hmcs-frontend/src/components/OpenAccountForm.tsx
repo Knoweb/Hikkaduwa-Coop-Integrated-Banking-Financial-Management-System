@@ -154,7 +154,8 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     age3: '', // [cite: 91]
 
     // මූල්ය සහ සාක්ෂි
-    initialDeposit: '' // [cite: 118]
+    initialDeposit: '', // [cite: 118]
+    isMigration: false
   });
 
   const handleInputChange = (e: any) => {
@@ -231,7 +232,8 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         occupation3: formData.occupation3 || undefined,
         witnessName: formData.witnessName,
         witnessAddress: formData.witnessAddress,
-        specimenSignature: signaturePreview || undefined
+        specimenSignature: signaturePreview || undefined,
+        isMigration: formData.isMigration
       };
 
       const res = await AccountService.openAccount(accountData);
@@ -627,14 +629,34 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         {step === 4 && (
           <div className="space-y-6">
             {/* මූල්ය තැන්පතු */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border border-gray-200 p-4 rounded-xl bg-gray-50">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">ප්‍රථම තැන්පතු මුදල (Initial Deposit - LKR)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-600 font-bold sm:text-sm">රු.</span>
+            <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 mb-6">
+              <label className="flex items-center gap-3 cursor-pointer p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4 hover:bg-amber-100 transition-colors">
+                <input 
+                  type="checkbox" 
+                  name="isMigration"
+                  checked={formData.isMigration}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500" 
+                />
+                <span className="text-sm font-bold text-amber-900">පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමක්ද? (Is this a migration of an old manual account?)</span>
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    {formData.isMigration ? 'වර්තමාන ශේෂය (Current Available Balance - LKR)' : 'ප්‍රථම තැන්පතු මුදල (Initial Deposit - LKR)'}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-600 font-bold sm:text-sm">රු.</span>
+                    </div>
+                    <input type="number" name="initialDeposit" value={formData.initialDeposit} onChange={handleInputChange} placeholder="0.00" className="w-full border border-gray-300 rounded-lg pl-9 p-2 text-sm font-bold text-gray-900 focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
-                  <input type="number" name="initialDeposit" value={formData.initialDeposit} onChange={handleInputChange} placeholder="0.00" className="w-full border border-gray-300 rounded-lg pl-9 p-2 text-sm font-bold text-gray-900 focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                  {formData.isMigration && (
+                    <p className="text-[10px] text-amber-700 mt-1 italic">
+                      * පැරණි ගිණුමේ අද දිනට පවතින සම්පූර්ණ ශේෂය මෙහි ඇතුළත් කරන්න.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

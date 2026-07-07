@@ -2066,7 +2066,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                               </thead>
                               <tbody className="divide-y divide-slate-100">
                                 {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => {
-                                  const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST');
+                                  const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST') || tx.transactionType === 'BROUGHT_FORWARD';
                                   const isInterest = tx.transactionType === 'INTEREST';
                                   const isFdInterest = tx.transactionType === 'FD_MONTHLY_INTEREST';
                                   const isExpanded = expandedInterestId === tx.transactionId;

@@ -58,6 +58,7 @@ export interface AccountData {
   witnessName?: string;
   witnessAddress?: string;
   specimenSignature?: string;
+  isMigration?: boolean;
   balance: number;
   initialDeposit?: number;
   branchId?: number;
