@@ -10,8 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/pawning/settings")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/v1/pawning/settings")
 public class PawningSettingController {
 
     @Autowired

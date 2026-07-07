@@ -1,5 +1,6 @@
 com\hmcs\pawning\entity\PawningSetting.class
 com\hmcs\pawning\repository\PawnTicketRepository.class
+com\hmcs\pawning\config\CorsConfig.class
 com\hmcs\pawning\controller\PawnController.class
 com\hmcs\pawning\dto\PawnTicketResponse.class
 com\hmcs\pawning\config\SecurityConfig.class

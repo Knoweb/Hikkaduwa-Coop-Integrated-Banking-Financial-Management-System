@@ -24,6 +24,7 @@ public class PawnService {
     private final PawnTicketRepository pawnTicketRepository;
     private final PawnPaymentRepository pawnPaymentRepository;
 
+
     public PawnTicketResponse issueTicket(IssueTicketRequest request) {
         PawnTicket ticket = new PawnTicket();
         ticket.setMemberId(request.getMemberId());
@@ -53,6 +54,9 @@ public class PawnService {
         }
 
         ticket = pawnTicketRepository.save(ticket);
+
+
+
         return enrichWithCalculations(ticket, LocalDate.now());
     }
 
@@ -135,6 +139,8 @@ public class PawnService {
         payment.setPrincipalPortion(principalPortion);
         payment.setPaymentDate(paymentDate.atStartOfDay());
         pawnPaymentRepository.save(payment);
+
+
 
         return enrichWithCalculations(ticket, LocalDate.now());
     }
