@@ -248,6 +248,6 @@ const PrintableFdReceipt = forwardRef<HTMLDivElement, PrintableFdReceiptProps>((
       </div>
     </div>
   );
-};
+});
 
 export default PrintableFdReceipt;
