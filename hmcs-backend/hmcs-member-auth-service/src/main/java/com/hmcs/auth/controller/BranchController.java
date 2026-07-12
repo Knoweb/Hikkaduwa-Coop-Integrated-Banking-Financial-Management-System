@@ -21,6 +21,7 @@ public class BranchController {
 
     @GetMapping
     public ResponseEntity<List<BranchDTO>> getAllBranches() {
+        System.out.println("DEBUG: TenantContext in BranchController is: " + com.hmcs.auth.multitenancy.TenantContext.getTenantId());
         List<BranchDTO> branches = branchRepository.findAll().stream().map(b -> {
             BranchDTO dto = new BranchDTO();
             dto.setBranchId(b.getBranchId());

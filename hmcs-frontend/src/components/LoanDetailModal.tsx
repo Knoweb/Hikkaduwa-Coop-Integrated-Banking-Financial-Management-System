@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import * as LoanService from '../services/loan.service';
 import * as AuthService from '../services/auth.service';
+import * as BranchService from '../services/branch.service';
 import { printLoanAgreement } from '../utils/print';
 import { getBranchName } from '../pages/BranchDashboard';
+import ConfirmDialog from './ConfirmDialog';
 
 interface Props {
   loan: LoanService.Loan;
@@ -38,6 +40,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const [comments, setComments] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [branchName, setBranchName] = useState<string>(`Branch ID: ${loan.branchId}`);
 
   // Repayment State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -63,6 +67,13 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const totalPrincipalPaid = repayments.reduce((sum, r) => sum + Number(r.principalPortion || 0), 0);
   const outstandingPrincipal = Number(loan.requestedAmount) - totalPrincipalPaid;
   const totalEstimatedInterest = (Number(loan.requestedAmount) * Number(loan.interestRate) * (Number(loan.termMonths) + 1)) / (2 * 12 * 100);
+
+  useEffect(() => {
+    BranchService.getBranches().then(branches => {
+      const b = branches.find((branch: any) => branch.branchId === loan.branchId);
+      if (b) setBranchName(b.branchName);
+    }).catch(() => {});
+  }, [loan.branchId]);
 
   // Auto-calculate suggested amount when payment date changes
   useEffect(() => {
@@ -167,15 +178,23 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   };
 
   const handleReject = async () => {
-    if (!window.confirm('Are you sure you want to reject this loan application?')) return;
-    setActionLoading(true); setActionError('');
-    try {
-      await LoanService.rejectLoan(loan.loanId, user?.username || 'unknown', userRole, comments);
-      onUpdated();
-      onClose();
-    } catch (e: any) {
-      setActionError(e.response?.data || 'Action failed');
-    } finally { setActionLoading(false); }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'ණය අදර ප්‍රත්‍යාගය ප්‍රතික්ෂේප කරන්නද?',
+      message: 'මෙම ණය අදරප්‍රත්‍යාගය ප්‍රතික්ෂේප කරන්නද? මෙය ආපසු හැරවිය නොහැක.',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(d => ({ ...d, isOpen: false }));
+        setActionLoading(true); setActionError('');
+        try {
+          await LoanService.rejectLoan(loan.loanId, user?.username || 'unknown', userRole, comments);
+          onUpdated();
+          onClose();
+        } catch (e: any) {
+          setActionError(e.response?.data || 'Action failed');
+        } finally { setActionLoading(false); }
+      }
+    });
   };
 
   const nextStage = currentIdx >= 0 && currentIdx < STAGE_ORDER.length - 1
@@ -201,13 +220,23 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   };
 
   return (
+    <>
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-700 to-purple-700 p-6 text-white flex items-start justify-between">
           <div>
-            <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Loan Application</p>
+            <div className="flex items-center gap-3 mb-1">
+              <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">
+                Loan Application
+              </p>
+              {loan.applicationNumber && (
+                <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-md text-xs font-mono font-bold tracking-wider border border-white/30 shadow-sm">
+                  {loan.applicationNumber}
+                </span>
+              )}
+            </div>
             <h2 className="text-2xl font-black">{memberName}</h2>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-indigo-200 text-sm font-mono">
@@ -282,12 +311,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {/* Loan Details Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { label: 'Requested Amount', value: `Rs. ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
-                  { label: 'Term', value: `${loan.termMonths} months`, icon: '📅' },
-                  { label: 'Interest Rate', value: `${loan.interestRate}% p.a.`, icon: '📈' },
-                  { label: 'Loan Type', value: loan.loanType?.name || '—', icon: '🏷️' },
-                  { label: 'Applied Date', value: loan.appliedDate || '—', icon: '📋' },
-                  { label: 'Branch ID', value: `Branch ${loan.branchId}`, icon: '🏦' },
+                  { label: 'ඉල්ලුම් කළ මුදල', value: `රු. ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
+                  { label: 'කාල සීමාව', value: `මාස ${loan.termMonths}`, icon: '📅' },
+                  { label: 'පොලී අනුපාතය', value: `වාර්ෂිකව ${loan.interestRate}%`, icon: '📈' },
+                  { label: 'ණය වර්ගය', value: loan.loanType?.name || '—', icon: '🏷️' },
+                  { label: 'අයදුම් කළ දිනය', value: loan.appliedDate || '—', icon: '📋' },
+                  { label: 'ශාඛාව', value: branchName, icon: '🏦' },
                 ].map(item => (
                   <div key={item.label} className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{item.label}</p>
@@ -300,7 +329,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {loan.termMonths && loan.interestRate && (
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100">
                   <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                    <Calculator size={16} className="text-indigo-600" /> Quick EMI Estimate
+                    <Calculator size={16} className="text-indigo-600" /> මූලික වාරික ඇස්තමේන්තුව (Quick EMI Estimate)
                   </h4>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     {(() => {
@@ -310,9 +339,9 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       const monthlyPrincipal = p / m;
                       const monthlyInterest = (p * r * 30) / 36500;
                       return [
-                        { label: 'Monthly Principal', value: `Rs. ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                        { label: '+ Monthly Interest (est.)', value: `Rs. ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                        { label: '= Total EMI', value: `Rs. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
+                        { label: 'මාසික මූලික මුදල', value: `රු. ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '+ මාසික පොලිය (ඇස්ත.)', value: `රු. ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: '= මාසික වාරිකය', value: `රු. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
                       ];
                     })().map(item => (
                       <div key={item.label} className={`rounded-xl p-3 ${(item as any).highlight ? 'bg-indigo-600 text-white' : 'bg-white border border-indigo-100'}`}>
@@ -321,7 +350,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-indigo-400 mt-3">Formula: Interest = (Principal × Days × Rate%) ÷ 36,500</p>
+                  <p className="text-[10px] text-indigo-400 mt-3">සූත්‍රය: පොලිය = (මූලික මුදල × දින ගණන × අනුපාතය%) ÷ 36,500</p>
                 </div>
               )}
 
@@ -736,5 +765,14 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
         </div>
       )}
     </div>
+    <ConfirmDialog
+      isOpen={confirmDialog.isOpen}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      variant={confirmDialog.variant}
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
+    />
+  </>
   );
 }

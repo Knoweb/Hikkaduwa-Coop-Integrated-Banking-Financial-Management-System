@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { getLoanTypes } from '../services/loan.service';
 import type { LoanType } from '../services/loan.service';
-import { X, FileText, ChevronRight, Briefcase, Phone, Users, Home, Landmark, ShieldAlert, CreditCard, Banknote, Wallet, Building2, Package } from 'lucide-react';
+import { X, FileText, ChevronRight, Briefcase, Phone, Users, Home, Landmark, ShieldAlert, CreditCard, Banknote, Wallet, Building2, Package, Zap } from 'lucide-react';
 import DisasterLoanForm from './DisasterLoanForm';
 import NormalLoanForm from './NormalLoanForm';
 
 const getIconForLoanName = (name: string) => {
+  if (name.includes('ක්ෂණික')) return Zap;
   if (name.includes('දුරකථන')) return Phone;
   if (name.includes('ආපදා')) return ShieldAlert;
   if (name.includes('සේවක')) return Briefcase;
+  if (name.includes('ශ්‍රමික')) return Briefcase;
   if (name.includes('පාරිභෝගික')) return Wallet;
   if (name.includes('කෙටි')) return CreditCard;
   if (name.includes('FD')) return Landmark;
@@ -22,9 +24,11 @@ const getIconForLoanName = (name: string) => {
 };
 
 const getColorForLoanName = (name: string) => {
+  if (name.includes('ක්ෂණික')) return 'text-yellow-500 bg-yellow-50 border-yellow-200 shadow-yellow-100';
   if (name.includes('දුරකථන')) return 'text-purple-600 bg-purple-50 border-purple-200 shadow-purple-100';
   if (name.includes('ආපදා')) return 'text-red-600 bg-red-50 border-red-200 shadow-red-100';
   if (name.includes('සේවක')) return 'text-blue-600 bg-blue-50 border-blue-200 shadow-blue-100';
+  if (name.includes('ශ්‍රමික')) return 'text-blue-600 bg-blue-50 border-blue-200 shadow-blue-100';
   if (name.includes('පාරිභෝගික')) return 'text-green-600 bg-green-50 border-green-200 shadow-green-100';
   if (name.includes('කෙටි')) return 'text-orange-600 bg-orange-50 border-orange-200 shadow-orange-100';
   if (name.includes('FD')) return 'text-indigo-600 bg-indigo-50 border-indigo-200 shadow-indigo-100';
@@ -34,17 +38,34 @@ const getColorForLoanName = (name: string) => {
   return 'text-emerald-600 bg-emerald-50 border-emerald-200 shadow-emerald-100';
 };
 
+// කෙටි ණය first, then සේවක ණය, ක්ෂණික ණය, ශ්‍රමික ණය, rest in original order
+const sortLoanTypes = (types: LoanType[]): LoanType[] => {
+  const keti = types.filter(t => t.name.includes('කෙටි'));
+  const sewaka = types.filter(t => t.name.includes('සේවක'));
+  const kshanika = types.filter(t => t.name.includes('ක්ෂණික'));
+  const shramika = types.filter(t => t.name.includes('ශ්‍රමික'));
+  const rest = types.filter(t => !t.name.includes('කෙටි') && !t.name.includes('සේවක') && !t.name.includes('ක්ෂණික') && !t.name.includes('ශ්‍රමික'));
+  return [...keti, ...sewaka, ...kshanika, ...shramika, ...rest];
+};
+
 const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
   const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchTypes = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const types = await getLoanTypes();
         setLoanTypes(types);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to load loan types", error);
+        setError(error.message || "Failed to load loan types");
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchTypes();
@@ -95,7 +116,7 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
         {/* Body */}
         <div className="p-6 overflow-y-auto bg-slate-50/50" style={{ maxHeight: 'calc(100vh - 120px)' }}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {loanTypes.map(type => {
+            {sortLoanTypes(loanTypes).map(type => {
               const Icon = getIconForLoanName(type.name);
               const colorClass = getColorForLoanName(type.name);
               
@@ -125,10 +146,24 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
               );
             })}
             
-            {loanTypes.length === 0 && (
+            {isLoading && (
               <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-slate-400 animate-pulse">
                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
                 <p className="text-base font-medium">ණය වර්ග පූරණය වෙමින් පවතී... (Loading...)</p>
+              </div>
+            )}
+            
+            {error && !isLoading && (
+              <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-red-500">
+                <ShieldAlert size={48} className="mb-4 text-red-400" />
+                <p className="text-base font-medium mb-2">ණය වර්ග පූරණය කිරීම අසාර්ථක විය.</p>
+                <p className="text-sm font-mono bg-red-50 p-2 rounded">{error}</p>
+              </div>
+            )}
+            
+            {!isLoading && !error && loanTypes.length === 0 && (
+              <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-slate-400">
+                <p className="text-base font-medium">කිසිදු ණය වර්ගයක් සොයාගත නොහැකි විය.</p>
               </div>
             )}
           </div>

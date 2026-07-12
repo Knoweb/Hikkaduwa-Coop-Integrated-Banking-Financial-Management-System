@@ -425,15 +425,33 @@ export const printAccountStatement = (passbookData: any) => {
   if (passbookData.transactions && passbookData.transactions.length > 0) {
     passbookData.transactions.forEach((tx: any) => {
       const date = new Date(tx.transactionDate).toLocaleDateString('en-GB');
-      const isDeposit = tx.transactionType === 'DEPOSIT';
-      const depositAmt = isDeposit ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
-      const withdrawAmt = !isDeposit ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
-      const runningBalance = Number(tx.runningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      const isFdClosureTx =
+        tx.transactionType === 'FD_CLOSURE' ||
+        tx.transactionType === 'FIXED_DEPOSIT_CLOSURE' ||
+        tx.transactionType === 'FD_RELEASE' ||
+        !!(tx.reference && tx.reference.toLowerCase().startsWith('fd closure')) ||
+        !!(tx.description && (
+          tx.description.toLowerCase().includes('fixed deposit') ||
+          tx.description.toLowerCase().includes('fd closure')
+        ));
+      const isDepositTx = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST') || tx.transactionType === 'BROUGHT_FORWARD' || isFdClosureTx;
+      const depositAmt = isDepositTx ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
+      const withdrawAmt = !isDepositTx ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-';
+      const runningBalance = Number(tx.balanceAfter || tx.runningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      
+      // Human-readable description
+      let displayDescription = tx.description || tx.transactionType;
+      if (isFdClosureTx && !tx.description) displayDescription = 'ස්ථාවර තැන්පතු වසා දැමීම (FIXED DEPOSIT CLOSURE)';
+      else if (tx.transactionType === 'DEPOSIT' && !tx.description) displayDescription = 'තැන්පතුව (DEPOSIT)';
+      else if (tx.transactionType === 'WITHDRAWAL' && !tx.description) displayDescription = 'මුදල් ආපසු ගැනීම (WITHDRAWAL)';
+      else if ((tx.transactionType === 'BROUGHT_FORWARD' || tx.transactionType === 'INITIAL_DEPOSIT') && !tx.description) displayDescription = 'පෙර ශේෂය (BROUGHT FORWARD)';
+      else if (tx.transactionType === 'INTEREST' && !tx.description) displayDescription = 'මාසික පොලිය (MONTHLY INTEREST)';
+      else if (tx.transactionType === 'FD_MONTHLY_INTEREST' && !tx.description) displayDescription = 'ස්ථාවර තැන්පතු පොලිය (FD INTEREST)';
       
       trxRows += `
         <tr>
           <td>${date}</td>
-          <td>${tx.description || tx.transactionType}</td>
+          <td>${displayDescription}</td>
           <td class="text-right" style="color: #ef4444;">${withdrawAmt}</td>
           <td class="text-right" style="color: #10b981;">${depositAmt}</td>
           <td class="text-right font-bold">${runningBalance}</td>

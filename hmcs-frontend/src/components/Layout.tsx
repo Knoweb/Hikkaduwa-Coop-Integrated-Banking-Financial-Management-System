@@ -12,7 +12,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const user = AuthService.getCurrentUser();
 
   const handleLogout = () => {
@@ -25,7 +25,7 @@ export default function Layout({ children }: LayoutProps) {
     return null;
   }
 
-  const isSystemAdmin = user.role === 'ROLE_SYSTEM_ADMIN';
+  const isSystemAdmin = user.role === 'ROLE_ORGANIZATION_ADMIN';
 
   const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => {
     const isActive = location.pathname === to;
@@ -39,7 +39,7 @@ export default function Layout({ children }: LayoutProps) {
         }`}
       >
         <Icon size={20} className={`mr-3 ${isActive ? 'text-red-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-        {label}
+        {t(label)}
       </Link>
     );
   };
@@ -90,9 +90,25 @@ export default function Layout({ children }: LayoutProps) {
       <main className="flex-1 flex flex-col md:ml-64 relative min-h-screen">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
           <h1 className="text-xl font-semibold text-slate-800">Welcome back, {user.username}!</h1>
-          <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-            Branch ID: {user.branchId}
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+              Branch ID: {user.branchId}
+            </div>
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
+              <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
+              title={t('Sign Out')}
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
         

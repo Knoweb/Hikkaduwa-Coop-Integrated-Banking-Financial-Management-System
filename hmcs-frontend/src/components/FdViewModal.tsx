@@ -7,10 +7,11 @@ import { useTenantInfo } from '../hooks/useTenantInfo';
 interface FdViewModalProps {
   fd: any;
   members: any[];
+  savingsAccounts?: any[];
   onClose: () => void;
 }
 
-export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
+export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewModalProps) {
   const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = useTenantInfo();
   const [activeTab, setActiveTab] = useState<'APP' | 'RECEIPT'>('APP');
   const printRef = useRef<HTMLDivElement>(null);
@@ -232,7 +233,7 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                       <div className="md:col-span-2">
                         <label className="block text-xs font-bold text-slate-600 uppercase mb-2">සම්බන්ධිත ඉතිරිකිරීමේ ගිණුම (LINKED SAVINGS ACCOUNT)</label>
                         <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800">
-                          {fd.linkedSavingsAccountId}
+                          {savingsAccounts?.find(sa => sa.accountId === fd.linkedSavingsAccountId)?.accountNumber || fd.linkedSavingsAccountId}
                         </div>
                       </div>
                     )}
@@ -251,15 +252,13 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                         {fd.receiptNumber || '-'}
                       </div>
                     </div>
-                    <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 border-t border-slate-200 pt-4">
+                    <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4 mt-2 border-t border-slate-200 pt-4">
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">තැන්පත් කළ දිනය (DEPOSIT DATE)</label>
                         <div className="font-semibold text-slate-800">
-                          {fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
-                           fd.startDate ? new Date(fd.startDate).toISOString().split('T')[0] : 
-                           (fd.maturityDate && fd.termMonths ? 
-                             new Date(new Date(fd.maturityDate).setMonth(new Date(fd.maturityDate).getMonth() - fd.termMonths)).toISOString().split('T')[0] : 
-                             '-')}
+                          {fd.openedDate ? new Date(fd.openedDate).toISOString().split('T')[0] : 
+                           fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
+                           '-'}
                         </div>
                       </div>
                       <div>
@@ -271,6 +270,13 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">පොලී අනුපාතිකය (INTEREST RATE)</label>
                         <div className="font-semibold text-slate-800">{fd.interestRate || '0'}%</div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">බදු ආකෘති පත්‍රය (TAX FORM)</label>
+                        <div className="font-semibold text-slate-800 flex items-center gap-2">
+                          <input type="checkbox" checked={fd.hasSubmittedTaxForm || false} readOnly className="w-4 h-4 text-[#025a4e] bg-slate-100 border-slate-300 rounded cursor-not-allowed pointer-events-none" />
+                          <span className="text-sm">{fd.hasSubmittedTaxForm ? 'ලබා දී ඇත' : 'ලබා දී නැත'}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -294,11 +300,9 @@ export function FdViewModal({ fd, members, onClose }: FdViewModalProps) {
                   </div>
                   <div>
                     <div className="border-b-2 border-slate-300 w-full mb-2 h-20 flex items-end justify-center pb-1 text-slate-800 font-bold text-lg">
-                      {fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
-                       fd.startDate ? new Date(fd.startDate).toISOString().split('T')[0] : 
-                       (fd.maturityDate && fd.termMonths ? 
-                         new Date(new Date(fd.maturityDate).setMonth(new Date(fd.maturityDate).getMonth() - fd.termMonths)).toISOString().split('T')[0] : 
-                         '')}
+                      {fd.openedDate ? new Date(fd.openedDate).toISOString().split('T')[0] : 
+                       fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
+                       '-'}
                     </div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase">දිනය</p>
                   </div>

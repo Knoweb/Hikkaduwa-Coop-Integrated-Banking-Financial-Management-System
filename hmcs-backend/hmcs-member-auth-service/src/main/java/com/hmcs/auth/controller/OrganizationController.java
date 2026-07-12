@@ -110,4 +110,36 @@ public class OrganizationController {
             return ResponseEntity.ok(org);
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/{id}/committees")
+    public ResponseEntity<?> createCommittee(@PathVariable Integer id, @RequestBody java.util.Map<String, String> body) {
+        Integer currentTenantId = com.hmcs.auth.multitenancy.TenantContext.getTenantId();
+        if (currentTenantId != null && currentTenantId != 0) {
+            return ResponseEntity.status(403).body("Only PLATFORM_ADMIN can create committee via this endpoint");
+        }
+
+        String username = body.get("username");
+        String password = body.get("password");
+        String fullName = body.get("fullName");
+
+        if (username == null || password == null || fullName == null) {
+            return ResponseEntity.badRequest().body("username, password, and fullName are required");
+        }
+
+        Integer branchId;
+        try {
+            branchId = jdbcTemplate.queryForObject("SELECT branch_id FROM auth_service.branches WHERE tenant_id = ? ORDER BY branch_id ASC LIMIT 1", Integer.class, id);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("No branch found for organization");
+        }
+
+        try {
+            jdbcTemplate.update("INSERT INTO auth_service.users (tenant_id, username, password_hash, role_id, branch_id, full_name, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                id, username, password, 5, branchId, fullName, "ACTIVE", LocalDateTime.now());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to create committee user: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Committee created successfully"));
+    }
 }

@@ -1,8 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import { applyForLoan } from '../services/loan.service';
 import { searchMembers } from '../services/account.service';
-
+import * as AuthService from '../services/auth.service';
+import { AlertTriangle } from 'lucide-react';
 interface DisasterLoanFormProps {
   loanTypeId: string;
   onClose: () => void;
@@ -10,6 +12,7 @@ interface DisasterLoanFormProps {
 
 export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFormProps) {
   const [formData, setFormData] = useState({
+    applicationNumber: '',
     name: '',
     memberId: '',
     accountNumber: '',
@@ -41,6 +44,21 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     managerRecommendation: '',
     generalManagerApproval: ''
   });
+
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({ open: false, message: '', severity: 'info' });
+
+  useEffect(() => {
+    // Generate application number on mount
+    const user = AuthService.getCurrentUser();
+    const tenantId = user?.tenantId || '1';
+    const branchId = user?.branchId || '1';
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const newAppNumber = `${tenantId}/${branchId}/LN${randomSuffix}`;
+    setFormData(prev => ({ ...prev, applicationNumber: newAppNumber }));
+  }, []);
+  const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,7 +116,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
   const handleSubmit = async () => {
     if (!formData.appliedDate || !formData.name || !formData.requestedAmount || !formData.termMonths || !formData.guarantor1Name || !formData.guarantor2Name) {
-      alert("කරුණාකර අයදුම් කළ දිනය ඇතුළු සියලුම අත්‍යවශ්‍ය තොරතුරු පුරවන්න. (Please fill all essential fields including Applied Date)");
+      showMessage("කරුණාකර අයදුම් කළ දිනය ඇතුළු සියලුම අත්‍යවශ්‍ය තොරතුරු පුරවන්න. (Please fill all essential fields including Applied Date)", 'warning');
       return;
     }
     
@@ -110,7 +128,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             requestedAmount: parseFloat(formData.requestedAmount),
             termMonths: parseInt(formData.termMonths),
             appliedDate: formData.appliedDate,
-            accountNumber: formData.accountNumber || undefined,
+            applicationNumber: formData.applicationNumber,
             
             applicationData: {
                 name: formData.name,
@@ -139,17 +157,16 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
         };
 
         await applyForLoan(loanTypeId, payload);
-        alert('ආකෘති පත්‍රය සාර්ථකව ඇතුළත් කළා! (Application Submitted Successfully)');
-        onClose();
+        showMessage('ආකෘති පත්‍රය සාර්ථකව ඇතුළත් කළා! (Application Submitted Successfully)', 'success');
+        setTimeout(() => onClose(), 2000);
     } catch (error: any) {
         console.error("Error submitting loan application", error);
         if (error.response && error.response.data) {
             const errorMsg = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
-            alert(`දෝෂයක්! ${errorMsg}`);
+            showMessage(`දෝෂයක්! ${errorMsg}`, 'error');
         } else {
-            alert("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.");
+            showMessage("දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.", 'error');
         }
-    } finally {
         setLoading(false);
     }
   };
@@ -168,14 +185,14 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           
           {/* Search Section */}
           <div className="bg-teal-50 p-5 rounded-xl border border-teal-100 flex flex-col items-start shadow-sm relative">
-            <label className="block text-sm font-bold text-teal-900 mb-2">සාමාජික අංකය හෝ ජා.හැ.ප අංකය (Member No / NIC) ලබා දී සොයන්න</label>
+            <label className="block text-sm font-bold text-teal-900 mb-2">සාමාජික අංකය, ජා.හැ.ප අංකය හෝ නම (Member No, NIC or Name) ලබා දී සොයන්න</label>
             <div className="w-full relative">
               <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
                 onFocus={() => setShowDropdown(true)}
-                placeholder="Enter ID to auto-fill details..."
+                placeholder="Enter ID or Name to auto-fill details..."
                 className="w-full rounded-lg border-teal-200 p-3 border focus:ring-2 focus:ring-teal-500 bg-white shadow-sm" 
               />
               {isSearching && (
@@ -209,13 +226,12 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 shadow-sm relative grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම් අංකය (Account Number)</label>
+                <label className="block text-sm font-bold text-yellow-900 mb-2">අයදුම්පත් අංකය (Application No)</label>
                 <input 
                   type="text" 
-                  name="accountNumber"
-                  value={formData.accountNumber}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
+                  disabled
+                  value={formData.applicationNumber}
+                  className="w-full rounded-lg border-yellow-200 p-3 border bg-yellow-100/50 shadow-sm text-yellow-900 font-bold cursor-not-allowed" 
                 />
               </div>
               <div>
@@ -228,6 +244,12 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                   onChange={handleChange}
                   className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
                 />
+                {formData.appliedDate && formData.appliedDate !== new Date().toISOString().split('T')[0] && (
+                  <div className="mt-2 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs font-semibold border border-amber-200 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle size={14} className="text-amber-500 flex-shrink-0"/>
+                    <span>ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -289,8 +311,20 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 <div className="space-y-3">
                   <input type="text" name="guarantor1Name" placeholder="නම" value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   <textarea name="guarantor1Address" placeholder="ලිපිනය" value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
-                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature Placeholder)</label>
-                  <input type="text" name="guarantor1DigitalSignatureUrl" placeholder="Pending Touchpad Integration - Enter URL or ID manually" value={formData.guarantor1DigitalSignatureUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData(prev => ({...prev, guarantor1DigitalSignatureUrl: reader.result as string}));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                  }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  {formData.guarantor1DigitalSignatureUrl && (
+                      <img src={formData.guarantor1DigitalSignatureUrl} alt="Signature Preview" className="mt-2 h-16 border rounded" />
+                  )}
                 </div>
               </div>
 
@@ -300,8 +334,20 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 <div className="space-y-3">
                   <input type="text" name="guarantor2Name" placeholder="නම" value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   <textarea name="guarantor2Address" placeholder="ලිපිනය" value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
-                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature Placeholder)</label>
-                  <input type="text" name="guarantor2DigitalSignatureUrl" placeholder="Pending Touchpad Integration - Enter URL or ID manually" value={formData.guarantor2DigitalSignatureUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData(prev => ({...prev, guarantor2DigitalSignatureUrl: reader.result as string}));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                  }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  {formData.guarantor2DigitalSignatureUrl && (
+                      <img src={formData.guarantor2DigitalSignatureUrl} alt="Signature Preview" className="mt-2 h-16 border rounded" />
+                  )}
                 </div>
               </div>
             </div>
@@ -326,12 +372,17 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 disabled={loading}
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#025a4e] hover:bg-[#01443b] text-white font-bold rounded-xl shadow-lg transition duration-200 disabled:opacity-50 text-base"
             >
-              {loading ? 'Processing...' : 'කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)'}
+              {loading ? 'Processing...' : 'ශාඛා කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)'}
             </button>
           </div>
-
         </div>
       </div>
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%', fontSize: '1rem', fontWeight: 500, fontFamily: 'Noto Sans Sinhala, sans-serif' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

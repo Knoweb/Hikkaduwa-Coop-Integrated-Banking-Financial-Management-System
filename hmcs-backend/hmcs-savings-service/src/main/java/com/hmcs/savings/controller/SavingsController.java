@@ -29,6 +29,8 @@ public class SavingsController {
     private final com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository;
     private final RestTemplate restTemplate;
     private final PendingApprovalRepository pendingApprovalRepository;
+    private final com.hmcs.savings.service.InterestCalculationService interestCalculationService;
+    private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
 
     public SavingsController(AccountRepository accountRepository,
                              TransactionRepository transactionRepository,
@@ -36,7 +38,9 @@ public class SavingsController {
                              com.hmcs.savings.repository.SavingsAccountTypeRepository savingsAccountTypeRepository,
                              com.hmcs.savings.repository.DailyBalanceRepository dailyBalanceRepository,
                              RestTemplate restTemplate,
-                             PendingApprovalRepository pendingApprovalRepository) {
+                             PendingApprovalRepository pendingApprovalRepository,
+                             com.hmcs.savings.service.InterestCalculationService interestCalculationService,
+                             com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
@@ -44,6 +48,8 @@ public class SavingsController {
         this.dailyBalanceRepository = dailyBalanceRepository;
         this.restTemplate = restTemplate;
         this.pendingApprovalRepository = pendingApprovalRepository;
+        this.interestCalculationService = interestCalculationService;
+        this.schedulerLogRepository = schedulerLogRepository;
     }
 
     @GetMapping("/savings")
@@ -61,6 +67,37 @@ public class SavingsController {
             accounts = accountRepository.findAll();
         }
         return ResponseEntity.ok(accounts);
+    }
+
+    @PostMapping("/savings/trigger-interest")
+    public ResponseEntity<String> triggerInterest(@RequestParam("year") int year, @RequestParam("month") int month) {
+        interestCalculationService.forceTriggerMonthlyInterest(year, month);
+        return ResponseEntity.ok("Successfully triggered interest for " + year + "-" + month);
+    }
+
+    @GetMapping("/savings/scheduler-status")
+    public ResponseEntity<java.util.Map<String, com.hmcs.savings.entity.SchedulerLog>> getSchedulerStatus() {
+        java.util.Map<String, com.hmcs.savings.entity.SchedulerLog> statuses = new java.util.HashMap<>();
+        
+        Optional<com.hmcs.savings.entity.SchedulerLog> savingsLog = schedulerLogRepository.findFirstByTaskNameOrderByExecutionTimeDesc("EOD_SAVINGS");
+        savingsLog.ifPresent(log -> statuses.put("EOD_SAVINGS", log));
+        
+        Optional<com.hmcs.savings.entity.SchedulerLog> fdLog = schedulerLogRepository.findFirstByTaskNameOrderByExecutionTimeDesc("EOD_FD");
+        fdLog.ifPresent(log -> statuses.put("EOD_FD", log));
+        
+        Optional<com.hmcs.savings.entity.SchedulerLog> loanLog = schedulerLogRepository.findFirstByTaskNameOrderByExecutionTimeDesc("EOD_LOAN");
+        loanLog.ifPresent(log -> statuses.put("EOD_LOAN", log));
+        
+        Optional<com.hmcs.savings.entity.SchedulerLog> pawnLog = schedulerLogRepository.findFirstByTaskNameOrderByExecutionTimeDesc("EOD_PAWNING");
+        pawnLog.ifPresent(log -> statuses.put("EOD_PAWNING", log));
+        
+        return ResponseEntity.ok(statuses);
+    }
+
+    @PostMapping("/savings/internal/scheduler-logs")
+    public ResponseEntity<String> saveSchedulerLog(@RequestBody com.hmcs.savings.entity.SchedulerLog log) {
+        schedulerLogRepository.save(log);
+        return ResponseEntity.ok("Log saved successfully");
     }
 
     // /savings/global - alias for cross-branch access via TransactionModal
@@ -89,7 +126,7 @@ public class SavingsController {
         public String witnessName;
         public String witnessAddress;
         public String specimenSignature;
-        public Boolean hasSubmittedTaxForm;
+
         public Boolean migrationAccount;
     }
 
@@ -127,11 +164,7 @@ public class SavingsController {
         if (body.witnessAddress != null) account.setWitnessAddress(body.witnessAddress);
         if (body.specimenSignature != null) account.setSpecimenSignature(body.specimenSignature);
         
-        if (body.hasSubmittedTaxForm != null) {
-            account.setHasSubmittedTaxForm(body.hasSubmittedTaxForm);
-        } else {
-            account.setHasSubmittedTaxForm(false);
-        }
+
 
         if (body.childName != null && !body.childName.trim().isEmpty()) {
             account.setChildName(body.childName);

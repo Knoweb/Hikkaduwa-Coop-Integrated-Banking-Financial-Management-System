@@ -34,6 +34,7 @@ export interface Loan {
   appliedDate: string;
   applicationData?: Record<string, any>;
   createdAt?: string;
+  updatedAt?: string;
   // Disbursement fields
   accountNumber?: string;
   disbursementDate?: string;
@@ -95,8 +96,14 @@ export const deleteLoanType = async (id: string): Promise<void> => {
 
 export const getLoans = async (): Promise<Loan[]> => {
   const user = getCurrentUser();
+  
+  if (user?.role === 'LOAN_COMMITTEE') {
+    const response = await axios.get(API_URL, { headers: authHeader() });
+    return response.data;
+  }
+
   const overrideBranchId = localStorage.getItem('overrideBranchId');
-  const bId = (user?.role === 'SYSTEM_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
+  const bId = (user?.role === 'ORGANIZATION_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
   const url = bId ? `${API_URL}?branchId=${bId}` : API_URL;
   const response = await axios.get(url, { headers: authHeader() });
   return response.data;
@@ -119,6 +126,11 @@ export const deleteLoan = async (id: string): Promise<void> => {
 
 export const getLoansByStatus = async (status: string): Promise<Loan[]> => {
   const response = await axios.get(API_URL + '/status/' + status, { headers: authHeader() });
+  return response.data;
+};
+
+export const getInsuranceReportLoans = async (month: string): Promise<Loan[]> => {
+  const response = await axios.get(`${API_URL}/reports/insurance?month=${month}`, { headers: authHeader() });
   return response.data;
 };
 
@@ -163,15 +175,16 @@ export const getLoanApprovalHistory = async (loanId: string): Promise<LoanApprov
 };
 
 export const disburseLoan = async (
-  loanId: string,
-  amount: number,
-  actorUsername: string,
-  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER' = 'CASH',
-  savingsAccountNumber?: string
-): Promise<Loan> => {
+  loanId: string, 
+  amount: number, 
+  actorUsername: string, 
+  paymentMethod: 'CASH' | 'SAVINGS_TRANSFER',
+  savingsAccountNumber?: string,
+  loanAccountNumber?: string
+) => {
   const response = await axios.post(
-    `${API_URL}/${loanId}/disburse`,
-    { amount, actorUsername, paymentMethod, savingsAccountNumber },
+    `${API_URL}/${loanId}/disburse`, 
+    { amount, actorUsername, paymentMethod, savingsAccountNumber, loanAccountNumber },
     { headers: authHeader() }
   );
   return response.data;
@@ -256,8 +269,8 @@ export const getBranchTransactions = async (branchId: number): Promise<any[]> =>
 
 export const STAGE_LABELS: Record<string, { label: string; labelSi: string; role: string; color: string }> = {
   STAGE_1_MANAGER_APPROVAL:        { label: 'Manager Approval Awaiting',   labelSi: 'කළමනාකාර අනුමැතිය බලාපොරොත්තුවෙන්', role: 'BRANCH_MANAGER', color: 'bg-blue-100 text-blue-700' },
-  STAGE_2_LOAN_COMMITTEE_APPROVAL: { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු ඡන්දය',                    role: 'LOAN_COMMITTEE', color: 'bg-amber-100 text-amber-700' },
-  STAGE_3_APPROVED:                { label: 'Approved',                    labelSi: 'අනුමත කරන ලදී',                     role: 'BRANCH_MANAGER', color: 'bg-emerald-100 text-emerald-700' },
+  STAGE_2_LOAN_COMMITTEE_APPROVAL: { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු අනුමැතිය සඳහා',                    role: 'LOAN_COMMITTEE', color: 'bg-amber-100 text-amber-700' },
+  STAGE_3_APPROVED:                { label: 'Loan Committee Approved',     labelSi: 'ණය කමිටුව අනුමත කරන ලදී',            role: 'BRANCH_MANAGER', color: 'bg-emerald-100 text-emerald-700' },
 };
 
 // ── Field Officer Workflows ───────────────────────────────────────────────────

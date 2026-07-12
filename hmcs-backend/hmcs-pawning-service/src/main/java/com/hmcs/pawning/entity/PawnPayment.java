@@ -41,6 +41,4 @@ public class PawnPayment {
     @Column(name = "receipt_number", length = 50)
     private String receiptNumber;
 
-    @Column(name = "tenant_id", nullable = false)
-    private Integer tenantId = 1;
 }

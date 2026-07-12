@@ -1,11 +1,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Loader2, X } from 'lucide-react';
+import { Search, Loader2, X, AlertTriangle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import * as AccountService from '../services/account.service';
 import { getCurrentUser } from '../services/auth.service';
 
 const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
+  const { t, language } = useLanguage();
   const [step, setStep] = useState(1);
+
+  const isPastDate = (dateStr: string) => {
+    if (!dateStr) return false;
+    const selectedDate = new Date(dateStr);
+    selectedDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return selectedDate < today;
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<AccountService.MemberData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -111,7 +122,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
   };
 
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [alertConfig, setAlertConfig] = useState<{message: string, isSuccess?: boolean} | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{message: string, isSuccess?: boolean, onCloseAction?: () => void} | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nextStep = () => {
@@ -149,15 +160,18 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           maturityInstruction: formData.maturityInstruction,
           linkedSavingsAccountId: formData.linkedSavingsAccountId || null,
           depositorSignature: formData.depositorSignature || null,
-          receiptNumber: formData.receiptNumber || null
+          receiptNumber: formData.receiptNumber || null,
+          openedDate: formData.openedDate || null,
+          hasSubmittedTaxForm: formData.hasSubmittedTaxForm
         })
       });
 
       if (response.ok) {
-        setAlertConfig({ message: 'ස්ථාවර තැන්පතුව සාර්ථකව විවෘත කරන ලදි!', isSuccess: true });
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 2000);
+        setAlertConfig({ 
+          message: 'ස්ථාවර තැන්පතුව සාර්ථකව විවෘත කරන ලදි!', 
+          isSuccess: true,
+          onCloseAction: () => { if (onClose) onClose(); }
+        });
       } else {
         setAlertConfig({ message: 'Failed to open Fixed Deposit' });
       }
@@ -172,7 +186,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
     if (!formData.fdTypeId || fdTypes.length === 0) return '';
     const type = fdTypes.find(t => t.id === formData.fdTypeId);
     if (!type || !type.termMonths) return '';
-    const d = new Date();
+    const d = formData.openedDate ? new Date(formData.openedDate) : new Date();
     d.setMonth(d.getMonth() + type.termMonths);
     return d.toISOString().split('T')[0];
   };
@@ -180,7 +194,8 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
   const getInterestRate = () => {
     if (!formData.fdTypeId || fdTypes.length === 0) return '0';
     const type = fdTypes.find(t => t.id === formData.fdTypeId);
-    return type ? type.interestRateMaturity : '0';
+    if (!type) return '0';
+    return formData.interestPayoutMethod === 'MONTHLY' ? type.interestRateMonthly : type.interestRateMaturity;
   };
 
   const [formConfig, setFormConfig] = useState({ category: '', term: '', accountType: 'INDIVIDUAL' });
@@ -252,11 +267,6 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
 
       <div className="flex-1 overflow-y-auto p-8 bg-white">
         <form ref={formRef} onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-          {alertConfig && (
-            <div className={`p-4 rounded-lg mb-6 text-sm border ${alertConfig.isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-              {alertConfig.message}
-            </div>
-          )}
 
           {step === 1 && (
             <div className="animate-in fade-in duration-300">
@@ -274,6 +284,18 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                   onChange={handleInputChange}
                   className="w-full md:w-1/2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                 />
+                {formData.openedDate && isPastDate(formData.openedDate) && (
+                  <div className="mt-2 text-xs text-amber-600 font-semibold bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg flex items-center gap-1.5 md:w-1/2 animate-in fade-in duration-200">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span>
+                      {language === 'si' 
+                        ? 'අතීත දිනයක් තෝරා ඇත (පැරණි/සංක්‍රමණික ගිණුම් ඇතුළත් කිරීම් සඳහා).' 
+                        : language === 'ta'
+                        ? 'கடந்த தேதி தேர்ந்தெடுக்கப்பட்டது (பழைய/இடமாற்றம் செய்யப்பட்ட கணக்குகளுக்கு).'
+                        : 'A past date is selected (For past/migrated account entries).'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -453,6 +475,41 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     <option value="CLOSE_ACCOUNT">3. ගිණුම වසා සියලු මුදල් ඉතුරුම් ගිණුමට (Close Account)</option>
                   </select>
                 </div>
+
+                {(formData.interestPayoutMethod === 'MONTHLY' || 
+                  formData.maturityInstruction === 'REINVEST_PRINCIPAL_PAY_INTEREST' || 
+                  formData.maturityInstruction === 'CLOSE_ACCOUNT') && (
+                  <div className="md:col-span-2 animate-in fade-in duration-200">
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                      {language === 'si' 
+                        ? 'පොළිය/මුදල් බැරවිය යුතු ඉතුරුම් ගිණුම (Linked Savings Account) *' 
+                        : language === 'ta'
+                        ? 'இணைக்கப்பட்ட சேமிப்புக் கணக்கு (Linked Savings Account) *'
+                        : 'Linked Savings Account *'}
+                    </label>
+                    <select
+                      name="linkedSavingsAccountId"
+                      required
+                      value={formData.linkedSavingsAccountId}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm font-medium"
+                    >
+                      <option value="">{language === 'si' ? '-- ඉතුරුම් ගිණුමක් තෝරන්න --' : language === 'ta' ? '-- சேமிப்புக் கணக்கைத் தேர்ந்தெடுக்கவும் --' : '-- Select a Savings Account --'}</option>
+                      {memberAccounts.map(acc => (
+                        <option key={acc.accountId} value={acc.accountId}>
+                          {acc.accountNumber} - {acc.accountType} (Rs. {Number(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})})
+                        </option>
+                      ))}
+                    </select>
+                    {memberAccounts.length === 0 && (
+                      <p className="text-xs text-red-500 font-bold mt-2 animate-pulse">
+                        {language === 'si' 
+                          ? 'මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුම් කිසිවක් හමු නොවීය. කරුණාකර පළමුව ඉතුරුම් ගිණුමක් ආරම්භ කරන්න.' 
+                          : 'No active savings accounts found for this member. Please open a savings account first.'}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -500,7 +557,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-t border-slate-200 pt-6">
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">තැන්පත් කළ දිනය (DEPOSIT DATE)</p>
-                    <p className="text-sm font-bold text-slate-800">{new Date().toISOString().split('T')[0]}</p>
+                    <p className="text-sm font-bold text-slate-800">{formData.openedDate || new Date().toISOString().split('T')[0]}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">කල්පිරෙන දිනය (MATURITY DATE)</p>
@@ -516,12 +573,11 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input 
                       type="checkbox" 
-                      name="hasSubmittedTaxForm"
-                      checked={formData.hasSubmittedTaxForm}
+                      checked={formData.hasSubmittedTaxForm || false}
                       onChange={(e) => setFormData(prev => ({ ...prev, hasSubmittedTaxForm: e.target.checked }))}
                       className="w-5 h-5 text-[#01443b] rounded focus:ring-[#01443b]" 
                     />
-                    <span className="text-sm font-bold text-slate-700">බදු ආකෘති පත්‍රය ලබා දී ඇත (Tax form submitted) - <i>නොමැති නම් 10% ක WHT බද්දක් අය කෙරේ</i></span>
+                    <span className="text-sm font-bold text-slate-700">බදු ආකෘති පත්‍රය ලබා දී ඇත (Tax form submitted)</span>
                   </label>
 
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -563,6 +619,38 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           </div>
         </form>
       </div>
+
+      {/* Custom Alert Modal */}
+      {alertConfig && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200 border-l-4 ${alertConfig.isSuccess ? 'border-emerald-500' : 'border-amber-500'}`}>
+            <div className="flex items-start gap-4">
+              <div className={`${alertConfig.isSuccess ? 'bg-emerald-100' : 'bg-amber-100'} p-2 rounded-full shrink-0`}>
+                {alertConfig.isSuccess ? (
+                  <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                ) : (
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{alertConfig.isSuccess ? 'සාර්ථකයි (Success)' : 'අවධානයට (Attention)'}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{alertConfig.message}</p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button 
+                onClick={() => {
+                  alertConfig.onCloseAction?.();
+                  setAlertConfig(null);
+                }} 
+                className={`px-5 py-2 text-white text-sm font-semibold rounded-lg transition shadow-sm ${alertConfig.isSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-900 hover:bg-gray-800'}`}
+              >
+                හරි (OK)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

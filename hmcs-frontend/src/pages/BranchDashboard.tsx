@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power
+  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -19,16 +19,35 @@ import { FdViewModal } from '../components/FdViewModal';
 import FdMonitorModal from '../components/FdMonitorModal';
 import OpenAccountForm from '../components/OpenAccountForm';
 import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
+import RenewFixedDepositModal from '../components/RenewFixedDepositModal';
 import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
 import GlobalLoanSearchModal from '../components/GlobalLoanSearchModal';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import InsuranceReport from '../components/InsuranceReport';
 
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 import PawningModule from '../components/PawningModule';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export const getBranchName = (branchId: number) => {
-  return `Branch ${branchId}`; // Fallback to Branch ID for dynamic tenants
+  const branchMap: Record<number, string> = {
+    1: 'Hikkaduwa Branch',
+    2: 'Dodanduwa Branch',
+    3: 'Rathgama Branch',
+    4: 'Seenigama Branch',
+    5: 'Thiranagama Branch',
+    6: 'Peraliya Branch',
+    7: 'Kalupe Branch',
+    8: 'Gonapinuwala Branch',
+    9: 'Baddegama Main Branch',
+    10: 'සන්දරවල ශාඛාව',
+    11: 'Galle Main Branch',
+    12: 'දොඩංගොඩ ශාඛාව',
+  };
+  return branchMap[branchId] || `Branch ${branchId}`;
 };
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; gradient: string }> = {
@@ -55,25 +74,21 @@ const BRANCH_THEMES: Record<number, { bg: string; gradient: string; color: strin
 const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSection?: boolean; subItems?: { icon?: any; label: string; key: string }[] }[]> = {
   BRANCH_MANAGER:       [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
-    { isSection: true, label: 'People' },
-    { icon: Users, label: 'Members', key: 'members' }, 
-    { isSection: true, label: 'Operations' },
-    { icon: CreditCard, label: 'Accounts', key: 'accounts' }, 
-    { icon: CheckCircle, label: 'Approvals', key: 'approvals' },
-    { 
-        icon: FileText, 
-        label: 'ණය (Loans)', 
-        key: 'loans-parent', 
-        subItems: [
-          { label: 'ණය පෝලිම', key: 'loans' },
-          { label: 'කළමනාකරු අනුමත කළ', key: 'manager-approved' },
-          { label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' }
-        ]
-      },
-    { icon: Scale, label: 'Pawning', key: 'pawning' },
-    { isSection: true, label: 'Finance' },
+    { isSection: true, label: 'Manager Operations' },
+    { icon: FileText, label: 'අනුමැතිය ලැබිය යුතු ණය', key: 'loans' },
+    { icon: CheckCircle, label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' },
+    { isSection: true, label: 'Customer Relations' },
+    { icon: UserPlus, label: 'Members', key: 'members' },
+    { icon: Users, label: 'Non-Members', key: 'non-members' },
+    { isSection: true, label: 'Core Banking Facilities' },
+    { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
+    { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
+    { icon: FileText, label: 'Loan Accounts', key: 'customer-loans' },
+    { icon: Scale, label: 'Pawning (Gold Loans)', key: 'pawning' },
+    { icon: Shield, label: 'Insurance Report', key: 'insurance' },
+    { isSection: true, label: 'Daily Operations' },
+    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
     { icon: BookOpen, label: 'General Ledger', key: 'gl' },
-    { icon: AlertTriangle, label: 'Alerts', key: 'alerts' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
@@ -97,6 +112,7 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
     { icon: FileText, label: 'Loan Accounts', key: 'loans' },
     { icon: Scale, label: 'Pawning (Gold Loans)', key: 'pawning' },
+    { icon: Shield, label: 'Insurance Report', key: 'insurance' },
     { isSection: true, label: 'Daily Operations' },
     { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
     { icon: BookOpen, label: 'General Ledger', key: 'gl' },
@@ -165,8 +181,13 @@ function QueueRow({ name, amount, status, date, onAction, actionLabel, actionCol
 // ── Loan Review Modal ─────────────────────────────────────────────────────────
 function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; onClose: () => void; onAction: () => void }) {
   const user = AuthService.getCurrentUser();
+  const canApprove = loan.status === 'PENDING' && (
+    (user?.role?.includes('BRANCH_MANAGER') && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL') ||
+    (user?.role?.includes('LOAN_COMMITTEE') && loan.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL')
+  );
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const ad = loan.applicationData || {};
 
   // Payment method state
@@ -174,6 +195,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   const [memberAccounts, setMemberAccounts] = useState<any[]>([]);
   const [selectedSavingsAcc, setSelectedSavingsAcc] = useState('');
   const [fetchingAccounts, setFetchingAccounts] = useState(false);
+  const [loanAccountNumber, setLoanAccountNumber] = useState('');
 
   useEffect(() => {
     if (paymentMethod === 'SAVINGS_TRANSFER' && loan.memberId) {
@@ -242,7 +264,20 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
       alert('කරුණාකර ඉතුරුම් ගිණුමක් තෝරන්න. (Please select a savings account.)');
       return;
     }
-    if (!window.confirm(`ණය මුදල ${paymentMethod === 'CASH' ? 'අතින් (Cash)' : 'ඉතුරුම් ගිණුමට'} නිකුත කරන්නද?`)) return;
+    if (!loanAccountNumber.trim()) {
+      alert('කරුණාකර ණය ගිණුම් අංකය ඇතුළත් කරන්න. (Please enter the loan account number.)');
+      return;
+    }
+    if (!await new Promise<boolean>(resolve => {
+      setConfirmDialog({
+        isOpen: true,
+        title: 'ණය නිකුත් කිරීම',
+        message: `ණය මුදල ${paymentMethod === 'CASH' ? 'අතින් (Cash)' : 'ඉතුරුම් ගිණුමට'} නිකුත කරන්නද?`,
+        variant: 'info',
+        onConfirm: () => { setConfirmDialog(d => ({ ...d, isOpen: false })); resolve(true); }
+      });
+      setTimeout(() => resolve(false), 30000);
+    })) return;
     setLoading(true);
     try {
       const disbursed = await LoanService.disburseLoan(
@@ -250,9 +285,10 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
         loan.requestedAmount,
         user?.username || 'system',
         paymentMethod,
-        paymentMethod === 'SAVINGS_TRANSFER' ? selectedSavingsAcc : undefined
+        paymentMethod === 'SAVINGS_TRANSFER' ? selectedSavingsAcc : undefined,
+        loanAccountNumber
       );
-      printDisbursementReceipt(disbursed, ad, user?.username || 'system');
+      // printDisbursementReceipt(disbursed, ad, user?.username || 'system');
       onAction();
       onClose();
     } catch (e: any) {
@@ -279,7 +315,16 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-5 rounded-t-2xl flex justify-between items-start shrink-0">
           <div>
-            <p className="text-xs text-blue-200 font-medium uppercase tracking-wider mb-1">ණය ඉල්ලීම් සමාලෝචනය | Loan Application Review</p>
+            <div className="flex items-center gap-3 mb-1">
+              <p className="text-xs text-blue-200 font-medium uppercase tracking-wider">
+                ණය ඉල්ලීම් සමාලෝචනය | Loan Application Review
+              </p>
+              {(loan as any).applicationNumber && (
+                <span className="bg-white/20 text-white text-xs font-mono font-bold px-2.5 py-0.5 rounded shadow-sm border border-white/10 tracking-widest">
+                  #{(loan as any).applicationNumber}
+                </span>
+              )}
+            </div>
             <h2 className="text-xl font-bold">{ad.applicantName || ad.name || 'Applicant'}</h2>
             <p className="text-blue-200 text-sm mt-1">Rs. {loan.requestedAmount?.toLocaleString()} · {loan.loanType?.name} · {loan.termMonths} months</p>
           </div>
@@ -331,7 +376,14 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                     <Field label="නම" value={g.name} />
                     <Field label="ලිපිනය" value={g.address} />
                     <Field label="NIC" value={g.nic} />
-                    <Field label="ඩිජිටල් අත්සන" value={g.digitalSignatureUrl} />
+                    {g.digitalSignatureUrl ? (
+                      <div className="mb-2">
+                        <span className="text-xs text-slate-500 block">ඩිජිටල් අත්සන</span>
+                        <img src={g.digitalSignatureUrl} alt="Signature" className="h-12 w-auto mt-1 border border-slate-200 rounded object-contain bg-white" />
+                      </div>
+                    ) : (
+                      <Field label="ඩිජිටල් අත්සන" value="—" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -390,38 +442,62 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           )}
 
           {/* Decision */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <h3 className="text-sm font-bold text-amber-800 mb-2">⑤ අදහස් / Comments</h3>
-            <textarea
-              value={comments}
-              onChange={e => setComments(e.target.value)}
-              placeholder="ඔබගේ අදහස් හෝ ප්‍රතික්ෂේප කිරීමේ හේතුව ලියන්න..."
-              rows={3}
-              className="w-full border border-amber-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-            />
-            {loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
-              <div className="mt-4 pt-4 border-t border-amber-200">
-                <h4 className="text-xs font-bold text-amber-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
-                <div className="flex gap-2">
-                  <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                    <option value="">-- නිලධාරියා තෝරන්න --</option>
-                    {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
-                  </select>
-                  <button onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
-                    {assigningFo ? '...' : 'පවරන්න'}
-                  </button>
+          {canApprove && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-amber-800 mb-2">⑤ අදහස් / Comments</h3>
+              <textarea
+                value={comments}
+                onChange={e => setComments(e.target.value)}
+                placeholder="ඔබගේ අදහස් හෝ ප්‍රතික්ෂේප කිරීමේ හේතුව ලියන්න..."
+                rows={3}
+                className="w-full border border-amber-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+              />
+              {loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
+                <div className="mt-4 pt-4 border-t border-amber-200">
+                  <h4 className="text-xs font-bold text-amber-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
+                  <div className="flex gap-2">
+                    <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                      <option value="">-- නිලධාරියා තෝරන්න --</option>
+                      {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
+                    </select>
+                    <button onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
+                      {assigningFo ? '...' : 'පවරන්න'}
+                    </button>
+                  </div>
+                  {loan.evaluatorId && (
+                     <p className="mt-2 text-xs font-semibold text-blue-700">දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
+                  )}
                 </div>
-                {loan.evaluatorId && (
-                   <p className="mt-2 text-xs font-semibold text-blue-700">දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
         </div>
 
         {/* Footer */}
         <div className="shrink-0 border-t border-slate-200">
+          {/* Disbursement Information - shown for DISBURSED loans */}
+          {(loan.currentStage === 'DISBURSED' || loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && ad.disbursementMethod && (
+            <div className="px-5 py-4 bg-white border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm ${ad.disbursementMethod === 'CASH' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                  {ad.disbursementMethod === 'CASH' ? '💵' : '🏦'}
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ගෙවූ ක්‍රමය (Disbursement Method)</p>
+                  <p className="text-sm font-bold text-slate-800">
+                    {ad.disbursementMethod === 'CASH' ? 'අතින් මුදල් (Cash)' : 'ඉතුරුම් ගිණුමට (Savings Transfer)'}
+                    {ad.disbursementMethod === 'SAVINGS_TRANSFER' && ad.disbursementSavingsAccount && (
+                      <span className="text-emerald-700 ml-2 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md text-xs">
+                        ගිණුම: {ad.disbursementSavingsAccount}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Disbursement Method Panel - shown for APPROVED loans */}
           {(loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED') && (
             <div className="px-5 pt-4 pb-2 bg-blue-50/60 border-b border-blue-100">
@@ -439,7 +515,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                 </button>
               </div>
               {paymentMethod === 'SAVINGS_TRANSFER' && (
-                <div className="mb-2">
+                <div className="mb-3">
                   <label className="block text-xs font-semibold text-blue-700 mb-1">බැර කළ යුතු ඉතුරුම් ගිණුම (Savings Account)</label>
                   {fetchingAccounts ? (
                     <p className="text-xs text-slate-500 animate-pulse">Fetching accounts...</p>
@@ -460,6 +536,16 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                   )}
                 </div>
               )}
+              <div className="mb-2">
+                <label className="block text-xs font-semibold text-blue-700 mb-1">ණය ගිණුම් අංකය (Loan Account Number) <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={loanAccountNumber}
+                  onChange={e => setLoanAccountNumber(e.target.value)}
+                  placeholder="e.g. LN-12345"
+                  className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
             </div>
           )}
 
@@ -467,7 +553,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
             <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-medium text-sm hover:bg-slate-50 transition">
               වසන්න (Close)
             </button>
-            {loan.status === 'PENDING' && (
+            {canApprove && (
               <div className="flex gap-3">
                 <button onClick={() => handle('reject')} disabled={loading}
                   className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
@@ -475,7 +561,11 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                 </button>
                 <button onClick={() => handle('approve')} disabled={loading}
                   className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
-                  {loading ? '...' : '✓ අනුමත / නිර්දේශ කරන්න (Approve / Recommend)'}
+                  {loading ? '...' : (
+                    (loan.loanType?.name?.includes('සේවක') || loan.loanType?.name?.includes('කෙටි') || (loan as any).loanTypeStr?.includes('සේවක') || (loan as any).loanTypeStr?.includes('කෙටි')) && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL'
+                      ? 'ණය කමිටුවට වෙත යවන්න'
+                      : '✓ අනුමත කරන්න (Approve)'
+                  )}
                 </button>
               </div>
             )}
@@ -485,15 +575,31 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                   className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition">
                   🖨 ගිවිසුම මුද්‍රණය (Print Agreement)
                 </button>
-                <button onClick={handleDisburse} disabled={loading || (paymentMethod === 'SAVINGS_TRANSFER' && memberAccounts.length === 0)}
+                <button onClick={handleDisburse} disabled={loading || (paymentMethod === 'SAVINGS_TRANSFER' && memberAccounts.length === 0) || !loanAccountNumber.trim()}
                   className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
                   {loading ? '⏳ Processing...' : '💰 ණය මුදා හරින්න (Disburse)'}
+                </button>
+              </div>
+            )}
+            {(loan.currentStage === 'DISBURSED' || loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
+              <div className="flex gap-3">
+                <button onClick={() => printDisbursementReceipt(loan, ad, user?.username || 'system')}
+                  className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition">
+                  🖨 රිසිට් පත මුද්‍රණය (Print Receipt)
                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
+      />
     </div>
   );
 }
@@ -650,35 +756,94 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 
 
 
-  if (activeTab === 'loans' || activeTab === 'committee-approved' || activeTab === 'manager-approved') {
+  const [viewMode, setViewMode] = useState<'pending' | 'history'>('pending');
+
+  if (activeTab === 'loans' || activeTab === 'committee-approved') {
     const isCommitteeApprovedTab = activeTab === 'committee-approved';
-    const isManagerApprovedTab = activeTab === 'manager-approved';
-    const displayedLoans = isCommitteeApprovedTab 
-      ? loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED' || l.status === 'ACTIVE' || l.currentStage === 'DISBURSED')
-      : isManagerApprovedTab
-        ? loanQueue.filter(l => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' || l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED' || l.status === 'ACTIVE' || l.currentStage === 'DISBURSED')
-        : loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
+    
+    // Reset viewMode when switching tabs to ensure sensible defaults
+    useEffect(() => { setViewMode('pending'); }, [activeTab]);
+
+    let displayedLoans = [];
+    if (isCommitteeApprovedTab) {
+      displayedLoans = viewMode === 'pending' 
+        ? loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED')
+        : loanQueue.filter(l => l.status === 'ACTIVE' || l.currentStage === 'DISBURSED' || l.status === 'COMPLETED');
+    } else {
+      displayedLoans = viewMode === 'pending'
+        ? loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING')
+        : loanQueue.filter(l => l.currentStage !== 'STAGE_1_MANAGER_APPROVAL' || l.status !== 'PENDING');
+    }
+
+    let pendingCount = 0;
+    let historyCount = 0;
+    if (isCommitteeApprovedTab) {
+      pendingCount = loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED').length;
+      historyCount = loanQueue.filter(l => l.currentStage === 'DISBURSED' || l.status === 'ACTIVE' || l.status === 'COMPLETED').length;
+    } else {
+      pendingCount = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING').length;
+      historyCount = loanQueue.filter(l => l.currentStage !== 'STAGE_1_MANAGER_APPROVAL' || l.status !== 'PENDING').length;
+    }
 
     return (
-      <>
-        {selectedLoan && <LoanReviewModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} onAction={loadData} />}
+      <div className="space-y-4">
+        {selectedLoan && <LoanReviewModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} onAction={() => { loadData(); setViewMode('history'); }} />}
+        
+        {!isCommitteeApprovedTab && (
+          <div className="flex items-center gap-2 mb-4 bg-white p-1 rounded-xl shadow-sm border border-slate-100 w-fit">
+            <button 
+              onClick={() => setViewMode('pending')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'pending' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              අනුමැතිය සඳහා පොරොත්තු (Pending)
+              {pendingCount > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${viewMode === 'pending' ? 'bg-blue-200 text-blue-800' : 'bg-slate-200 text-slate-600'}`}>{pendingCount}</span>
+              )}
+            </button>
+            <button 
+              onClick={() => setViewMode('history')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              පෙර වාර්තා (History)
+            </button>
+          </div>
+        )}
+
+        {isCommitteeApprovedTab && (
+          <div className="flex items-center gap-2 mb-4 bg-white p-1 rounded-xl shadow-sm border border-slate-100 w-fit">
+            <button 
+              onClick={() => setViewMode('pending')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'pending' ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              මුදාහැරිය යුතු (To Disburse)
+              {pendingCount > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${viewMode === 'pending' ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>{pendingCount}</span>
+              )}
+            </button>
+            <button 
+              onClick={() => setViewMode('history')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              නිකුත් කළ ණය (Disbursed)
+            </button>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <FileText size={16} /> 
               {isCommitteeApprovedTab 
-                ? 'කමිටුව අනුමත කළ ණය' 
-                : isManagerApprovedTab
-                  ? 'කළමනාකරු අනුමත කළ ණය'
-                  : 'ණය නිර්දේශ පෝලිම'}
+                ? (viewMode === 'pending' ? 'මුදාහැරිය යුතු ණය' : 'නිකුත් කළ ණය') 
+                : (viewMode === 'pending' ? 'ණය නිර්දේශ පෝලිම' : 'පෙර සමාලෝචනය කළ ණය')}
             </h3>
-            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${(isCommitteeApprovedTab || isManagerApprovedTab) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-              {displayedLoans.length} {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'අනුමතයි' : 'පොරොත්තු'}
+            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${viewMode === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+              {displayedLoans.length} වාර්තා
             </span>
           </div>
           {displayedLoans.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
-              {isCommitteeApprovedTab ? 'කමිටුව විසින් අනුමත කළ ණය නොමැත.' : isManagerApprovedTab ? 'කළමනාකරු විසින් අනුමත කළ ණය නොමැත.' : 'කළමනාකරුගේ අනුමැතිය සඳහා පොරොත්තු ණය නොමැත.'}
+              වාර්තා කිසිවක් හමු නොවීය.
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -688,7 +853,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                   <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">ණය වර්ගය</th>
                   <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">ඉල්ලූ මුදල</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">කාලය</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">දිනය</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{(viewMode === 'history' || isCommitteeApprovedTab) ? 'අනුමත කළ දිනය/වේලාව' : 'ඉල්ලුම් කළ දිනය'}</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">අදියර (STAGE)</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">තත්ත්වය</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">ක්‍රියාව</th>
@@ -704,7 +869,16 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                     <td className="px-5 py-3 text-slate-600">{l.loanType?.name || '—'}</td>
                     <td className="px-5 py-3 text-right font-semibold text-slate-800">Rs. {l.requestedAmount?.toLocaleString()}</td>
                     <td className="px-5 py-3 text-center text-slate-600">මාස {l.termMonths}</td>
-                    <td className="px-5 py-3 text-center text-slate-400 text-xs">{l.appliedDate?.slice(0,10)}</td>
+                    <td className="px-5 py-3 text-center text-slate-400 text-xs">
+                      {(viewMode === 'history' || isCommitteeApprovedTab) && l.updatedAt ? (
+                        <>
+                          <div className="font-semibold text-slate-600">{new Date(l.updatedAt).toLocaleDateString()}</div>
+                          <div className="text-[10px]">{new Date(l.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        </>
+                      ) : (
+                        l.appliedDate?.slice(0,10)
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-center text-xs font-semibold text-indigo-600">
                       {LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage)}
                     </td>
@@ -720,14 +894,14 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                         {l.status === 'ACTIVE' ? '✓ නිකුත් කර ඇත' : 
                          l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' :
                          l.status === 'COMPLETED' ? 'අවසන්' :
-                         l.status === 'PENDING' ? 'පොරොත්තු' :
-                         l.status === 'APPROVED' ? 'අනුමතයි' :
+                         l.status === 'PENDING' ? 'PENDING' :
+                         l.status === 'APPROVED' ? (isCommitteeApprovedTab && viewMode === 'pending' ? 'අනුමතයි (මුදාහැරිය යුතු)' : 'අනුමතයි') :
                          l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපයි' : l.status}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-center">
                       <button onClick={() => setSelectedLoan(l)} className="text-xs px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center gap-1 mx-auto">
-                        <Eye size={12}/> {(isCommitteeApprovedTab || isManagerApprovedTab) ? 'බලන්න' : 'සමාලෝචනය'}
+                        <Eye size={12}/> {isCommitteeApprovedTab && viewMode === 'pending' ? 'මුදාහරින්න' : 'බලන්න'}
                       </button>
                     </td>
                   </tr>
@@ -736,7 +910,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
             </table>
           )}
         </div>
-      </>
+      </div>
     );
   }
 
@@ -783,7 +957,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
             <Clock size={22} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">පොරොත්තු අනුමැතියන්</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">අනුමැතිය ලබාදිය යුතු</p>
             <p className="text-2xl font-bold text-slate-800">{pendingLoans.length}</p>
           </div>
         </div>
@@ -815,14 +989,45 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           {pendingLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින ණය අයදුම්පත් නොමැත.</p>
           ) : pendingLoans.map(l => (
-            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
+            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
-                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · මාස {l.termMonths} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
+                    {(() => {
+                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
+                      if (fullName === '—') return fullName;
+                      const parts = fullName.trim().split(/\s+/);
+                      if (parts.length <= 1) return fullName;
+                      const lastName = parts.pop();
+                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                      return `${initials} ${lastName}`;
+                    })()}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {l.applicationNumber && (
+                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                        <FileText size={14} /> {l.applicationNumber}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                      <FileText size={14} /> {l.loanType?.name || '—'}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <Clock size={14} /> මාස {l.termMonths}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setSelectedLoan(l)} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition">පරීක්ෂා කර අනුමත කරන්න</button>
+                <div className="flex shrink-0">
+                  <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
+                    <Eye size={16} /> පරීක්ෂා කර අනුමත කරන්න
+                  </button>
                 </div>
               </div>
             </div>
@@ -836,13 +1041,46 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           {approvedLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">දැනට අනුමත කළ ණය අයදුම්පත් නොමැත.</p>
           ) : approvedLoans.map(l => (
-            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
+            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-emerald-300 hover:shadow-md transition-all group">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
-                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors">
+                    {(() => {
+                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
+                      if (fullName === '—') return fullName;
+                      const parts = fullName.trim().split(/\s+/);
+                      if (parts.length <= 1) return fullName;
+                      const lastName = parts.pop();
+                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                      return `${initials} ${lastName}`;
+                    })()}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {l.applicationNumber && (
+                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                        <FileText size={14} /> {l.applicationNumber}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                      <FileText size={14} /> {l.loanType?.name || '—'}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <Clock size={14} /> මාස {l.termMonths}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">අනුමත කර ඇත</span>
+                <div className="flex shrink-0">
+                  <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
+                    <CheckCircle size={16} /> අනුමත කර ඇත
+                  </span>
+                </div>
               </div>
             </div>
           ))}
@@ -855,13 +1093,46 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           {rejectedLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">ප්‍රතික්ෂේප කළ ණය අයදුම්පත් නොමැත.</p>
           ) : rejectedLoans.map(l => (
-            <div key={l.loanId} className="py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition px-2 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
+            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-red-300 hover:shadow-md transition-all group">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || '—')}</p>
-                  <p className="text-xs text-slate-400">{l.loanType?.name || '—'} · Rs. {l.requestedAmount?.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-red-700 transition-colors">
+                    {(() => {
+                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
+                      if (fullName === '—') return fullName;
+                      const parts = fullName.trim().split(/\s+/);
+                      if (parts.length <= 1) return fullName;
+                      const lastName = parts.pop();
+                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                      return `${initials} ${lastName}`;
+                    })()}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {l.applicationNumber && (
+                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                        <FileText size={14} /> {l.applicationNumber}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                      <FileText size={14} /> {l.loanType?.name || '—'}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                      <Clock size={14} /> මාස {l.termMonths}
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-                <span className="px-3 py-1 bg-red-100 text-red-800 rounded font-bold text-xs">ප්‍රතික්ෂේප කර ඇත</span>
+                <div className="flex shrink-0">
+                  <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
+                    <XCircle size={16} /> ප්‍රතික්ෂේප කර ඇත
+                  </span>
+                </div>
               </div>
             </div>
           ))}
@@ -879,7 +1150,7 @@ function TellerView() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [activityDate, setActivityDate] = useState<string>('');
+  const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const fetchActivities = () => {
     setLoadingActivity(true);
@@ -1052,22 +1323,26 @@ function ValuerView() {
   );
 }
 
-function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: string, onTabChange?: (tab: string) => void, readOnly?: boolean }) {
+function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, setConfirmDialog }: { activeTab: string, onTabChange?: (tab: string) => void, readOnly?: boolean, confirmDialog: any, setConfirmDialog: any }) {
   const { t, language } = useLanguage();
   const [showOpenAccountForm, setShowOpenAccountForm] = useState(false);
   const [showOpenFdForm, setShowOpenFdForm] = useState(false);
   const [showViewAccount, setShowViewAccount] = useState<{show: boolean, accountId: string|null}>({show: false, accountId: null});
   const [showMemberAccountsModal, setShowMemberAccountsModal] = useState(false);
   const [selectedMemberForAccounts, setSelectedMemberForAccounts] = useState<any>(null);
-  const [expandedInterestId, setExpandedInterestId] = useState<string | null>(null);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+  const [interestModalMonth, setInterestModalMonth] = useState<string>('');
   const user = AuthService.getCurrentUser();
   const navigate = useNavigate();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
 
   const getMemberName = (memberId: string, accNo?: string) => {
     const m = members.find(mem => mem.memberId === memberId);
-    if (m && (m.nameWithInitials || m.fullName || m.fullNameSinhala)) {
-      return m.nameWithInitials || m.fullName || m.fullNameSinhala;
+    if (m) {
+      if (language === 'si' && m.fullNameSinhala) {
+        return m.fullNameSinhala;
+      }
+      return m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown';
     }
     if (accNo) {
       const acc = accounts.find(a => a.accountNumber === accNo);
@@ -1127,12 +1402,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
   const [rowTxAction, setRowTxAction] = useState<TransactionAction | null>(null);
   const [rowTxAccount, setRowTxAccount] = useState<AccountService.AccountData | null>(null);
   const [viewingFd, setViewingFd] = useState<any>(null);
+  const [renewFd, setRenewFd] = useState<any>(null);
   const [monitoringFd, setMonitoringFd] = useState<any>(null);
   const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
   const [loanLedgers, setLoanLedgers] = useState<any[]>([]);
   const [loanActivityDate, setLoanActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [activityDate, setActivityDate] = useState<string>('');
+  const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [activityDetails, setActivityDetails] = useState<any>(null);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
@@ -1299,6 +1575,17 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault(); 
+    
+    // Manual validation
+    if (!form.membershipNumber || !form.nic || !form.nameWithInitials || !form.fullName || !form.dateOfBirth || !form.address || !form.contactNumber) {
+        setRegError("කරුණාකර සියලුම අනිවාර්ය තොරතුරු (තරුව * සලකුණු කර ඇති) සම්පූර්ණ කරන්න.");
+        return;
+    }
+    if (isChildReg && !selectedGuardianData && !guardianNic) {
+        setRegError("කරුණාකර භාරකරුගේ ජා.හැ.ප අංකය (Guardian NIC) ඇතුළත් කරන්න.");
+        return;
+    }
+
     if ((form as any).memberId) {
       setConfirmModal({
         isOpen: true,
@@ -1329,6 +1616,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
       setShowRegModal(false);
       setForm(initialFormState);
       fetchData();
+      showMessage((form as any).memberId ? 'සාමාජික තොරතුරු සාර්ථකව යාවත්කාලීන කරන ලදී! (Successfully updated!)' : 'නව සාමාජිකයා සාර්ථකව ලියාපදිංචි කරන ලදී! (Successfully registered!)', 'success');
     } catch (err: any) {
       const data = err.response?.data;
       const msg = data?.message || data?.error || (typeof data === 'string' ? data : 'Registration failed. Check details.');
@@ -1341,7 +1629,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
     try {
       await AccountService.openAccount({ memberId: selectedMemberId, ...accForm });
       setShowAccModal(false);
+      setAccCustomerType(null);
       fetchData();
+      showMessage('නව ගිණුම සාර්ථකව ආරම්භ කරන ලදී! (Account opened successfully!)', 'success');
     } catch (err: any) {
       setAccError(err.response?.data || 'Failed to open account');
     } finally { setLoading(false); }
@@ -1369,7 +1659,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
       if (details.memberId) {
         try {
           const member = await AccountService.getMemberById(details.memberId);
-          memberName = member.fullName || member.fullNameSinhala || 'Unknown';
+          if (language === 'si' && member.fullNameSinhala) {
+            memberName = member.fullNameSinhala;
+          } else {
+            memberName = member.fullName || member.fullNameSinhala || 'Unknown';
+          }
         } catch (e) {
           if (details.accountNumber) {
             const acc = accounts.find(a => a.accountNumber === details.accountNumber);
@@ -1628,9 +1922,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                       <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider border ${
                         status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                         status === 'MATURING_SOON' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        status === 'INACTIVE' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                        status === 'CLOSED' ? 'bg-red-50 text-red-700 border-red-200' :
                         'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        {status === 'ACTIVE' ? 'ක්‍රියාකාරී' : status === 'MATURING_SOON' ? 'කල් පිරීමට ආසන්නයි' : 'කල් පිරී ඇත'}
+                        {status === 'ACTIVE' ? 'ක්‍රියාකාරී' : status === 'MATURING_SOON' ? 'කල් පිරීමට ආසන්නයි' : status === 'INACTIVE' ? 'අක්‍රියයි' : status === 'CLOSED' ? 'වසා ඇත' : 'කල් පිරී ඇත'}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
@@ -1638,8 +1934,31 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                         <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">බලන්න</button>
                         {!readOnly && (
                           <>
+
                             <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
-                            <button onClick={() => { if(window.confirm('මෙම ස්ථාවර තැන්පතුව මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { AccountService.deleteFixedDeposit(fd.fdId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); fetchData(); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm"><Trash2 size={14} /></button>
+                            <button 
+                              onClick={() => { 
+                                setConfirmDialog({ 
+                                  isOpen: true, 
+                                  title: fd.status === 'ACTIVE' || !fd.status ? 'ස්ථාවර තැන්පතුව අක්‍රිය කරන්නද?' : 'ස්ථාවර තැන්පතුව සක්‍රිය කරන්නද?', 
+                                  message: `මෙම ස්ථාවර තැන්පතුව ${(fd.status === 'ACTIVE' || !fd.status) ? 'අක්‍රිය' : 'සක්‍රිය'} කිරීමට ඔබ ස්ථිරද?`, 
+                                  variant: (fd.status === 'ACTIVE' || !fd.status) ? 'warning' : 'info', 
+                                  onConfirm: () => { 
+                                    AccountService.updateFixedDepositStatus(fd.fdId, (fd.status === 'ACTIVE' || !fd.status) ? 'INACTIVE' : 'ACTIVE')
+                                      .then(() => { 
+                                        setAlertConfig({message: 'තත්වය සාර්ථකව වෙනස් කරන ලදී', isSuccess: true}); 
+                                        fetchData(); 
+                                      })
+                                      .catch(err => setAlertConfig({message: 'තත්වය වෙනස් කිරීම අසාර්ථකයි'})); 
+                                    setConfirmDialog(d => ({ ...d, isOpen: false })); 
+                                  } 
+                                }); 
+                              }} 
+                              className={`px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-center border shadow-sm ${(fd.status === 'ACTIVE' || !fd.status) ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'}`}
+                              title={(fd.status === 'ACTIVE' || !fd.status) ? 'Deactivate' : 'Activate'}
+                            >
+                              <Power size={14} />
+                            </button>
                           </>
                         )}
                       </div>
@@ -1659,10 +1978,15 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             accountNumber={rowTxAccount?.accountNumber || ''}
             accountType={rowTxAccount?.accountType || ''}
             balance={Number(rowTxAccount?.balance || 0)}
-            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
+            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.nameWithInitials || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
             action={rowTxAction}
             allAccounts={accounts}
             members={members}
+            isMatured={rowTxAccount?.isMatured}
+            linkedSavingsAccount={(rowTxAccount as any)?.linkedSavingsAccount}
+            memberId={(rowTxAccount as any)?.memberId}
+            penaltyAmount={(rowTxAccount as any)?.penaltyAmount}
+            principalAmount={(rowTxAccount as any)?.principalAmount}
             onClose={() => { setRowTxAction(null); setRowTxAccount(null); }}
             onSuccess={() => {
               setRowTxAction(null); setRowTxAccount(null);
@@ -1676,7 +2000,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
         {viewingFd && (
           <FdViewModal 
             fd={viewingFd} 
-            members={members} 
+            members={members}
+            savingsAccounts={accounts}
             onClose={() => setViewingFd(null)} 
           />
         )}
@@ -1687,10 +2012,28 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             fd={monitoringFd} 
             memberName={getMemberName(monitoringFd.memberId)}
             onClose={() => setMonitoringFd(null)}
-            onRelease={() => {
+            onRelease={(isMatured, releaseAmount, penaltyAmount, principalAmount) => {
               setMonitoringFd(null);
-              setRowTxAccount({ accountId: monitoringFd.id, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: monitoringFd.principalAmount, memberId: monitoringFd.memberId, childName: '' } as any);
+              const linkedAcc = accounts.find(a => a.accountId === monitoringFd.linkedSavingsAccountId);
+              setRowTxAccount({ accountId: monitoringFd.fdId, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: releaseAmount, memberId: monitoringFd.memberId, childName: '', isMatured, linkedSavingsAccount: linkedAcc ? linkedAcc.accountNumber : 'Not Linked', penaltyAmount, principalAmount } as any);
               setRowTxAction('CLOSE_FD');
+            }}
+            onRenew={() => {
+              setMonitoringFd(null);
+              setRenewFd(monitoringFd);
+            }}
+          />
+        )}
+
+        {/* FD Renew Modal */}
+        {renewFd && (
+          <RenewFixedDepositModal
+            fd={renewFd}
+            onClose={() => setRenewFd(null)}
+            onSuccess={() => {
+              setRenewFd(null);
+              setAlertConfig({message: 'ස්ථාවර තැන්පතුව සාර්ථකව අලුත් කරන ලදී!', isSuccess: true});
+              fetchData();
             }}
           />
         )}
@@ -1711,7 +2054,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
     return <PawningModule branchId={user?.branchId || 1} />;
   }
 
-  if (activeTab === 'loans') {
+  if (activeTab === 'loans' || activeTab === 'customer-loans') {
     const totalLoansCount = loans.length;
     const activeLoansCount = loans.filter(l => l.status === 'ACTIVE' || l.status === 'DISBURSED').length;
     const committeeApprovedCount = loans.filter(l => l.status === 'APPROVED').length;
@@ -1889,7 +2232,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                           බලන්න
                         </button>
                         {!readOnly && (
-                          <button onClick={() => { if(window.confirm('මෙම ණය ගිණුම මකා දැමීමට අවශ්‍ය බව විශ්වාසද?')) { LoanService.deleteLoan(l.loanId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); LoanService.getLoans().then(setLoans); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); } }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm" title="මකා දමන්න">
+                          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'ණය ගිණුම මකන්නද?', message: 'මෙම ණය ගිණුම මකා දැමීමට අවශ්‍ය බව විශ්වාසද? මෙය ආපසු හැරවිය නොහැක.', variant: 'danger', onConfirm: () => { LoanService.deleteLoan(l.loanId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); LoanService.getLoans().then(setLoans); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); setConfirmDialog(d => ({ ...d, isOpen: false })); } }); }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm" title="මකා දමන්න">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -2037,7 +2380,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                 <div className="grid grid-cols-2 gap-y-5">
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Type')}</p>
-                    <p className="font-semibold text-slate-800">{activityDetails._type}</p>
+                    <p className="font-semibold text-slate-800">{t(activityDetails._type)}</p>
                   </div>
                   {(activityDetails.transactionId || activityDetails.accountId || activityDetails.fdId) && (
                     <div>
@@ -2074,7 +2417,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                   {activityDetails.branchId && (
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{t('Branch')}</p>
-                      <p className="font-medium text-slate-800">{getBranchName(activityDetails.branchId)}</p>
+                      <p className="font-medium text-slate-800">{t(getBranchName(activityDetails.branchId))}</p>
                     </div>
                   )}
                   {activityDetails.fdNumber && (
@@ -2125,6 +2468,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
         )}
       </div>
     );
+  }
+
+  if (activeTab === 'insurance') {
+    return <InsuranceReport />;
   }
 
   if (activeTab === 'savings') {
@@ -2184,7 +2531,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
 
               {/* Open Account */}
               <button
-                onClick={() => { setSelectedMemberId(''); setShowAccModal(true); }}
+                onClick={() => { setAccCustomerType(null); setSelectedMemberId(''); setShowAccModal(true); }}
                 className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/40 ml-1.5"
               >
                 <CreditCard size={16} /> {t('Open Account')}
@@ -2250,7 +2597,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                 <tr key={a.accountId} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-5 py-5 font-bold text-slate-800 font-mono text-base">{a.accountNumber}</td>
                   <td className="px-5 py-5 text-slate-700 font-medium group-hover:text-blue-900 transition-colors">
-                    {a.childName || members.find(m => m.memberId === a.memberId)?.fullName || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || 'N/A'}
+                    {a.childName || members.find(m => m.memberId === a.memberId)?.nameWithInitials || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || 'N/A'}
                   </td>
                   <td className="px-5 py-5">
                     <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide inline-block">
@@ -2272,15 +2619,20 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                       <BookOpen size={14} /> Passbook
                     </button>
                     <button
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to ${a.status === 'ACTIVE' ? 'deactivate' : 'activate'} this account?`)) {
-                          try {
-                            await AccountService.updateAccountStatus(a.accountId!, a.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
-                            fetchData();
-                          } catch (e) {
-                            alert('Failed to update account status');
+                      onClick={() => {
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: a.status === 'ACTIVE' ? 'ගිණුම අක්‍රිය කරන්නද?' : 'ගිණුම සක්‍රිය කරන්නද?',
+                          message: `"${a.accountNumber}" ගිණුම ${a.status === 'ACTIVE' ? 'අක්‍රිය' : 'සක්‍රිය'} කිරීමට ඔබ ස්ථිරද?`,
+                          variant: a.status === 'ACTIVE' ? 'warning' : 'info',
+                          onConfirm: async () => {
+                            try {
+                              await AccountService.updateAccountStatus(a.accountId!, a.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+                              fetchData();
+                            } catch (e) { alert('Failed to update account status'); }
+                            setConfirmDialog(d => ({ ...d, isOpen: false }));
                           }
-                        }
+                        });
                       }}
                       className={`px-2.5 py-1.5 rounded-lg transition flex items-center justify-center border shadow-sm ${a.status === 'ACTIVE' ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}
                       title={a.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
@@ -2303,10 +2655,15 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             accountNumber={rowTxAccount?.accountNumber || ''}
             accountType={rowTxAccount?.accountType || ''}
             balance={Number(rowTxAccount?.balance || 0)}
-            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullName || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
+            accountHolder={rowTxAccount?.childName || members.find(m => m.memberId === rowTxAccount?.memberId)?.nameWithInitials || members.find(m => m.memberId === rowTxAccount?.memberId)?.fullNameSinhala || 'N/A'}
             action={rowTxAction}
             allAccounts={accounts}
             members={members}
+            isMatured={rowTxAccount?.isMatured}
+            linkedSavingsAccount={(rowTxAccount as any)?.linkedSavingsAccount}
+            memberId={(rowTxAccount as any)?.memberId}
+            penaltyAmount={(rowTxAccount as any)?.penaltyAmount}
+            principalAmount={(rowTxAccount as any)?.principalAmount}
             onClose={() => { setRowTxAction(null); setRowTxAccount(null); }}
             onSuccess={() => {
               setRowTxAction(null); setRowTxAccount(null);
@@ -2320,7 +2677,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
         {viewingFd && (
           <FdViewModal 
             fd={viewingFd} 
-            members={members} 
+            members={members}
+            savingsAccounts={accounts}
             onClose={() => setViewingFd(null)} 
           />
         )}
@@ -2331,9 +2689,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             fd={monitoringFd} 
             memberName={getMemberName(monitoringFd.memberId)}
             onClose={() => setMonitoringFd(null)}
-            onRelease={() => {
+            onRelease={(isMatured, releaseAmount, penaltyAmount, principalAmount) => {
               setMonitoringFd(null);
-              setRowTxAccount({ accountId: monitoringFd.id, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: monitoringFd.principalAmount, memberId: monitoringFd.memberId, childName: '' } as any);
+              const linkedAcc = accounts.find(a => a.accountId === monitoringFd.linkedSavingsAccountId);
+              setRowTxAccount({ accountId: monitoringFd.fdId, accountNumber: monitoringFd.fdNumber, accountType: 'FIXED_DEPOSIT', balance: releaseAmount, memberId: monitoringFd.memberId, childName: '', isMatured, linkedSavingsAccount: linkedAcc ? linkedAcc.accountNumber : 'Not Linked', penaltyAmount, principalAmount } as any);
               setRowTxAction('CLOSE_FD');
             }}
           />
@@ -2358,13 +2717,39 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
         )}
 
         {/* Open Account Modal */}
-        {showAccModal && (
+        {showAccModal && accCustomerType !== null && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
             <div className="w-full max-w-6xl relative shadow-2xl rounded-2xl">
               <OpenAccountForm 
-                isSocietyMember={savingsTab === 'SOCIETY'} 
+                isSocietyMember={accCustomerType === 'true'} 
                 onClose={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); fetchData(); }} 
               />
+            </div>
+          </div>
+        )}
+
+        {/* Choice Popup */}
+        {showAccModal && accCustomerType === null && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-lg font-bold text-slate-800">{t('Open Savings Account')}</h3>
+                <button onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
+              </div>
+              
+              <div className="p-8 space-y-4">
+                <h4 className="text-center text-slate-600 font-medium mb-6">{t('Registration Type')}</h4>
+                <button onClick={() => setAccCustomerType('true')}
+                  className="w-full p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-500 text-green-700 font-bold transition flex items-center justify-center gap-3">
+                  <UserPlus size={20} />
+                  {t('Society Account')}
+                </button>
+                <button onClick={() => setAccCustomerType('false')}
+                  className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-bold transition flex items-center justify-center gap-3">
+                  <Users size={20} />
+                  {t('Non-Society Account')}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2398,7 +2783,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                 ) : passbookData ? (
                   <div className="p-6 space-y-8">
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4 mb-2">
                       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current Balance</p>
                         <p className="text-2xl font-black text-slate-800 font-mono">Rs. {passbookData.account?.balance?.toLocaleString()}</p>
@@ -2411,6 +2796,30 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
                         <p className="text-lg font-bold text-emerald-600 mt-1">{passbookData.account?.status}</p>
                       </div>
+                      
+                      {(() => {
+                        const today = new Date();
+                        const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                        const currentMonthBalances = passbookData.dailyBalances?.filter((db: any) => db.recordDate.startsWith(currentMonthStr)) || [];
+                        const accruedInterest = currentMonthBalances.reduce((sum: number, db: any) => sum + (db.dailyInterestEarned || 0), 0);
+                        
+                        return (
+                            <div 
+                              className="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm cursor-pointer hover:bg-blue-100 transition-colors flex flex-col justify-center items-center h-full group"
+                              onClick={() => {
+                                setInterestModalMonth('');
+                                setShowInterestModal(true);
+                              }}
+                            >
+                              <p className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2 group-hover:scale-105 transition-transform">
+                                <Calculator size={18} /> උපයා ඇති පොලිය
+                              </p>
+                              <span className="text-[10px] text-blue-400 mt-1 font-semibold uppercase">
+                                Click to View Details
+                              </span>
+                            </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="w-full">
@@ -2433,20 +2842,32 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                               </thead>
                               <tbody className="divide-y divide-slate-100">
                                 {passbookData.transactions.sort((a: any, b: any) => new Date(b.transactionTimestamp).getTime() - new Date(a.transactionTimestamp).getTime()).map((tx: any) => {
-                                  const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST') || tx.transactionType === 'BROUGHT_FORWARD';
+                                  const isFdClosure =
+                                    tx.transactionType === 'FD_CLOSURE' ||
+                                    tx.transactionType === 'FIXED_DEPOSIT_CLOSURE' ||
+                                    tx.transactionType === 'FD_RELEASE' ||
+                                    !!(tx.reference && tx.reference.toLowerCase().startsWith('fd closure')) ||
+                                    !!(tx.description && (
+                                      tx.description.toLowerCase().includes('fixed deposit') ||
+                                      tx.description.toLowerCase().includes('fd closure')
+                                    ));
+                                  const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST') || tx.transactionType === 'BROUGHT_FORWARD' || isFdClosure;
                                   const isInterest = tx.transactionType === 'INTEREST';
                                   const isFdInterest = tx.transactionType === 'FD_MONTHLY_INTEREST';
-                                  const isExpanded = expandedInterestId === tx.transactionId;
                                   
                                   let txDate = new Date(tx.transactionTimestamp);
                                   let txMonthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
-                                  let monthBalances = passbookData.dailyBalances.filter((db: any) => db.recordDate.startsWith(txMonthStr));
 
                                   return (
                                     <React.Fragment key={tx.transactionId}>
                                       <tr 
-                                        className={`hover:bg-slate-50 transition-colors ${isInterest ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-blue-50/30' : ''}`}
-                                        onClick={() => { if(isInterest) setExpandedInterestId(isExpanded ? null : tx.transactionId) }}
+                                        className={`hover:bg-slate-50 transition-colors ${isInterest ? 'cursor-pointer' : ''}`}
+                                        onClick={() => { 
+                                          if(isInterest) {
+                                            setInterestModalMonth(txMonthStr);
+                                            setShowInterestModal(true);
+                                          }
+                                        }}
                                       >
                                         <td className="px-4 py-3 text-slate-500">
                                           {txDate.toLocaleDateString()}
@@ -2456,6 +2877,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${isCredit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                               {isInterest ? 'මාසික පොලිය (MONTHLY INTEREST)' : 
                                                isFdInterest ? 'ස්ථාවර තැන්පතු පොලිය (FD INTEREST)' : 
+                                               isFdClosure ? 'ස්ථාවර තැන්පතු වසා දැමීම (FIXED DEPOSIT CLOSURE)' :
                                                tx.transactionType === 'INITIAL_DEPOSIT' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
                                                tx.transactionType === 'BROUGHT_FORWARD' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
                                                tx.transactionType === 'WITHDRAWAL' ? 'මුදල් ආපසු ගැනීම (WITHDRAWAL)' :
@@ -2464,7 +2886,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                                             </span>
                                             {isInterest && (
                                               <span className="text-[10px] text-blue-500 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
-                                                {isExpanded ? 'Hide' : 'Details'}
+                                                Details
                                               </span>
                                             )}
                                           </div>
@@ -2479,28 +2901,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                                           Rs. {tx.balanceAfter.toLocaleString()}
                                         </td>
                                       </tr>
-                                      {isInterest && isExpanded && (
-                                        <tr>
-                                          <td colSpan={5} className="p-0 border-b-0 bg-slate-50/80 shadow-inner">
-                                            <div className="p-4 px-6 border-l-4 border-blue-400 m-2 bg-white rounded-r-lg shadow-sm">
-                                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Daily Balance Breakdown ({txMonthStr})</p>
-                                              {monthBalances.length === 0 ? (
-                                                <p className="text-xs text-slate-400 italic">No daily balances recorded for this period.</p>
-                                              ) : (
-                                                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                                                  {monthBalances.sort((a: any, b: any) => new Date(a.recordDate).getTime() - new Date(b.recordDate).getTime()).map((db: any) => (
-                                                    <div key={db.id} className="flex justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
-                                                      <span className="font-medium text-slate-600">{db.recordDate}</span>
-                                                      <span className="font-mono text-slate-500">Rs. {db.closingBalance?.toLocaleString() || db.endOfDayBalance?.toLocaleString()}</span>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </React.Fragment>
+                                      </React.Fragment>
                                   );
                                 })}
                               </tbody>
@@ -2513,6 +2914,102 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                 ) : (
                   <div className="p-12 text-center text-red-500 font-medium">Failed to load passbook.</div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showInterestModal && passbookData && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+              <div className="bg-blue-600 px-6 py-4 flex justify-between items-center shrink-0">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <Calculator size={18} /> {t('Monthly Interest Details')} (මාසික පොලී විස්තර)
+                </h3>
+                <button onClick={() => setShowInterestModal(false)} className="text-blue-100 hover:text-white transition">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto bg-slate-50 flex-1">
+                {(() => {
+                  // Group daily balances by month
+                  const balancesByMonth: { [monthStr: string]: any[] } = {};
+                  (passbookData.dailyBalances || []).forEach((db: any) => {
+                    const monthStr = db.recordDate.substring(0, 7); // YYYY-MM
+                    if (!balancesByMonth[monthStr]) balancesByMonth[monthStr] = [];
+                    balancesByMonth[monthStr].push(db);
+                  });
+                  
+                  const sortedMonths = Object.keys(balancesByMonth).sort((a, b) => b.localeCompare(a));
+                  
+                  if (sortedMonths.length === 0) {
+                    return <p className="text-center text-slate-500 py-8">No interest records found.</p>;
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      {sortedMonths.map(monthStr => {
+                        const monthDbs = balancesByMonth[monthStr];
+                        const totalEarned = monthDbs.reduce((sum, db) => sum + (db.dailyInterestEarned || db.dailyInterest || 0), 0);
+                        const isExpanded = interestModalMonth === monthStr;
+                        
+                        return (
+                          <div key={monthStr} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition-all duration-200">
+                            <div 
+                              className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 select-none"
+                              onClick={() => setInterestModalMonth(isExpanded ? '' : monthStr)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-slate-800 text-sm">
+                                    {new Date(monthStr + '-01').toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
+                                  </h4>
+                                  <p className="text-xs text-slate-500 font-mono mt-0.5">{monthStr}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {isExpanded && (
+                              <div className="border-t border-slate-100 bg-slate-50/50 p-4">
+                                <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                  <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-slate-500 bg-slate-100/80 sticky top-0 backdrop-blur-sm z-10">
+                                      <tr>
+                                        <th className="px-3 py-2 font-medium border-b border-slate-200 rounded-tl-lg">Date</th>
+                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">EOD Balance</th>
+                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">Interest Base</th>
+                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right rounded-tr-lg">Earned</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                      {monthDbs.sort((a: any, b: any) => new Date(a.recordDate).getTime() - new Date(b.recordDate).getTime()).map((db: any, idx: number) => (
+                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                          <td className="px-3 py-2 text-slate-600 font-mono text-xs">{db.recordDate}</td>
+                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-700">Rs. {(db.closingBalance || db.endOfDayBalance || 0).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">Rs. {(db.interestBase || 0).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right font-mono text-xs font-medium text-emerald-600">+ {(db.dailyInterestEarned || db.dailyInterest || 0).toFixed(2)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot className="bg-slate-50/80 border-t border-slate-200">
+                                      <tr>
+                                        <td colSpan={3} className="px-3 py-2 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Total Earned for Month</td>
+                                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600 text-sm">Rs. {totalEarned.toFixed(2)}</td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -2768,7 +3265,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleRegister} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={handleRegister} className="flex flex-col flex-1 overflow-hidden" noValidate>
               <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
                 {regError && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm border-l-4 border-red-500 font-medium shadow-sm">{regError}</div>}
                 
@@ -3058,105 +3555,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
         </div>
       )}
 
-      {/* Open Account Modal */}
-      {showAccModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-800">{t('Open Savings Account')}</h3>
-              <button onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
-            </div>
-            
-            {!selectedMemberId && accCustomerType === null ? (
-              <div className="p-8 space-y-4">
-                <h4 className="text-center text-slate-600 font-medium mb-6">{t('Registration Type')}</h4>
-                <button onClick={() => setAccCustomerType('true')}
-                  className="w-full p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-500 text-green-700 font-bold transition flex items-center justify-center gap-3">
-                  <UserPlus size={20} />
-                  {t('Society Member')}
-                </button>
-                <button onClick={() => setAccCustomerType('false')}
-                  className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-bold transition flex items-center justify-center gap-3">
-                  <Users size={20} />
-                  {t('Non-Member')}
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleOpenAccount} className="p-6 space-y-4">
-                {accError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{accError}</div>}
-                
-                {/* Member Selection if opened from general button */}
-                {!selectedMemberId && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold text-slate-700">{accCustomerType === 'true' ? t('Society Member') : t('Non-Member')}</span>
-                      <button type="button" onClick={() => setAccCustomerType(null)} className="text-xs text-blue-600 hover:underline">{t('Cancel')}</button>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Select Person')}</label>
-                      <select required value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}
-                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                        <option value="">-- {t('Select Person')} --</option>
-                        {members.filter((m: any) => accCustomerType === 'true' ? m.isMember !== false : m.isMember === false).map(m => (
-                          <option key={m.memberId} value={m.memberId}>{m.fullName} - {m.nic}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('Account Type')}</label>
-                <select value={accForm.accountType} onChange={e => setAccForm(p => ({ ...p, accountType: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                    <option value="NORMAL">{t('Normal Savings (Samanaya 01)')}</option>
-                    <option value="JANASETHA">{t('Janasetha')}</option>
-                    <option value="DHANA_YOJANA">{t('Dhana Yojana')}</option>
-                    <option value="VANDANA">{t('Vandana')}</option>
-                    <option value="ARUNALU">{t('Arunalu (Children)')}</option>
-                    <option value="RANTHILINA">{t('Ranthilina (Children)')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('Initial Deposit (Rs.)')}</label>
-                <input type="number" min="100" value={accForm.initialDeposit} onChange={e => setAccForm(p => ({ ...p, initialDeposit: parseInt(e.target.value) }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-              </div>
-              
-              {['ARUNALU', 'RANTHILINA', 'CHILD'].includes(accForm.accountType) && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase">{t('Child Information')}</h4>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">{t("Child's Name *")}</label>
-                    <input required value={accForm.childName} onChange={e => setAccForm(p => ({ ...p, childName: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Birth Certificate No. *')}</label>
-                      <input required value={accForm.childBirthCertificate} onChange={e => setAccForm(p => ({ ...p, childBirthCertificate: e.target.value }))}
-                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('Date of Birth *')}</label>
-                      <input required type="date" value={accForm.childDateOfBirth} onChange={e => setAccForm(p => ({ ...p, childDateOfBirth: e.target.value }))}
-                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" />
-                    </div>
-                  </div>
-                </div>
-              )}
-                <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => { setShowAccModal(false); setAccCustomerType(null); setSelectedMemberId(''); }} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm">{t('Cancel')}</button>
-                  <button type="submit" disabled={loading || !selectedMemberId} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-60">
-                    {loading ? t('Opening...') : t('Open Account')}
-                  </button>
-                </div>
-              </form>
-            )}
-            </div>
-          </div>
-        )}
-
         {/* View Account Modal */}
         {viewAccount && (
           <ViewAccountModal 
@@ -3165,8 +3563,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly }: { activeTab: 
             onClose={() => setViewAccount(null)} 
           />
         )}
-
-
 
       </div>
     );
@@ -3742,12 +4138,50 @@ function LedgerView({ branchId }: { branchId?: number }) {
 
 export default function BranchDashboard({ overrideActiveTab, hideSidebar, overrideRole, readOnly, onBack }: { overrideActiveTab?: string, hideSidebar?: boolean, overrideRole?: string, readOnly?: boolean, onBack?: () => void } = {}) {
   const navigate   = useNavigate();
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const user       = AuthService.getCurrentUser();
   const [internalTab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
   const tab = overrideActiveTab || internalTab;
   
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({ open: false, message: '', severity: 'info' });
+  const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => setSnackbar({ open: true, message, severity });
+  
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [committeeApprovedCount, setCommitteeApprovedCount] = useState(0);
+
+  useEffect(() => {
+    const currentRole = user?.role?.replace('ROLE_', '');
+    if (currentRole === 'BRANCH_MANAGER') {
+      import('../services/loan.service').then(LoanService => {
+        LoanService.getLoans().then(loans => {
+          const myLoans = loans.filter((l: any) => l.branchId === user.branchId);
+          
+          const pending = myLoans.filter((l: any) => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
+          setPendingApprovalsCount(pending.length);
+          
+          const committee = myLoans.filter((l: any) => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED');
+          setCommitteeApprovedCount(committee.length);
+          
+          if (pending.length > 0) {
+            setNotifications(prev => {
+              const loanNotifs = pending.map(l => ({
+                type: 'LOAN_APPROVAL',
+                isRead: false,
+                title: `නව ණය අනුමැතියක් (Loan #${l.loanId})`,
+                message: `${l.amount ? `රු. ${l.amount.toLocaleString()} ක` : 'නව'} ණයක් අනුමත කිරීම සඳහා පෝලිමට එක් වී ඇත.`,
+                timestamp: new Date().toISOString()
+              }));
+              // filter out old loan notifs so we don't duplicate on re-renders
+              const filtered = prev.filter(n => n.type !== 'LOAN_APPROVAL');
+              return [...loanNotifs, ...filtered];
+            });
+          }
+        }).catch(() => {});
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     AccountService.getBranchNotifications().then(async (notifs) => {
@@ -3779,7 +4213,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     setTabState(newTab);
   };
 
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
 
   if (!user) { navigate('/login'); return null; }
 
@@ -3803,12 +4237,16 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     }
 
     switch (role) {
-      case 'BRANCH_MANAGER':       return <BranchManagerView activeTab={tab} />;
+      case 'BRANCH_MANAGER':
+        if (['overview', 'approvals', 'loans', 'manager-approved', 'committee-approved'].includes(tab)) {
+          return <BranchManagerView activeTab={tab} />;
+        }
+        return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} />;
-      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} />;
+      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
       default:                     return <BranchManagerView activeTab={tab} />;
     }
@@ -3826,7 +4264,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
             </div>
             <div>
               <p className="font-bold text-white text-[14px] leading-tight">{user.organizationName ? t(user.organizationName) : 'HMCS Bank'}</p>
-              <p className="text-white/70 text-[10px] leading-tight">{user.branchName ? t(user.branchName) : t(getBranchName(user.branchId))}</p>
+              <p className="text-white/70 text-[10px] leading-tight">{user.role === 'LOAN_COMMITTEE' ? t('Central Loan Committee') : (user.branchName ? t(user.branchName) : t(getBranchName(user.branchId)))}</p>
             </div>
           </div>
         </div>
@@ -3858,6 +4296,11 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                   <button className="flex items-center w-full px-4 py-2.5 mb-1.5 rounded-xl text-[15px] font-bold transition-all border text-left leading-tight bg-white/5 border-white/30 text-white/80 hover:bg-white/15 hover:border-white/50 hover:text-white">
                     <item.icon size={20} className="mr-3.5 shrink-0 text-white/80" />
                     <span className="flex-1">{t(item.label)}</span>
+                    {item.key === 'loans-parent' && pendingApprovalsCount > 0 && (
+                      <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)] mr-2">
+                        {pendingApprovalsCount}
+                      </span>
+                    )}
                     <ChevronRight size={18} className="text-white/50 group-hover:rotate-90 transition-transform" />
                   </button>
                   <div className="hidden group-hover:block pl-8 space-y-0.5 mb-1">
@@ -3868,8 +4311,15 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                             ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)]' 
                             : 'bg-white/5 border-white/30 text-white/70 hover:text-white hover:bg-white/10'
                         }`}>
-                        {sub.icon && <sub.icon size={18} className={`mr-2.5 shrink-0 ${tab === sub.key ? config.color : 'text-white/70'}`} />}
-                        <span className="flex-1">{t(sub.label)}</span>
+                        <div className="flex items-center flex-1">
+                          {sub.icon && <sub.icon size={18} className={`mr-2.5 shrink-0 ${tab === sub.key ? config.color : 'text-white/70'}`} />}
+                          <span className="flex-1">{t(sub.label)}</span>
+                        </div>
+                        {sub.key === 'loans' && pendingApprovalsCount > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                            {pendingApprovalsCount}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -3878,13 +4328,25 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
             }
             return (
               <button key={item.key} onClick={() => setTab(item.key!)}
-                className={`flex items-center w-full px-4 py-2.5 mb-1.5 rounded-xl text-[15px] font-bold transition-all border ${
+                className={`flex items-center justify-between w-full px-4 py-2.5 mb-1.5 rounded-xl text-[15px] font-bold transition-all border text-left ${
                   tab === item.key 
                     ? 'bg-white border-white text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)] scale-[1.02]' 
                     : 'bg-white/5 border-white/30 text-white/80 hover:bg-white/15 hover:border-white/50 hover:text-white'
                 }`}>
-                <item.icon size={20} className={`mr-3.5 shrink-0 ${tab === item.key ? config.color : 'text-white/80'}`} />
-                <span className="flex-1">{t(item.label)}</span>
+                <div className="flex items-center flex-1">
+                  <item.icon size={20} className={`mr-3.5 shrink-0 ${tab === item.key ? config.color : 'text-white/80'}`} />
+                  <span>{t(item.label)}</span>
+                </div>
+                {item.key === 'loans' && pendingApprovalsCount > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                    {pendingApprovalsCount}
+                  </span>
+                )}
+                {item.key === 'committee-approved' && committeeApprovedCount > 0 && (
+                  <span className="bg-emerald-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-sm ml-2">
+                    {committeeApprovedCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -3912,7 +4374,11 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
         {!hideSidebar && (
           <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
             <div>
-              <h1 className="text-lg font-bold text-slate-800">{user.branchName ? t(user.branchName) : t(getBranchName(user.branchId))}</h1>
+              <h1 className="text-lg font-bold text-slate-800">
+                {user.role === 'LOAN_COMMITTEE' 
+                  ? `${user.organizationName ? t(user.organizationName) : 'HMCS Bank'} - ණය කමිටුව` 
+                  : (user.branchName ? t(user.branchName) : t(getBranchName(user.branchId)))}
+              </h1>
               <p className="text-xs text-slate-400">{t(config.label)} {t('Dashboard')}</p>
             </div>
             <div className="flex items-center gap-4">
@@ -3957,6 +4423,23 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                   </div>
                 )}
               </div>
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
+              <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
+            </div>
+            <button 
+              onClick={() => {
+                AuthService.logout();
+                navigate('/login');
+              }} 
+              className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
+              title={t('Sign Out')}
+            >
+              <LogOut size={18} />
+            </button>
             </div>
           </header>
         )}
@@ -3975,6 +4458,20 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
           <div className="flex-1 min-h-0 flex flex-col">{renderContent()}</div>
         </div>
       </main>
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%', fontSize: '1rem', fontWeight: 500, fontFamily: 'Noto Sans Sinhala, sans-serif' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
+      />
     </div>
   );
 }

@@ -31,7 +31,6 @@ public class MemberController {
         Integer currentTenantId = com.hmcs.auth.multitenancy.TenantContext.getTenantId();
         
         List<Member> members = memberRepository.findAll().stream()
-                .filter(m -> currentTenantId == null || currentTenantId.equals(m.getTenantId()))
                 .collect(Collectors.toList());
                 
         if (branchOnly) {
@@ -52,11 +51,9 @@ public class MemberController {
 
     @GetMapping("/search")
     public ResponseEntity<List<Member>> searchMembers(@RequestParam("q") String query, HttpServletRequest request) {
-        Integer currentTenantId = com.hmcs.auth.multitenancy.TenantContext.getTenantId();
         Integer branchId = branchContext.extractBranchId(request);
         
         List<Member> members = memberRepository.findAll().stream()
-                .filter(m -> currentTenantId == null || currentTenantId.equals(m.getTenantId()))
                 .filter(m -> branchId == null || branchId.equals(m.getRegisteredBranchId()))
                 .filter(m -> {
                     String q = query.toLowerCase();

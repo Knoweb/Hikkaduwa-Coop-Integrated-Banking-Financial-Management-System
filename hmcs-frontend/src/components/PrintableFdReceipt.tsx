@@ -27,7 +27,8 @@ const PrintableFdReceipt = forwardRef<HTMLDivElement, PrintableFdReceiptProps>((
   });
 
   useEffect(() => {
-    const dateObj = new Date();
+    let dateStr = fdData?.openedDate || fdData?.createdAt;
+    let dateObj = dateStr ? new Date(dateStr) : new Date();
     const defaultDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
     
     const principalStr = fdData?.principalAmount ? parseFloat(fdData.principalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '';

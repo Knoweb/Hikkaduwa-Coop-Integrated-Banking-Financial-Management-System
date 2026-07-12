@@ -1,12 +1,7 @@
 import axios from 'axios';
-import { getCurrentUser } from './auth.service';
+import { authHeader } from './auth.service';
 
 const API_URL = 'http://localhost:8080/api/v1/auth/branches';
-
-const authHeader = () => {
-  const user = getCurrentUser();
-  return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-};
 
 export interface BranchDTO {
   branchId?: number;
@@ -15,8 +10,8 @@ export interface BranchDTO {
   status: string;
 }
 
-export const getBranches = async (): Promise<BranchDTO[]> => {
-  const response = await axios.get(API_URL, { headers: authHeader() });
+export const getBranches = async (overrideTenantId?: number): Promise<BranchDTO[]> => {
+  const response = await axios.get(API_URL, { headers: authHeader(overrideTenantId) });
   return response.data;
 };
 

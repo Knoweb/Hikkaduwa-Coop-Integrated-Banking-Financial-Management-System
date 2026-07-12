@@ -8,12 +8,16 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "loan_types")
+@Table(name = "loan_types", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"name", "tenant_id"})
+})
 @Data
 public class LoanType {
     @TenantId
+    @Column(name = "tenant_id")
     private Integer tenantId;
 
 
@@ -22,7 +26,7 @@ public class LoanType {
     @Column(name = "loan_type_id", updatable = false, nullable = false)
     private UUID loanTypeId;
 
-    @Column(name = "name", nullable = false, unique = true, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")

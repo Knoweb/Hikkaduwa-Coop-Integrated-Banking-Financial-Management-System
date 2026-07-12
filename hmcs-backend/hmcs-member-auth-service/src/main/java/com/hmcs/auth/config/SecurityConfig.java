@@ -25,10 +25,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 // Allow branch staff to view users for assignment purposes
-                .requestMatchers(HttpMethod.GET, "/api/v1/auth/users").hasAnyRole("SYSTEM_ADMIN", "BRANCH_MANAGER", "GENERAL_MANAGER", "SENIOR_OFFICER")
-                // Strictly lock the user management APIs to SYSTEM_ADMIN
-                .requestMatchers("/api/v1/auth/users/**").hasRole("SYSTEM_ADMIN")
-                .requestMatchers("/api/v1/auth/branches/**").hasRole("SYSTEM_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/auth/users").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_BRANCH_MANAGER", "ROLE_GENERAL_MANAGER", "ROLE_SENIOR_OFFICER", "ROLE_PLATFORM_ADMIN")
+                // Strictly lock the user management APIs to ORGANIZATION_ADMIN and PLATFORM_ADMIN
+                .requestMatchers("/api/v1/auth/users/**").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_PLATFORM_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/auth/branches", "/api/v1/auth/branches/**").authenticated()
+                .requestMatchers("/api/v1/auth/branches", "/api/v1/auth/branches/**").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_PLATFORM_ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

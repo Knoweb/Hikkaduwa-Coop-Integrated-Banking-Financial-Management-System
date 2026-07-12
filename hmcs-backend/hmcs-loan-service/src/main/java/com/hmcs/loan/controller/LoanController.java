@@ -37,6 +37,11 @@ public class LoanController {
         return loanService.getAllLoans(branchId);
     }
 
+    @GetMapping("/reports/insurance")
+    public List<Loan> getInsuranceReportLoans(@RequestParam String month) {
+        return loanService.getInsuranceReportLoans(month);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Loan> getLoanById(@PathVariable UUID id) {
         return loanService.getLoanById(id)
@@ -161,7 +166,7 @@ public class LoanController {
      * Body: { "amount": 100000, "actorUsername": "mgr_hkw" }
      */
     @PostMapping("/{id}/disburse")
-    public ResponseEntity<Loan> disburseLoan(
+    public ResponseEntity<?> disburseLoan(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> body) {
         try {
@@ -169,11 +174,13 @@ public class LoanController {
             String actorUsername = body.getOrDefault("actorUsername", "system").toString();
             String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
             String savingsAccountNumber = body.getOrDefault("savingsAccountNumber", "").toString();
+            String loanAccountNumber = body.getOrDefault("loanAccountNumber", "").toString();
             
-            Loan updated = loanService.disburseLoan(id, amount, actorUsername, paymentMethod, savingsAccountNumber);
+            Loan updated = loanService.disburseLoan(id, amount, actorUsername, paymentMethod, savingsAccountNumber, loanAccountNumber);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

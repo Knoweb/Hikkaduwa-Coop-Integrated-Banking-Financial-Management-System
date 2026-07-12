@@ -17,7 +17,7 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   if (!allowedRoles.includes(user.role)) {
     // We seamlessly redirect them to their specific role dashboard
     switch (user.role) {
-      case 'SYSTEM_ADMIN': return <Navigate to="/dashboard" replace />;
+      case 'ORGANIZATION_ADMIN': return <Navigate to="/dashboard" replace />;
       case 'GENERAL_MANAGER': return <Navigate to="/manager/dashboard" replace />;
       case 'BRANCH_MANAGER': return <Navigate to="/branch/dashboard" replace />;
       case 'TELLER': return <Navigate to="/teller/dashboard" replace />;

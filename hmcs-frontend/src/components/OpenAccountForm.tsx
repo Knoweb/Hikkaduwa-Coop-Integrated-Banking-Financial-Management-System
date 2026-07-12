@@ -632,20 +632,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
               </div>
             </div>
 
-            {/* බදු ආකෘති පත්‍රය (Tax Form) */}
-            <div className="border border-amber-100 p-4 rounded-xl bg-amber-50/50 mt-6">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  name="hasSubmittedTaxForm"
-                  checked={formData.hasSubmittedTaxForm}
-                  onChange={handleInputChange}
-                  className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500" 
-                />
-                <span className="text-sm font-bold text-amber-900">බදු ආකෘති පත්‍රය ලබා දී ඇත (Tax form submitted) - <i>නොමැති නම් 10% ක WHT බද්දක් අය කෙරේ</i></span>
-              </label>
             </div>
-          </div>
         )}
 
         {/* ================= STEP 4 ================= */}

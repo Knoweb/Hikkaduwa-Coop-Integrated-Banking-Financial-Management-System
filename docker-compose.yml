@@ -61,6 +61,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+      SAVINGS_SERVICE_HOST: hmcs-savings-service
     restart: unless-stopped
 
   hmcs-pawning-service:

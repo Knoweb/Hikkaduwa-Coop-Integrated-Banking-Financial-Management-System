@@ -36,7 +36,15 @@ public class TenantInterceptor implements HandlerInterceptor {
             }
         }
 
-        if (tenantId == null) {
+        if (tenantId != null && tenantId == 0) {
+            String tenantHeader = request.getHeader("X-Tenant-ID");
+            if (tenantHeader != null) {
+                try {
+                    tenantId = Integer.parseInt(tenantHeader);
+                } catch (NumberFormatException e) {
+                }
+            }
+        } else if (tenantId == null) {
             String tenantHeader = request.getHeader("X-Tenant-ID");
             if (tenantHeader != null) {
                 try {

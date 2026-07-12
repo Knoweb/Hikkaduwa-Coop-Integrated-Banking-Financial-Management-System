@@ -8,6 +8,14 @@ const authHeader = () => {
   return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
 };
 
+export interface SchedulerLog {
+  id: string;
+  taskName: string;
+  executionTime: string;
+  status: string;
+  details: string;
+}
+
 export interface MemberData {
   memberId?: string;
   membershipNumber?: string;
@@ -78,7 +86,7 @@ export const getMembers = async (): Promise<MemberData[]> => {
 export const getBranchMembers = async (): Promise<MemberData[]> => {
   const user = getCurrentUser();
   const overrideBranchId = localStorage.getItem('overrideBranchId');
-  const bId = (user?.role === 'SYSTEM_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
+  const bId = (user?.role === 'ORGANIZATION_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
   const url = bId ? `${API_URL}members?branchId=${bId}` : `${API_URL}members`;
   const res = await axios.get(url, { headers: authHeader() });
   return filterByBranch(res.data);
@@ -204,12 +212,30 @@ export const createFixedDepositType = async (data: any): Promise<any> => {
   return response.data;
 };
 
+export const processFixedDepositInterest = () => {
+  return axios.post(`${API_URL}savings/fixed-deposit/trigger`, {}, { headers: authHeader() });
+};
+
+export const getSchedulerStatus = () => {
+  return axios.get<Record<string, SchedulerLog>>(`${API_URL}savings/scheduler-status`, { headers: authHeader() });
+};
+
 export const deleteFixedDepositType = async (id: string): Promise<void> => {
   await axios.delete(`${API_URL}fixed-deposit-types/${id}`, { headers: authHeader() });
 };
 
 export const deleteFixedDeposit = async (id: string): Promise<void> => {
   await axios.delete(`${API_URL}fixed-deposits/${id}`, { headers: authHeader() });
+};
+
+export const updateFixedDepositStatus = async (id: string, status: string): Promise<any> => {
+  const res = await axios.put(`${API_URL}fixed-deposits/${id}/status`, { status }, { headers: authHeader() });
+  return res.data;
+};
+
+export const renewFixedDeposit = async (id: string, data: any): Promise<any> => {
+  const res = await axios.post(`${API_URL}fixed-deposits/${id}/renew`, data, { headers: authHeader() });
+  return res.data;
 };
 
 export const updateFixedDepositType = async (id: string, data: any): Promise<any> => {
@@ -230,8 +256,12 @@ export const getGlobalFixedDeposits = async (): Promise<any[]> => {
   return response.data;
 };
 
-export const releaseFixedDeposit = async (id: string): Promise<any> => {
-  const response = await axios.post(`${API_URL}fixed-deposits/${id}/release`, {}, { headers: authHeader() });
+export const releaseFixedDeposit = async (id: string, targetAccountId?: string): Promise<any> => {
+  let url = `${API_URL}fixed-deposits/${id}/release`;
+  if (targetAccountId) {
+    url += `?targetAccountId=${targetAccountId}`;
+  }
+  const response = await axios.post(url, {}, { headers: authHeader() });
   return response.data;
 };
 

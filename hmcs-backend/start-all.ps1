@@ -1,0 +1,6 @@
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-api-gateway'; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-loan-service'; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-member-auth-service'; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-pawning-service'; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-reporting-service'; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-Command cd 'hmcs-savings-service'; .\mvnw.cmd spring-boot:run"

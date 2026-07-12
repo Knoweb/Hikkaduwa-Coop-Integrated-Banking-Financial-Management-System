@@ -4,10 +4,12 @@ import com.hmcs.savings.entity.FixedDeposit;
 import com.hmcs.savings.entity.FixedDepositType;
 import com.hmcs.savings.repository.FixedDepositRepository;
 import com.hmcs.savings.repository.FixedDepositTypeRepository;
+import com.hmcs.savings.repository.FixedDepositRenewalRepository;
 import com.hmcs.savings.repository.AccountRepository;
 import com.hmcs.savings.repository.TransactionRepository;
 import com.hmcs.savings.entity.Account;
 import com.hmcs.savings.entity.Transaction;
+import com.hmcs.savings.entity.FixedDepositRenewal;
 import com.hmcs.savings.security.BranchContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Year;
 import java.time.temporal.ChronoUnit;
 import java.math.RoundingMode;
 import java.util.List;
@@ -31,16 +34,20 @@ public class FixedDepositController {
 
     private final FixedDepositRepository fdRepository;
     private final FixedDepositTypeRepository typeRepository;
+    private final FixedDepositRenewalRepository renewalRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final BranchContext branchContext;
+    private final com.hmcs.savings.service.FixedDepositInterestService interestService;
 
-    public FixedDepositController(FixedDepositRepository fdRepository, FixedDepositTypeRepository typeRepository, AccountRepository accountRepository, TransactionRepository transactionRepository, BranchContext branchContext) {
+    public FixedDepositController(FixedDepositRepository fdRepository, FixedDepositTypeRepository typeRepository, FixedDepositRenewalRepository renewalRepository, AccountRepository accountRepository, TransactionRepository transactionRepository, BranchContext branchContext, @org.springframework.context.annotation.Lazy com.hmcs.savings.service.FixedDepositInterestService interestService) {
         this.fdRepository = fdRepository;
         this.typeRepository = typeRepository;
+        this.renewalRepository = renewalRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
+        this.interestService = interestService;
     }
 
     @GetMapping
@@ -162,11 +169,23 @@ public class FixedDepositController {
         fd.setStatus("ACTIVE");
 
         FixedDeposit savedFd = fdRepository.save(fd);
+        
+        // Catch up interest if it's a backdated FD
+        if (savedFd.getOpenedDate().isBefore(LocalDate.now())) {
+            try {
+                interestService.catchUpSingleFD(savedFd);
+                // Reload from DB to get updated accumulated interest and last payout date
+                savedFd = fdRepository.findById(savedFd.getFdId()).orElse(savedFd);
+            } catch (Exception e) {
+                System.err.println("Failed to catch up interest for backdated FD: " + e.getMessage());
+            }
+        }
+        
         return ResponseEntity.ok(savedFd);
     }
 
     @PostMapping("/{id}/release")
-    public ResponseEntity<?> releaseFixedDeposit(@PathVariable UUID id, HttpServletRequest request) {
+    public ResponseEntity<?> releaseFixedDeposit(@PathVariable UUID id, @RequestParam(required = false) UUID targetAccountId, HttpServletRequest request) {
         Optional<FixedDeposit> fdOpt = fdRepository.findById(id);
         if (fdOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Fixed Deposit not found");
@@ -177,14 +196,20 @@ public class FixedDepositController {
             return ResponseEntity.badRequest().body("Fixed Deposit is already closed");
         }
 
-        Optional<Account> accOpt = accountRepository.findById(fd.getLinkedSavingsAccountId());
+        UUID accountToCredit = targetAccountId != null ? targetAccountId : fd.getLinkedSavingsAccountId();
+
+        if (accountToCredit == null) {
+            return ResponseEntity.badRequest().body("No linked savings account found for this Fixed Deposit");
+        }
+
+        Optional<Account> accOpt = accountRepository.findById(accountToCredit);
         if (accOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Linked savings account not found");
         }
         Account savingsAcc = accOpt.get();
 
         LocalDate today = LocalDate.now();
-        boolean isMaturityDay = !today.isBefore(fd.getMaturityDate());
+        boolean isMaturityDay = fd.getMaturityDate() != null && !today.isBefore(fd.getMaturityDate());
         
         BigDecimal principal = fd.getPrincipalAmount();
         BigDecimal netAmountToCredit = BigDecimal.ZERO;
@@ -193,11 +218,36 @@ public class FixedDepositController {
         if (isMaturityDay) {
             // Mature closure
             BigDecimal accumulated = fd.getAccumulatedInterest() != null ? fd.getAccumulatedInterest() : BigDecimal.ZERO;
+            
+            // Fallback for test FDs or unlinked FDs where interest was lost
+            if (accumulated.compareTo(BigDecimal.ZERO) == 0 && "AT_MATURITY".equals(fd.getInterestPayoutMethod())) {
+                LocalDate openedDate = fd.getOpenedDate() != null ? fd.getOpenedDate() : LocalDate.now();
+                long daysPassed = ChronoUnit.DAYS.between(openedDate, today);
+                if (daysPassed > 0) {
+                    accumulated = principal
+                            .multiply(fd.getInterestRate())
+                            .multiply(BigDecimal.valueOf(daysPassed))
+                            .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
+                            .divide(BigDecimal.valueOf(365), 6, RoundingMode.HALF_UP);
+                }
+            } else if (accumulated.compareTo(BigDecimal.ZERO) == 0) {
+                 LocalDate openedDate = fd.getOpenedDate() != null ? fd.getOpenedDate() : LocalDate.now();
+                 long daysPassed = ChronoUnit.DAYS.between(openedDate, today);
+                 if (daysPassed > 0) {
+                     accumulated = principal
+                            .multiply(fd.getInterestRate())
+                            .multiply(BigDecimal.valueOf(daysPassed))
+                            .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
+                            .divide(BigDecimal.valueOf(365), 6, RoundingMode.HALF_UP);
+                 }
+            }
+            
             netAmountToCredit = principal.add(accumulated);
         } else {
             // Premature closure
             if ("MONTHLY".equals(fd.getInterestPayoutMethod())) {
-                long daysPassed = ChronoUnit.DAYS.between(fd.getOpenedDate(), today);
+                LocalDate openedDate = fd.getOpenedDate() != null ? fd.getOpenedDate() : LocalDate.now();
+                long daysPassed = ChronoUnit.DAYS.between(openedDate, today);
                 BigDecimal totalGenerated = principal
                         .multiply(fd.getInterestRate())
                         .multiply(BigDecimal.valueOf(daysPassed))
@@ -259,6 +309,167 @@ public class FixedDepositController {
         response.put("deductedInterest", paidInterestToDeduct);
         
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateFixedDepositStatus(@PathVariable UUID id, @RequestBody Map<String, String> payload, HttpServletRequest request) {
+        Optional<FixedDeposit> fdOpt = fdRepository.findById(id);
+        if (fdOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        FixedDeposit fd = fdOpt.get();
+        Integer currentBranchId = branchContext.extractBranchId(request);
+        if (currentBranchId != null && fd.getBranchId() != null && !currentBranchId.equals(fd.getBranchId())) {
+             return ResponseEntity.status(403).body("Not authorized to update FD of another branch");
+        }
+
+        String newStatus = payload.get("status");
+        if (newStatus != null) {
+            fd.setStatus(newStatus);
+            fdRepository.save(fd);
+        }
+        return ResponseEntity.ok(Map.of("message", "Fixed deposit status updated successfully"));
+    }
+
+    static class RenewRequest {
+        public UUID typeId;
+        public Integer termMonths;
+        public String interestPayoutMethod;
+        public String maturityInstruction;
+    }
+
+    @PostMapping("/{id}/renew")
+    public ResponseEntity<?> renewFixedDeposit(@PathVariable UUID id, @RequestBody RenewRequest request, HttpServletRequest httpReq) {
+        Optional<FixedDeposit> fdOpt = fdRepository.findById(id);
+        if (fdOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        FixedDeposit fd = fdOpt.get();
+        Integer currentBranchId = branchContext.extractBranchId(httpReq);
+        if (currentBranchId != null && fd.getBranchId() != null && !currentBranchId.equals(fd.getBranchId())) {
+             return ResponseEntity.status(403).body("Not authorized to renew FD of another branch");
+        }
+
+        boolean isMatured = "MATURED".equals(fd.getStatus()) || 
+                            (fd.getMaturityDate() != null && !LocalDate.now().isBefore(fd.getMaturityDate()));
+        if (!isMatured) {
+            return ResponseEntity.badRequest().body("Fixed Deposit must be in MATURED state to renew manually");
+        }
+
+        FixedDepositType currentType = typeRepository.findById(request.typeId).orElse(null);
+        if (currentType == null) {
+            return ResponseEntity.badRequest().body("Invalid Fixed Deposit Type");
+        }
+
+        // Process previous term's interest payout before renewing
+        if (fd.getPrincipalAmount() != null && fd.getInterestRate() != null && fd.getOpenedDate() != null) {
+            LocalDate startD = fd.getLastInterestPayoutDate() != null ? fd.getLastInterestPayoutDate() : fd.getOpenedDate();
+            LocalDate endD = fd.getMaturityDate() != null ? fd.getMaturityDate() : LocalDate.now();
+            if (startD.isBefore(endD)) {
+                long days = java.time.temporal.ChronoUnit.DAYS.between(startD, endD);
+                if (days > 0) {
+                    int daysInYear = Year.isLeap(endD.getYear()) ? 366 : 365;
+                    BigDecimal expectedInterest = fd.getPrincipalAmount()
+                            .multiply(fd.getInterestRate())
+                            .divide(BigDecimal.valueOf(100), 10, java.math.RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(days))
+                            .divide(BigDecimal.valueOf(daysInYear), 6, java.math.RoundingMode.HALF_UP);
+                    
+                    BigDecimal currentAcc = fd.getAccumulatedInterest() != null ? fd.getAccumulatedInterest() : BigDecimal.ZERO;
+                    BigDecimal missingInterest = expectedInterest.subtract(currentAcc);
+                    
+                    if (missingInterest.compareTo(BigDecimal.ZERO) > 0) {
+                        fd.setAccumulatedInterest(currentAcc.add(missingInterest));
+                    }
+                }
+            }
+        }
+        
+        // Handle payout according to the old instruction
+        BigDecimal accumulated = fd.getAccumulatedInterest() != null ? fd.getAccumulatedInterest() : BigDecimal.ZERO;
+        String oldInstruction = fd.getMaturityInstruction();
+        
+        if ("REINVEST_PRINCIPAL_AND_INTEREST".equals(oldInstruction)) {
+            fd.setPrincipalAmount(fd.getPrincipalAmount().add(accumulated));
+            fd.setAccumulatedInterest(BigDecimal.ZERO);
+        } else if ("REINVEST_PRINCIPAL_ONLY".equals(oldInstruction) || "REINVEST_PRINCIPAL_PAY_INTEREST".equals(oldInstruction)) {
+            if (accumulated.compareTo(BigDecimal.ZERO) > 0 && fd.getLinkedSavingsAccountId() != null) {
+                com.hmcs.savings.entity.Account savingsAcc = accountRepository.findById(fd.getLinkedSavingsAccountId()).orElse(null);
+                if (savingsAcc != null && "ACTIVE".equals(savingsAcc.getStatus())) {
+                    BigDecimal netAmount = accumulated;
+                    if (Boolean.FALSE.equals(fd.getHasSubmittedTaxForm())) {
+                        BigDecimal tax = accumulated.multiply(new BigDecimal("0.10")).setScale(2, java.math.RoundingMode.HALF_UP);
+                        netAmount = accumulated.subtract(tax).setScale(2, java.math.RoundingMode.HALF_UP);
+                    }
+
+                    if (netAmount.compareTo(BigDecimal.ZERO) > 0) {
+                        savingsAcc.setBalance(savingsAcc.getBalance().add(netAmount));
+                        accountRepository.save(savingsAcc);
+                        
+                        com.hmcs.savings.entity.Transaction tx = new com.hmcs.savings.entity.Transaction();
+                        tx.setAccount(savingsAcc);
+                        tx.setTransactionType("FD_MATURITY_INTEREST");
+                        tx.setAmount(netAmount);
+                        tx.setBalanceAfter(savingsAcc.getBalance());
+                        tx.setReference("FD Interest Payout for " + fd.getFdNumber());
+                        tx.setProcessedBy(java.util.UUID.randomUUID());
+                        tx.setTransactionTimestamp(java.time.LocalDateTime.now());
+                        tx.setBranchId(fd.getBranchId());
+                        transactionRepository.save(tx);
+                    }
+                }
+            }
+            fd.setAccumulatedInterest(BigDecimal.ZERO);
+        }
+
+        fd.setStatus("RENEWED");
+        fdRepository.save(fd);
+
+        // Create new Fixed Deposit
+        FixedDeposit newFd = new FixedDeposit();
+        newFd.setTenantId(fd.getTenantId());
+        newFd.setMemberId(fd.getMemberId());
+        newFd.setMemberId2(fd.getMemberId2());
+        newFd.setMemberId3(fd.getMemberId3());
+        newFd.setFdNumber("FD-" + (100000 + new Random().nextInt(900000)));
+        newFd.setLinkedSavingsAccountId(fd.getLinkedSavingsAccountId());
+        newFd.setBranchId(fd.getBranchId());
+        newFd.setHasSubmittedTaxForm(fd.getHasSubmittedTaxForm());
+
+        
+        newFd.setTypeId(request.typeId);
+        newFd.setTermMonths(request.termMonths);
+        newFd.setInterestPayoutMethod(request.interestPayoutMethod);
+        newFd.setMaturityInstruction(request.maturityInstruction);
+        newFd.setPrincipalAmount(fd.getPrincipalAmount()); // principalAmount may have been increased by accumulated interest above
+
+        BigDecimal newRate = "MONTHLY".equals(request.interestPayoutMethod) 
+                ? currentType.getInterestRateMonthly() 
+                : currentType.getInterestRateMaturity();
+        newFd.setInterestRate(newRate);
+
+        LocalDate newOpenedDate = LocalDate.now(); // Starts from TODAY
+        newFd.setOpenedDate(newOpenedDate);
+        newFd.setLastInterestPayoutDate(newOpenedDate);
+        newFd.setMaturityDate(newOpenedDate.plusMonths(request.termMonths));
+        newFd.setStatus("ACTIVE");
+
+        newFd = fdRepository.save(newFd);
+        
+        // Create Renewal History record
+        FixedDepositRenewal renewal = new FixedDepositRenewal();
+        renewal.setOldFdId(fd.getFdId());
+        renewal.setNewFdId(newFd.getFdId());
+        renewal.setRenewalDate(LocalDate.now());
+        renewal.setReinvestedAmount(newFd.getPrincipalAmount());
+        renewal.setTenantId(fd.getTenantId());
+        renewal.setBranchId(fd.getBranchId());
+        // Currently processed by (if user logic exists, can set it, left null otherwise)
+        renewalRepository.save(renewal);
+        
+        return ResponseEntity.ok(Map.of("message", "Fixed deposit renewed successfully", "maturityDate", newFd.getMaturityDate().toString(), "newFdNumber", newFd.getFdNumber()));
     }
 
     @DeleteMapping("/{id}")

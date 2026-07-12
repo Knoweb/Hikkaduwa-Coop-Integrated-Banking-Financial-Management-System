@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
+    "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.5.0",
@@ -25,8 +26,11 @@
     "@tailwindcss/vite": "^4.3.0",
     "@vitejs/plugin-react": "^4.7.0",
     "axios": "^1.16.1",
+    "date-fns": "^4.4.0",
     "lucide-react": "^1.14.0",
+    "pg": "^8.22.0",
     "react": "^19.2.6",
+    "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.0"
   }

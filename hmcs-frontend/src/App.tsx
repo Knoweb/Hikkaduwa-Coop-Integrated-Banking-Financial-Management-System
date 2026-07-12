@@ -16,7 +16,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           {/* System Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'PLATFORM_ADMIN']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['ORGANIZATION_ADMIN', 'PLATFORM_ADMIN']} />}>
             <Route path="/dashboard" element={<SystemAdminDashboard />} />
             <Route path="/admin/branch/:id" element={<BranchDashboard />} />
           </Route>
@@ -27,7 +27,7 @@ function App() {
           </Route>
 
           {/* Shared Branch Roles Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['BRANCH_MANAGER', 'TELLER', 'VALUER', 'FIELD_OFFICER', 'LOAN_COMMITTEE', 'BANK_SERVICE_MANAGER', 'SENIOR_OFFICER', 'SYSTEM_ADMIN']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['BRANCH_MANAGER', 'TELLER', 'VALUER', 'FIELD_OFFICER', 'LOAN_COMMITTEE', 'BANK_SERVICE_MANAGER', 'SENIOR_OFFICER', 'ORGANIZATION_ADMIN']} />}>
             <Route path="/members" element={<Members />} />
             <Route path="/accounts" element={<Accounts />} />
           </Route>

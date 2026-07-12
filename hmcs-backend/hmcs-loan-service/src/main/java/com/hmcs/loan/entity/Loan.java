@@ -61,6 +61,9 @@ public class Loan {
     @Column(name = "applied_date")
     private LocalDate appliedDate;
 
+    @Column(name = "application_number", length = 100)
+    private String applicationNumber;
+
     @Column(name = "repayment_method", length = 30)
     private String repaymentMethod = "BRANCH_TELLER";
 

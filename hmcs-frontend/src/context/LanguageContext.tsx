@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
-type Language = 'en' | 'si';
+type Language = 'en' | 'si' | 'ta';
 
 interface Translations {
   [key: string]: { en: string; si: string };
@@ -28,6 +28,14 @@ const translations: Translations = {
   'Peraliya Branch': { en: 'Peraliya Branch', si: 'පෙරලිය ශාඛාව' },
   'Kalupe Branch': { en: 'Kalupe Branch', si: 'කලුපේ ශාඛාව' },
   'Gonapinuwala Branch': { en: 'Gonapinuwala Branch', si: 'ගෝනාපීනුවල ශාඛාව' },
+  'Dodangoda Branch': { en: 'Dodangoda Branch', si: 'දොඩංගොඩ ශාඛාව' },
+  'දොඩංගොඩ ශාඛාව': { en: 'Dodangoda Branch', si: 'දොඩංගොඩ ශාඛාව' },
+  'Baddegama Main Branch': { en: 'Baddegama Main Branch', si: 'බද්දේගම ප්‍රධාන ශාඛාව' },
+  'බද්දේගම ප්‍රධාන ශාඛාව': { en: 'Baddegama Main Branch', si: 'බද්දේගම ප්‍රධාන ශාඛාව' },
+  'Galle Main Branch': { en: 'Galle Main Branch', si: 'ගාල්ල ප්‍රධාන ශාඛාව' },
+  'ගාල්ල ප්‍රධාන ශාඛාව': { en: 'Galle Main Branch', si: 'ගාල්ල ප්‍රධාන ශාඛාව' },
+  'සන්දරවල ශාඛාව': { en: 'Sandarawala Branch', si: 'සන්දරවල ශාඛාව' },
+  'පැරෑලිය ශාඛාව': { en: 'Peraliya Branch', si: 'පැරෑලිය ශාඛාව' },
 
   // Common
   'Dashboard': { en: 'Dashboard', si: 'පාලක පුවරුව' },
@@ -47,12 +55,16 @@ const translations: Translations = {
   'Fixed Deposits': { en: 'Fixed Deposits', si: 'ස්ථාවර තැන්පතු' },
   'Loan Accounts': { en: 'Loan Accounts', si: 'ණය ගිණුම්' },
   'Pawning (Gold Loans)': { en: 'Pawning (Gold Loans)', si: 'උකස් (රන් ණය)' },
+  'Insurance Report': { en: 'Insurance Report', si: 'රක්ෂණ වාර්තාව' },
   'Loan Queue': { en: 'Loan Queue', si: 'ණය පෝලිම' },
+  'Loan Committee': { en: 'Loan Committee', si: 'ණය කමිටුව' },
   'Loan Committee Approved': { en: 'Loan Committee Approved', si: 'කමිටුව අනුමත කළ ණය' },
   'Manager Approved': { en: 'Manager Approved', si: 'කළමනාකරු අනුමත කළ' },
   'Loan Committee Approval': { en: 'Loan Committee Approval', si: 'ණය කමිටු අනුමැතිය' },
   'Committee Approved': { en: 'Committee Approved', si: 'කමිටුව අනුමත කළ' },
   'All Loans': { en: 'All Loans', si: 'සියලුම ණය' },
+  'Approvals': { en: 'Approvals', si: 'අනුමැතියන්' },
+  'Vote on Loans': { en: 'Vote on Loans', si: 'ණය අනුමැතිය' },
   'Alerts': { en: 'Alerts', si: 'ඇඟවීම්' },
   
   // Dashboard Titles & Stats
@@ -74,9 +86,34 @@ const translations: Translations = {
   'Action': { en: 'Action', si: 'ක්‍රියාව' },
   'No members found. Register the first member!': { en: 'No members found. Register the first member!', si: 'සාමාජිකයින් හමු නොවීය. පළමු සාමාජිකයා ලියාපදිංචි කරන්න!' },
   'No accounts found': { en: 'No accounts found', si: 'ගිණුම් කිසිවක් හමු නොවීය' },
+  'Activity Details': { en: 'Activity Details', si: 'ක්‍රියාකාරකම් විස්තර' },
+  'Reference ID': { en: 'Reference ID', si: 'යොමු අංකය' },
+  'Amount': { en: 'Amount', si: 'මුදල' },
+  'Balance After': { en: 'Balance After', si: 'පසු ශේෂය' },
+  'Account No': { en: 'Account No', si: 'ගිණුම් අංකය' },
+  'Fixed Deposit Account No': { en: 'Fixed Deposit Account No', si: 'Fixed Deposit ගිණුම් අංකය' },
+  'Account Owner': { en: 'Account Owner', si: 'ගිණුම් හිමියා' },
+  'Branch': { en: 'Branch', si: 'ගිණුම පවතින ශාඛාව' },
+  'Timestamp': { en: 'Timestamp', si: 'දිනය සහ වේලාව' },
+  'Close': { en: 'Close', si: 'වසා දමන්න' },
+  'DEPOSIT': { en: 'Deposit', si: 'තැන්පතු' },
+  'WITHDRAWAL': { en: 'Withdrawal', si: 'මුදල් ලබාගැනීම' },
+  'NEW_SAVINGS': { en: 'New Savings Account', si: 'නව ඉතුරුම් ගිණුම' },
+  'NEW_FD': { en: 'New Fixed Deposit', si: 'නව ස්ථාවර තැන්පතුව' },
   
   // Buttons
   'Open Account': { en: 'Open Account', si: 'ගිණුමක් විවෘත කරන්න' },
+  'Transaction Successful': { en: 'Transaction Successful', si: 'ගනුදෙනුව සාර්ථකයි' },
+  'Approval Requested': { en: 'Approval Requested', si: 'අනුමැතිය ඉල්ලා ඇත' },
+  'Print Receipt': { en: 'Print Receipt', si: 'ලදුපත මුද්‍රණය' },
+  'Txn ID:': { en: 'Txn ID:', si: 'ගනුදෙනු අංකය:' },
+  'Request ID:': { en: 'Request ID:', si: 'ඉල්ලීම් අංකය:' },
+  'New Balance:': { en: 'New Balance:', si: 'නව ශේෂය:' },
+  'Current Balance:': { en: 'Current Balance:', si: 'වත්මන් ශේෂය:' },
+  'Credited Amount:': { en: 'Credited Amount:', si: 'බැර කළ මුදල:' },
+  'Deducted Interest:': { en: 'Deducted Interest:', si: 'අඩු කළ පොලිය:' },
+  'Confirm Transaction': { en: 'Confirm Transaction', si: 'ගනුදෙනුව තහවුරු කරන්න' },
+  'Confirm': { en: 'Confirm', si: 'තහවුරු කරන්න' },
   'Register Member': { en: 'Register Member', si: 'සාමාජිකයෙකු ලියාපදිංචි කරන්න' },
   'Opening...': { en: 'Opening...', si: 'විවෘත කරමින්...' },
   
@@ -111,6 +148,8 @@ const translations: Translations = {
   'Digital Documents': { en: 'Digital Documents / ඩිජිටල් ලිපිලේඛන', si: 'Digital Documents / ඩිජිටල් ලිපිලේඛන' },
   'Registration Type': { en: 'Registration Type / ලියාපදිංචි වර්ගය', si: 'Registration Type / ලියාපදිංචි වර්ගය' },
   'Society Member': { en: 'Society Member', si: 'සමිතියේ සාමාජික' },
+  'Society Account': { en: 'Society Account', si: 'සාමාජික ගිණුමක්' },
+  'Non-Society Account': { en: 'Non-Society Account', si: 'සාමාජික නොවන ගිණුමක්' },
   'Non-Member': { en: 'Non-Member', si: 'සාමාජික නොවන' },
   'Select Person': { en: 'Select Person', si: 'පුද්ගලයා තෝරන්න' },
   'Membership Details': { en: 'Membership Details', si: 'සාමාජිකත්ව තොරතුරු' },
@@ -167,6 +206,7 @@ const translations: Translations = {
   'Branch Manager': { en: 'Branch Manager', si: 'ශාඛා කළමනාකරු' },
   'Bank Service Manager': { en: 'Bank Service Manager', si: 'බැංකු සේවා කළමනාකරු' },
   'Teller': { en: 'Teller', si: 'මුදල් අයකැමි' },
+  'Central Loan Committee': { en: 'Central Loan Committee', si: 'මධ්‍යම ණය කමිටුව' },
   
   // Admin Dashboard
   'System Administration Panel': { en: 'System Administration Panel', si: 'පද්ධති පරිපාලන පුවරුව' },
@@ -278,6 +318,99 @@ const translations: Translations = {
   'Gonapinuwala': { en: 'Gonapinuwala', si: 'ගොනාපීනුවල' },
 };
 
+
+const tamilDict: Record<string, string> = {
+  "HMCS Banking": "HMCS வங்கி (HMCS Banking)",
+  "Secure Portal Access": "பாதுகாப்பான போர்டல் அணுகல் (Secure Portal Access)",
+  "Username": "பயனர் பெயர் (Username)",
+  "Password": "கடவுச்சொல் (Password)",
+  "Sign In to Secure Portal": "உள்நுழையவும் (Sign In)",
+  "Enter your username": "பயனர் பெயரை உள்ளிடவும் (Enter Username)",
+  "Authenticating...": "உறுதிப்படுத்தப்படுகிறது... (Authenticating...)",
+  "Hikkaduwa Multi-Purpose Co-operative Society Ltd.": "ஹிக்கடுவ பல்நோக்கு கூட்டுறவு சங்கம் லிமிடெட் (HMCS)",
+  "© 2026 INTEGRATED BANKING SYSTEM": "© 2026 ஒருங்கிணைந்த வங்கி அமைப்பு (Integrated Banking)",
+  "Hikkaduwa Branch": "ஹிக்கடுவ கிளை (Hikkaduwa Branch)",
+  "Dodanduwa Branch": "தொடந்துவ கிளை (Dodanduwa Branch)",
+  "Rathgama Branch": "ரத்கம கிளை (Rathgama Branch)",
+  "Seenigama Branch": "சீனிகம கிளை (Seenigama Branch)",
+  "Thiranagama Branch": "திரணகம கிளை (Thiranagama Branch)",
+  "Peraliya Branch": "பெரலிய கிளை (Peraliya Branch)",
+  "Kalupe Branch": "கலுபே கிளை (Kalupe Branch)",
+  "Gonapinuwala Branch": "கோனாபினுவல கிளை (Gonapinuwala Branch)",
+  "Dodangoda Branch": "தொடாங்கொட கிளை (Dodangoda Branch)",
+  "Baddegama Main Branch": "பத்தேகம பிரதான கிளை (Baddegama Branch)",
+  "Galle Main Branch": "காலி பிரதான கிளை (Galle Branch)",
+  "සන්දරවල ශාඛාව": "சந்தரவல கிளை (Sandarawala Branch)",
+  "පැරෑලිය ශාඛාව": "பெரலிய கிளை (Peraliya Branch)",
+  "Dashboard": "டாஷ்போர்டு (Dashboard)",
+  "Total Members": "மொத்த உறுப்பினர்கள் (Total Members)",
+  "Active Members": "செயலில் உள்ள உறுப்பினர்கள் (Active Members)",
+  "Total Accounts": "மொத்த கணக்குகள் (Total Accounts)",
+  "Account No.": "கணக்கு எண் (Account No.)",
+  "Type": "வகை (Type)",
+  "Balance": "இருப்பு (Balance)",
+  "Status": "நிலை (Status)",
+  "Member": "உறுப்பினர் (Member)",
+  "Action": "செயல்பாடு (Action)",
+  "Open Account": "கணக்கு ஆரம்பிக்கவும் (Open Account)",
+  "Register Member": "உறுப்பினர் பதிவு (Register Member)",
+  "Deposit Cash": "பணம் வைப்பு (Deposit Cash)",
+  "Withdraw Cash": "பணம் திரும்பப் பெறல் (Withdraw Cash)",
+  "Welcome back": "மீண்டும் வருக (Welcome back)",
+  "Sign Out": "வெளியேறவும் (Sign Out)",
+  "Branch Online": "கிளை ஆன்லைன் (Branch Online)",
+  "Reference ID": "குறிப்பு ஐடி (Reference ID)",
+  "Amount": "தொகை (Amount)",
+  "Balance After": "இருப்பு பின் (Balance After)",
+  "Account Owner": "கணக்கு உரிமையாளர் (Account Owner)",
+  "Branch": "கிளை (Branch)",
+  "Timestamp": "நேரம் (Timestamp)",
+  "Close": "மூடவும் (Close)",
+  "Deposit": "வைப்பு (Deposit)",
+  "Withdrawal": "திரும்பப் பெறல் (Withdrawal)",
+  "DEPOSIT": "வைப்பு (Deposit)",
+  "WITHDRAWAL": "திரும்பப் பெறல் (Withdrawal)",
+  "NEW_SAVINGS": "புதிய சேமிப்புக் கணக்கு (New Savings)",
+  "NEW_FD": "புதிய நிலையான வைப்பு (New FD)",
+  "Activity Details": "நடவடிக்கை விவரங்கள் (Activity Details)",
+  "Confirm Transaction": "பரிவர்த்தனையை உறுதிப்படுத்தவும் (Confirm Transaction)",
+  "Confirm": "உறுதிப்படுத்தவும் (Confirm)",
+  "Cancel": "ரத்துசெய் (Cancel)",
+  "Next": "அடுத்தது (Next)",
+  "OPENED DATE": "ஆரம்பிக்கப்பட்ட தேதி (Opened Date)",
+  "Opened Date": "ஆரம்பிக்கப்பட்ட தேதி (Opened Date)",
+  "Maturity Date": "முதிர்வு தேதி (Maturity Date)",
+  "Interest Rate": "வட்டி விகிதம் (Interest Rate)",
+  "Principal Amount": "அசல் தொகை (Principal Amount)",
+  "FD Number": "நிலையான வைப்பு எண் (FD Number)",
+  "FD No": "நிலையான வைப்பு எண் (FD No)",
+  "Category": "வகை (Category)",
+  "Term": "காலம் (Term)",
+  "Account Type": "கணக்கு வகை (Account Type)",
+  "Individual": "தனி நபர் (Individual)",
+  "Joint": "கூட்டுக் கணக்கு (Joint)",
+  "Search Member": "உறுப்பினரைத் தேடு (Search Member)",
+  "ගිණුම පවතින ශාඛාව": "கணக்கு இருக்கும் கிளை (Branch)",
+  "සමන්ත සෙනෙෂ්": "சமந்த செனேஷ் (Samantha Senesh)",
+  "Overview": "மேலோட்டம் (Overview)",
+  "Users & Members": "உறுப்பினர்கள் (Members)",
+  "Members": "உறுப்பினர்கள் (Members)",
+  "Non-Members": "உறுப்பினர் அல்லாதவர்கள் (Non-Members)",
+  "Savings Accounts": "சேமிப்புக் கணக்குகள் (Savings Accounts)",
+  "Fixed Deposits": "நிலையான வைப்புகள் (Fixed Deposits)",
+  "Loan Accounts": "கடன் கணக்குகள் (Loan Loans)",
+  "Pawning (Gold Loans)": "அடகு (Pawning)",
+  "Insurance Report": "காப்புறுதி அறிக்கை (Insurance Report)",
+  "Cash Transactions": "பணப் பரிவர்த்தனைகள் (Cash Transactions)",
+  "General Ledger": "பொதுப் பேரேடு (General Ledger)",
+  "Interest Rates": "வட்டி விகிதங்கள் (Interest Rates)",
+  "CUSTOMER RELATIONS": "வாடிக்கையாளர் உறவுகள் (Customer Relations)",
+  "CORE BANKING FACILITIES": "முக்கிய வங்கிச் சேவைகள் (Core Banking)",
+  "DAILY OPERATIONS": "தினசரி செயல்பாடுகள் (Daily Operations)",
+  "INFORMATION": "தகவல் (Information)",
+  "Fixed Deposit Account No": "நிலையான வைப்பு கணக்கு எண் (Fixed Deposit Account No)"
+};
+
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -295,10 +428,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: string): string => {
+    if (language === 'ta' && tamilDict[key]) {
+      return tamilDict[key];
+    }
     if (!translations[key]) {
       return key; // Fallback
     }
-    return translations[key][language];
+    return (translations[key] as any)[language] || translations[key]['en'] || key;
   };
 
   return (

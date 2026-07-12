@@ -27,15 +27,18 @@ public class InterestCalculationService {
     private final AccountRepository accountRepository;
     private final DailyBalanceRepository dailyBalanceRepository;
     private final TransactionRepository transactionRepository;
+    private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
 
     private final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public InterestCalculationService(AccountRepository accountRepository,
                                       DailyBalanceRepository dailyBalanceRepository,
-                                      TransactionRepository transactionRepository) {
+                                      TransactionRepository transactionRepository,
+                                      com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository) {
         this.accountRepository = accountRepository;
         this.dailyBalanceRepository = dailyBalanceRepository;
         this.transactionRepository = transactionRepository;
+        this.schedulerLogRepository = schedulerLogRepository;
     }
 
     /**
@@ -51,6 +54,7 @@ public class InterestCalculationService {
     @Transactional
     public void catchUpMissingDailyBalances() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
+        boolean caughtUpAny = false;
 
         List<Account> activeAccounts = accountRepository.findAll().stream()
                 .filter(a -> "ACTIVE".equals(a.getStatus()))
@@ -80,6 +84,7 @@ public class InterestCalculationService {
             LocalDate date = startDate;
             while (!date.isAfter(yesterday)) {
                 if (!recordedDates.contains(date)) {
+                    caughtUpAny = true;
                     // Find the closing balance for this day:
                     // = balanceAfter of the LAST transaction on or before end of this day
                     LocalDateTime endOfDay = date.atTime(23, 59, 59);
@@ -105,8 +110,34 @@ public class InterestCalculationService {
                             : new BigDecimal("0.0600"));
                     dailyBalanceRepository.save(snapshot);
                 }
+                
+                // If this is the last day of the month, check if we missed monthly interest calculation
+                if (date.equals(date.withDayOfMonth(date.lengthOfMonth()))) {
+                    final LocalDate finalDate = date;
+                    boolean alreadyCredited = transactionRepository.findByAccountAccountId(account.getAccountId())
+                            .stream()
+                            .anyMatch(tx -> "MONTHLY_INTEREST".equals(tx.getTransactionType()) && 
+                                            tx.getTransactionTimestamp().toLocalDate().equals(finalDate));
+                    
+                    if (!alreadyCredited) {
+                        caughtUpAny = true;
+                        int daysInYear = Year.isLeap(date.getYear()) ? 366 : 365;
+                        calculateAndCreditMonthlyInterest(account, date, daysInYear);
+                        System.out.println("[InterestCalculationService] Auto-caught up monthly interest for account: " + account.getAccountId() + " for " + date);
+                    }
+                }
+                
                 date = date.plusDays(1);
             }
+        }
+
+        if (caughtUpAny) {
+            com.hmcs.savings.entity.SchedulerLog log = new com.hmcs.savings.entity.SchedulerLog();
+            log.setTaskName("EOD_SAVINGS");
+            log.setExecutionTime(LocalDateTime.now());
+            log.setStatus("SUCCESS");
+            log.setDetails("CATCH-UP: Recovered missing snapshots/interest for active accounts up to " + yesterday);
+            schedulerLogRepository.save(log);
         }
 
         System.out.println("[InterestCalculationService] Catch-up complete for missing daily snapshots up to: " + yesterday);
@@ -149,9 +180,28 @@ public class InterestCalculationService {
                 calculateAndCreditMonthlyInterest(account, today, daysInYear);
             }
         }
+        
+        com.hmcs.savings.entity.SchedulerLog log = new com.hmcs.savings.entity.SchedulerLog();
+        log.setTaskName("EOD_SAVINGS");
+        log.setExecutionTime(LocalDateTime.now());
+        log.setStatus("SUCCESS");
+        log.setDetails("Processed " + activeAccounts.size() + " accounts.");
+        schedulerLogRepository.save(log);
     }
 
-    private void calculateAndCreditMonthlyInterest(Account account, LocalDate endOfMonth, int daysInYear) {
+    public void forceTriggerMonthlyInterest(int year, int month) {
+        LocalDate endOfMonth = LocalDate.of(year, month, 1).withDayOfMonth(LocalDate.of(year, month, 1).lengthOfMonth());
+        int daysInYear = Year.isLeap(year) ? 366 : 365;
+        List<Account> activeAccounts = accountRepository.findAll().stream()
+                .filter(a -> "ACTIVE".equals(a.getStatus()))
+                .toList();
+        for (Account account : activeAccounts) {
+            calculateAndCreditMonthlyInterest(account, endOfMonth, daysInYear);
+        }
+        System.out.println("[InterestCalculationService] Force triggered monthly interest for " + year + "-" + month);
+    }
+
+    public void calculateAndCreditMonthlyInterest(Account account, LocalDate endOfMonth, int daysInYear) {
         LocalDate startOfMonth = endOfMonth.withDayOfMonth(1);
 
         List<DailyBalance> monthBalances = dailyBalanceRepository
@@ -171,11 +221,8 @@ public class InterestCalculationService {
         if (grossInterest.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal netInterest = grossInterest;
 
-            if (Boolean.FALSE.equals(account.getHasSubmittedTaxForm())) {
-                // Withholding Tax = 10%
-                BigDecimal tax = grossInterest.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
-                netInterest = grossInterest.subtract(tax).setScale(2, RoundingMode.HALF_UP);
-            }
+            // No tax deducted for savings accounts.
+            netInterest = grossInterest.setScale(2, RoundingMode.HALF_UP);
 
             if (netInterest.compareTo(BigDecimal.ZERO) > 0) {
                 account.setBalance(account.getBalance().add(netInterest));

@@ -6,7 +6,7 @@ export default function Dashboard() {
   const user = AuthService.getCurrentUser();
   if (!user) return null;
 
-  const isSystemAdmin = user.role === 'ROLE_SYSTEM_ADMIN';
+  const isSystemAdmin = user.role === 'ROLE_ORGANIZATION_ADMIN';
 
   return (
     <Layout>

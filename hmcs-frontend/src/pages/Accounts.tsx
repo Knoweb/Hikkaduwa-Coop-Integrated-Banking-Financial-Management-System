@@ -3,6 +3,7 @@ import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen, Power
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 import ViewAccountModal from '../components/ViewAccountModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
@@ -33,6 +34,7 @@ export default function Accounts() {
     childDateOfBirth: ''
   });
   const [submitError, setSubmitError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -252,15 +254,22 @@ export default function Accounts() {
                           <ArrowUpRight size={18} />
                         </button>
                         <button
-                          onClick={async () => {
-                            if (window.confirm(`Are you sure you want to ${acc.status === 'ACTIVE' ? 'deactivate' : 'activate'} this account?`)) {
-                              try {
-                                await AccountService.updateAccountStatus(acc.accountId!, acc.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
-                                fetchData();
-                              } catch (e) {
-                                alert('Failed to update account status');
+                          onClick={() => {
+                            setConfirmDialog({
+                              isOpen: true,
+                              title: acc.status === 'ACTIVE' ? 'ගිණුම අක්‍රිය කරන්නද?' : 'ගිණුම සක්‍රිය කරන්නද?',
+                              message: `"${acc.accountNumber}" ගිණුම ${acc.status === 'ACTIVE' ? 'අක්‍රිය' : 'සක්‍රිය'} කිරීමට ඔබ ස්ථිරද?`,
+                              variant: acc.status === 'ACTIVE' ? 'warning' : 'info',
+                              onConfirm: async () => {
+                                try {
+                                  await AccountService.updateAccountStatus(acc.accountId!, acc.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+                                  fetchData();
+                                } catch (e) {
+                                  alert('Failed to update account status');
+                                }
+                                setConfirmDialog(d => ({ ...d, isOpen: false }));
                               }
-                            }
+                            });
                           }}
                           className={`${acc.status === 'ACTIVE' ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} p-1.5 rounded-lg transition-colors`}
                           title={acc.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
@@ -505,6 +514,14 @@ export default function Accounts() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
+      />
     </Layout>
   );
 }

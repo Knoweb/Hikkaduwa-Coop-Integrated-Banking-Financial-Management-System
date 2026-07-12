@@ -94,7 +94,15 @@ public class BranchActivityController {
             dto.setType(tx.getTransactionType());
             dto.setTimestamp(tx.getTransactionTimestamp());
             dto.setAmount(tx.getAmount());
-            dto.setReference(tx.getAccount() != null ? tx.getAccount().getAccountNumber() : "");
+            String ref = "";
+            try {
+                if (tx.getAccount() != null) {
+                    ref = tx.getAccount().getAccountNumber();
+                }
+            } catch (Exception e) {
+                ref = "DELETED";
+            }
+            dto.setReference(ref);
             activities.add(dto);
         }
 

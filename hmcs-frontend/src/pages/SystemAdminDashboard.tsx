@@ -26,7 +26,7 @@ const ROLE_COLORS: Record<string, string> = {
   FIELD_OFFICER:        'bg-green-100 text-green-700 border border-green-200',
   TELLER:               'bg-red-100 text-red-700 border border-red-200',
   VALUER:               'bg-yellow-100 text-yellow-700 border border-yellow-200',
-  SYSTEM_ADMIN:         'bg-slate-100 text-slate-700 border border-slate-200',
+  ORGANIZATION_ADMIN:         'bg-slate-100 text-slate-700 border border-slate-200',
 };
 
 const ROLE_AVATARS: Record<string, string> = {
@@ -37,11 +37,11 @@ const ROLE_AVATARS: Record<string, string> = {
   FIELD_OFFICER:        'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white',
   TELLER:               'bg-gradient-to-tr from-rose-500 to-orange-500 text-white',
   VALUER:               'bg-gradient-to-tr from-yellow-500 to-amber-500 text-white',
-  SYSTEM_ADMIN:         'bg-gradient-to-tr from-slate-600 to-slate-800 text-white',
+  ORGANIZATION_ADMIN:         'bg-gradient-to-tr from-slate-600 to-slate-800 text-white',
 };
 
 const DEMO_USERS = [
-  { id: 1, username: 'admin',       fullName: 'System Administrator', role: 'SYSTEM_ADMIN',      branchId: 1, status: 'ACTIVE' },
+  { id: 1, username: 'admin',       fullName: 'System Administrator', role: 'ORGANIZATION_ADMIN',      branchId: 1, status: 'ACTIVE' },
   { id: 2, username: 'gm_perera',   fullName: 'D.P. Perera',          role: 'GENERAL_MANAGER',   branchId: 1, status: 'ACTIVE' },
   { id: 3, username: 'mgr_hkw',     fullName: 'R.M. Silva',           role: 'BRANCH_MANAGER',    branchId: 1, status: 'ACTIVE' },
   { id: 4, username: 'teller_hkw',  fullName: 'K.D. Jayasinghe',      role: 'TELLER',            branchId: 1, status: 'ACTIVE' },
@@ -63,11 +63,309 @@ const BRANCH_GLOWS = [
 
 import axios from 'axios';
 
+// ── Tenant Insights View ────────────────────────────────────────────────────────
+function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number, tenantName: string, onBack: () => void }) {
+  const [branches, setBranches] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userForm, setUserForm] = useState({ fullName: '', username: '', password: '', role: '', branchId: '' });
+  const [editUserForm, setEditUserForm] = useState({ fullName: '', username: '', role: '', status: '', password: '' });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchInsights();
+  }, [tenantId]);
+
+  const fetchInsights = async () => {
+    setLoading(true);
+    try {
+      const fetchedBranches = await BranchService.getBranches(tenantId);
+      const fetchedUsers = await AuthService.getUsers(tenantId);
+      const fetchedRoles = await AuthService.getRoles();
+      setBranches(fetchedBranches);
+      setUsers(fetchedUsers);
+      setRoles(fetchedRoles);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError('');
+      await AuthService.createUser({
+        fullName: userForm.fullName,
+        username: userForm.username,
+        password: userForm.password,
+        role: userForm.role,
+        branchId: parseInt(userForm.branchId, 10),
+        status: 'ACTIVE'
+      }, tenantId);
+      setShowAddUser(false);
+      setUserForm({ fullName: '', username: '', password: '', role: '', branchId: '' });
+      fetchInsights();
+    } catch (err: any) {
+      setError(err.response?.data || 'Failed to add user');
+    }
+  };
+
+  const handleEditClick = (user: any) => {
+    setSelectedUser(user);
+    setEditUserForm({
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+      status: user.status,
+      password: ''
+    });
+    setShowEditUser(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError('');
+      await AuthService.updateUser(selectedUser.userId, {
+        ...selectedUser,
+        fullName: editUserForm.fullName,
+        username: editUserForm.username,
+        role: editUserForm.role,
+        status: editUserForm.status,
+        password: editUserForm.password,
+      }, tenantId);
+      setShowEditUser(false);
+      fetchInsights();
+    } catch (err: any) {
+      setError(err.response?.data || 'Failed to update user');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await AuthService.deleteUser(selectedUser.userId, tenantId);
+      setShowEditUser(false);
+      fetchInsights();
+    } catch (err: any) {
+      setError(err.response?.data || 'Failed to delete user');
+    }
+  };
+
+  return (
+    <div className="p-8 animate-fade-in">
+      <div className="flex items-center gap-4 mb-8">
+        <button onClick={onBack} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition">
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-1">{tenantName} - Insights</h2>
+          <p className="text-slate-500 text-sm">View branches and users for this organization.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Branches */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Building size={18} className="text-indigo-600" />
+            Branches
+          </h3>
+          {loading ? <p className="text-slate-500 text-sm">Loading branches...</p> : (
+            <div className="space-y-3">
+              {branches.length === 0 && <p className="text-slate-400 text-sm italic">No branches found.</p>}
+              {branches.map(b => (
+                <div key={b.branchId} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div>
+                    <p className="font-bold text-slate-700 text-sm">{b.branchName}</p>
+                    <p className="text-xs text-slate-500">{b.location}</p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${b.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                    {b.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Users */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <Users size={18} className="text-blue-600" />
+              Users
+            </h3>
+            <button onClick={() => setShowAddUser(true)} className="text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg flex items-center gap-1 transition">
+              <Plus size={14} /> Add User
+            </button>
+          </div>
+          {loading ? <p className="text-slate-500 text-sm">Loading users...</p> : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(u.role)).length === 0 && <p className="text-slate-400 text-sm italic">No users found.</p>}
+              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(u.role)).map(u => (
+                <div key={u.userId} onClick={() => handleEditClick(u)} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-blue-300 transition">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_AVATARS[u.role] || 'bg-slate-200 text-slate-600'}`}>
+                      {u.fullName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-700 text-sm">{u.fullName}</p>
+                      <p className="text-xs font-mono text-slate-400">{u.username}</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${ROLE_COLORS[u.role] || 'bg-slate-100 text-slate-600'}`}>
+                      {u.role.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">
+                      {branches.find(b => b.branchId === u.branchId)?.branchName || 'Head Office'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add User Modal */}
+      {showAddUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-800">Add User to {tenantName}</h3>
+              <button onClick={() => setShowAddUser(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            {error && <div className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Full Name</label>
+                <input type="text" value={userForm.fullName} onChange={e => setUserForm({...userForm, fullName: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Username</label>
+                  <input type="text" value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Password</label>
+                  <div className="relative">
+                    <input type={showAddPassword ? "text" : "password"} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required />
+                    <button type="button" onClick={() => setShowAddPassword(!showAddPassword)} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                      {showAddPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Role</label>
+                  <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
+                    <option value="">Select Role</option>
+                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(r.roleName)).map(r => (
+                      <option key={r.roleId} value={r.roleName}>{r.roleName.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setShowAddUser(false)} className="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl transition hover:bg-blue-700">Add User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUser && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Edit size={18} className="text-blue-600" />
+                Edit User
+              </h3>
+              <button onClick={() => setShowEditUser(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            {error && <div className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Full Name</label>
+                <input type="text" value={editUserForm.fullName} onChange={e => setEditUserForm({...editUserForm, fullName: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Username</label>
+                  <input type="text" value={editUserForm.username} onChange={e => setEditUserForm({...editUserForm, username: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-slate-50" readOnly />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">New Password</label>
+                  <div className="relative">
+                    <input type={showEditPassword ? "text" : "password"} value={editUserForm.password} onChange={e => setEditUserForm({...editUserForm, password: e.target.value})} placeholder="Leave blank to keep current" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" />
+                    <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                      {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Status</label>
+                  <select value={editUserForm.status} onChange={e => setEditUserForm({...editUserForm, status: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Role</label>
+                  <select value={editUserForm.role} onChange={e => setEditUserForm({...editUserForm, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
+                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(r.roleName)).map(r => (
+                      <option key={r.roleId} value={r.roleName}>{r.roleName.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                <button type="button" onClick={handleDeleteUser} className="px-3 py-2 text-red-500 hover:bg-red-50 font-semibold rounded-xl transition flex items-center gap-1">
+                  <Trash2 size={16} /> Delete
+                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setShowEditUser(false)} className="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl transition hover:bg-blue-700">Save</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Tenants Tab ──────────────────────────────────────────────────────────────
 function TenantsTab() {
   const { t } = useLanguage();
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewTenantId, setViewTenantId] = useState<number | null>(null);
+  const [viewTenantName, setViewTenantName] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', subdomain: '', branchName: '', adminUsername: '', adminPassword: '' });
   const [error, setError] = useState('');
@@ -112,29 +410,31 @@ function TenantsTab() {
     }
   };
 
+
+
   const toggleStatus = async (id: number, currentStatus: string) => {
     try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-      
       const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      await axios.put(`http://localhost:8080/api/v1/auth/organizations/${id}/status`, { status: newStatus }, { headers });
+      await AuthService.updateOrganizationStatus(id, newStatus);
       fetchTenants();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error('Error updating status', err);
     }
   };
 
+  if (viewTenantId) {
+    return <TenantInsightsView tenantId={viewTenantId} tenantName={viewTenantName} onBack={() => setViewTenantId(null)} />;
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-8">
+      <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Organizations (SaaS Tenants)</h2>
-          <p className="text-sm text-slate-500">Manage all registered banking societies on the platform.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-1">Organizations (SaaS Tenants)</h2>
+          <p className="text-slate-500 text-sm">Manage all registered banking societies on the platform.</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition">
-          <Plus size={16} /> Add Organization
+        <button onClick={() => setShowAdd(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition">
+          <Plus size={18} /> Add Organization
         </button>
       </div>
 
@@ -187,6 +487,8 @@ function TenantsTab() {
         </div>
       )}
 
+
+
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -216,9 +518,12 @@ function TenantsTab() {
                       {t.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 flex gap-2">
                     <button onClick={() => toggleStatus(t.organizationId, t.status)} className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition ${t.status === 'ACTIVE' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
                       {t.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button onClick={() => { setViewTenantId(t.organizationId); setViewTenantName(t.name); }} className="text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition flex items-center gap-1">
+                      <Eye size={14} /> View
                     </button>
                   </td>
                 </tr>
@@ -234,22 +539,67 @@ function TenantsTab() {
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activities }: {
+function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activities, user }: {
   allUsers: AuthService.UserDTO[];
   onSelectBranch: (b: BranchService.BranchDTO) => void;
   branches: BranchService.BranchDTO[];
   onAddBranch: () => void;
   activities: any[];
+  user: any;
 }) {
   const { t } = useLanguage();
+  const [schedulerStatus, setSchedulerStatus] = useState<Record<string, AccountService.SchedulerLog> | null>(null);
+
+  useEffect(() => {
+    if (user?.tenantId !== 0) {
+      AccountService.getSchedulerStatus()
+        .then(res => {
+          if (res.data) setSchedulerStatus(res.data);
+        })
+        .catch(err => console.error("Failed to fetch scheduler status", err));
+    }
+  }, [user]);
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('en-US', { 
+      year: 'numeric', month: 'short', day: '2-digit', 
+      hour: '2-digit', minute: '2-digit', hour12: true 
+    });
+  };
+
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 ${user?.tenantId !== 0 ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-4`}>
         {[
           { icon: Users,    label: t('Total System Users'), value: allUsers.length.toString(),      sub: t('Across all branches'), color: 'text-blue-600',    bg: 'bg-blue-50' },
           { icon: Building, label: t('Active Branches'),    value: `${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length}`,   sub: t('All online'),           color: 'text-green-600',   bg: 'bg-green-50' },
           { icon: Server,   label: t('System Uptime'),      value: '99.9%',   sub: t('Last 45 days'),         color: 'text-purple-600',  bg: 'bg-purple-50' },
           { icon: Database, label: t('Daily Backup'),       value: 'Success', sub: t('Today 02:00 AM'),       color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          ...(user?.tenantId !== 0 ? [{ 
+            icon: Clock, 
+            label: 'Savings EOD', 
+            value: schedulerStatus?.['EOD_SAVINGS'] ? schedulerStatus['EOD_SAVINGS'].status : 'Pending', 
+            sub: schedulerStatus?.['EOD_SAVINGS'] ? (
+              <span className="flex flex-col gap-0.5 mt-1">
+                <span><span className="font-semibold text-slate-500">Last:</span> {formatDateTime(schedulerStatus['EOD_SAVINGS'].executionTime)}</span>
+                <span><span className="font-semibold text-slate-500">Next:</span> Today 11:59 PM</span>
+              </span>
+            ) : 'Next: Today 11:59 PM', 
+            color: schedulerStatus?.['EOD_SAVINGS']?.status === 'SUCCESS' ? 'text-green-600' : 'text-orange-600', 
+            bg: schedulerStatus?.['EOD_SAVINGS']?.status === 'SUCCESS' ? 'bg-green-50' : 'bg-orange-50' 
+          }, { 
+            icon: Clock, 
+            label: 'Fixed Deposit EOD', 
+            value: schedulerStatus?.['EOD_FD'] ? schedulerStatus['EOD_FD'].status : 'Pending', 
+            sub: schedulerStatus?.['EOD_FD'] ? (
+              <span className="flex flex-col gap-0.5 mt-1">
+                <span><span className="font-semibold text-slate-500">Last:</span> {formatDateTime(schedulerStatus['EOD_FD'].executionTime)}</span>
+                <span><span className="font-semibold text-slate-500">Next:</span> Today 11:59 PM</span>
+              </span>
+            ) : 'Next: Today 11:59 PM', 
+            color: schedulerStatus?.['EOD_FD']?.status === 'SUCCESS' ? 'text-green-600' : 'text-orange-600', 
+            bg: schedulerStatus?.['EOD_FD']?.status === 'SUCCESS' ? 'bg-green-50' : 'bg-orange-50' 
+          }] : []),
         ].map(({ icon: Icon, label, value, sub, color, bg }) => (
           <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg}`}>
@@ -258,7 +608,7 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
             <div>
               <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
               <p className="text-2xl font-bold text-slate-800">{value}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+              <div className="text-xs text-slate-400 mt-0.5">{sub}</div>
             </div>
           </div>
         ))}
@@ -270,7 +620,7 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {branches.map((branch, idx) => {
             const g = BRANCH_GLOWS[idx % BRANCH_GLOWS.length];
-            const count = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'SYSTEM_ADMIN' && u.role !== 'GENERAL_MANAGER').length;
+            const count = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'GENERAL_MANAGER').length;
             return (
               <button key={branch.branchId} onClick={() => onSelectBranch(branch)}
                 style={{
@@ -410,7 +760,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
       .catch(() => setRoles(['GENERAL_MANAGER','BRANCH_MANAGER','BANK_SERVICE_MANAGER','LOAN_COMMITTEE','FIELD_OFFICER','TELLER','VALUER','SENIOR_OFFICER']));
   }, []);
 
-  const branchUsers = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'SYSTEM_ADMIN' && u.role !== 'GENERAL_MANAGER');
+  const branchUsers = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'GENERAL_MANAGER');
 
   const startEdit = (u: AuthService.UserDTO) => {
     setEditingUser(u);
@@ -561,7 +911,13 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition">
                       {roles.length === 0 ? (
                         <option disabled>Loading roles...</option>
-                      ) : roles.map(r => <option key={r} value={r}>{t(r.replace(/_/g, ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))))}</option>)}
+                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'GENERAL_MANAGER', 'BANK_SERVICE_MANAGER'].includes(r)).map(r => {
+                        let label = r.replace(/_/g, ' ');
+                        if (r === 'BRANCH_MANAGER') label = 'BRANCH MANAGER (ශාඛා කළමනාකරු)';
+                        if (r === 'SENIOR_OFFICER') label = 'SENIOR OFFICER (ලිපිකරු)';
+                        if (r === 'LOAN_COMMITTEE') label = 'LOAN COMMITTEE (ප්‍රධාන කාර්යාලය)';
+                        return <option key={r} value={r}>{label}</option>;
+                      })}
                     </select>
                   </div>
                 </div>
@@ -835,7 +1191,7 @@ export default function SystemAdminDashboard() {
             <div className="mt-1 mb-1 flex flex-col flex-1 h-full overflow-hidden">
               <div className="px-3 mb-2 flex items-center gap-2 bg-slate-800/30 py-2 rounded-lg border border-slate-700/50 shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse shrink-0"></div>
-                <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider line-clamp-1">{t(activeBranch.name)}</p>
+                <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider line-clamp-1">{t(activeBranch.branchName)}</p>
               </div>
               <div className="flex flex-col flex-1 px-1 gap-1 overflow-y-auto pb-2">
                 {[
@@ -904,7 +1260,7 @@ export default function SystemAdminDashboard() {
       <main className="flex-1 md:ml-64 flex flex-col h-screen">
         <header className="h-16 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">{activeBranch ? t(activeBranch.name) : (user?.tenantId === 0 ? t('SaaS Administration Panel') : `${user?.organizationName || t('HMCS Bank')} - ${t('System Administration Panel')}`)}</h1>
+            <h1 className="text-lg font-bold text-slate-800">{activeBranch ? t(activeBranch.branchName) : (user?.tenantId === 0 ? t('SaaS Administration Panel') : `${user?.organizationName || t('HMCS Bank')} - ${t('System Administration Panel')}`)}</h1>
             <p className="text-xs text-slate-400">
               {user?.tenantId === 0
                 ? t('Managing All Organizations')
@@ -913,13 +1269,22 @@ export default function SystemAdminDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
-              <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
-              <div className="w-px h-4 bg-slate-300 mx-1"></div>
-              <button onClick={() => setLanguage('si')} className={`px-3 py-1 text-sm font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
+              <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
             </div>
             <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {`${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length} ${t('Branches')} Online`}
             </span>
+            <button
+              onClick={() => { AuthService.logout(); navigate('/login'); }}
+              className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
+              title={t('Sign Out')}
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
@@ -931,16 +1296,16 @@ export default function SystemAdminDashboard() {
           {mainTab === 'overview' && (
             activeBranch ? (
               (activeTab === 'staff' || activeTab === 'config') ? (
-                <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => handleClearBranch()} innerTab={activeTab === 'staff' ? 'users' : 'config'} />
+                <BranchDetail branch={activeBranch} allUsers={allUsers} onRefresh={fetchUsers} onBack={() => handleClearBranch()} innerTab={activeTab === 'staff' ? 'users' : 'config'} navigate={navigate} />
               ) : (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col min-h-0">
                   <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                    <BranchDashboard key={activeBranch.id} overrideActiveTab={activeTab} hideSidebar={true} overrideRole="SENIOR_OFFICER" readOnly={true} />
+                    <BranchDashboard key={activeBranch.branchId} overrideActiveTab={activeTab} hideSidebar={true} overrideRole="SENIOR_OFFICER" readOnly={true} />
                   </div>
                 </div>
               )
             ) : (
-              <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} branches={branches} onAddBranch={() => setShowAddBranch(true)} activities={activities} />
+              <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} branches={branches} onAddBranch={() => setShowAddBranch(true)} activities={activities} user={user} />
             )
           )}
         </div>

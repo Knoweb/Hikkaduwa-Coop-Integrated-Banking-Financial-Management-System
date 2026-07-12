@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Activity, ArrowUpRight, TrendingUp, Clock, CalendarDays, Wallet } from 'lucide-react';
 
-export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: { fd: any, memberName: string, onClose: () => void, onRelease: () => void }) {
+export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: { fd: any, memberName: string, onClose: () => void, onRelease: (isMatured: boolean, releaseAmount: number, penaltyAmount: number, principalAmount: number) => void }) {
   
   const start = new Date(fd.openedDate || fd.createdAt || fd.startDate || new Date());
   const today = new Date();
@@ -38,11 +38,13 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
   const taxMultiplier = hasTaxForm ? 1 : 0.9;
 
   const estMonthlyInterest = ((principal * (intRate / 100)) / 12) * taxMultiplier;
-  const dailyInterest = ((principal * (intRate / 100)) / 365) * taxMultiplier;
-  const totalExpectedInterest = dailyInterest * totalDays;
-  const totalMaturityValue = principal + totalExpectedInterest;
-  const remainingInterest = Math.max(0, totalExpectedInterest - accInterest);
+  const totalExpectedInterest = (principal * (intRate / 100)) * ((fd.termMonths || 1) / 12) * taxMultiplier;
   
+  // If monthly, interest goes to savings, so maturity value is just principal.
+  // If at maturity, interest is added to principal at the end.
+  const totalMaturityValue = fd.interestPayoutMethod === 'MONTHLY' ? principal : principal + totalExpectedInterest;
+  
+
   let paidOutInterest = 0;
   let monthsPaid = 0;
   let paidHistory: { date: Date, amount: number }[] = [];
@@ -53,17 +55,28 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
     monthsPaid = (lastPayoutDateObj.getFullYear() - openedDateObj.getFullYear()) * 12 + 
                  (lastPayoutDateObj.getMonth() - openedDateObj.getMonth());
     if (monthsPaid > 0) {
-      paidOutInterest = monthsPaid * estMonthlyInterest;
-      
-      for (let i = monthsPaid; i >= 1; i--) {
+      let totalCalculated = 0;
+      for (let i = 1; i <= monthsPaid; i++) {
         const payoutDate = new Date(openedDateObj.getFullYear(), openedDateObj.getMonth() + i, openedDateObj.getDate());
+        
+        const theoreticalTotal = Number((estMonthlyInterest * i).toFixed(2));
+        const amount = Number((theoreticalTotal - totalCalculated).toFixed(2));
+        totalCalculated = theoreticalTotal;
+
         paidHistory.push({
           date: payoutDate,
-          amount: estMonthlyInterest
+          amount: amount
         });
       }
+      paidHistory.reverse();
+      paidOutInterest = totalCalculated;
     }
   }
+
+  // Remaining interest to be paid/accrued
+  const remainingInterest = fd.interestPayoutMethod === 'MONTHLY' 
+    ? Math.max(0, totalExpectedInterest - paidOutInterest)
+    : Math.max(0, totalExpectedInterest - accInterest);
 
   const lastCalculationDate = fd.lastInterestPayoutDate || fd.openedDate || start;
   const formattedLastDate = new Date(lastCalculationDate).toLocaleDateString('si-LK');
@@ -123,7 +136,11 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               </div>
             </div>
             <button 
-              onClick={onRelease}
+              onClick={() => {
+                const penalty = isMatured ? 0 : (principal * 0.05);
+                const releaseAmt = isMatured ? totalMaturityValue : (principal + accInterest - penalty);
+                onRelease(isMatured, releaseAmt, penalty, principal);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm whitespace-nowrap shrink-0"
             >
               <ArrowUpRight size={14} /> නිදහස් කරන්න

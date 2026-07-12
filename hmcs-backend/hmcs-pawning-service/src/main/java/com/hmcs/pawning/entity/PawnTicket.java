@@ -87,4 +87,5 @@ public class PawnTicket {
             carriedOverInterest = BigDecimal.ZERO;
         }
     }
+
 }

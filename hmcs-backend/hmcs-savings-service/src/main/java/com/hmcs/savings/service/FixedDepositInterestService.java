@@ -11,6 +11,7 @@ import com.hmcs.savings.repository.TransactionRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,17 +27,20 @@ public class FixedDepositInterestService {
     private final FixedDepositTypeRepository typeRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
 
     private final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public FixedDepositInterestService(FixedDepositRepository fdRepository,
                                        FixedDepositTypeRepository typeRepository,
                                        AccountRepository accountRepository,
-                                       TransactionRepository transactionRepository) {
+                                       TransactionRepository transactionRepository,
+                                       com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository) {
         this.fdRepository = fdRepository;
         this.typeRepository = typeRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.schedulerLogRepository = schedulerLogRepository;
     }
 
     /**
@@ -44,16 +48,85 @@ public class FixedDepositInterestService {
      */
     @Scheduled(cron = "0 59 23 * * ?")
     @Transactional
-    public void processFixedDeposits() {
-        LocalDate today = LocalDate.now();
-        List<FixedDeposit> activeFDs = fdRepository.findByStatus("ACTIVE");
+    public void scheduledProcessFixedDeposits() {
+        processFixedDepositsForDate(LocalDate.now());
+        
+        com.hmcs.savings.entity.SchedulerLog log = new com.hmcs.savings.entity.SchedulerLog();
+        log.setTaskName("EOD_FD");
+        log.setExecutionTime(java.time.LocalDateTime.now());
+        log.setStatus("SUCCESS");
+        log.setDetails("Processed Fixed Deposits.");
+        schedulerLogRepository.save(log);
+    }
 
+    @jakarta.annotation.PostConstruct
+    @Scheduled(fixedDelay = 600000) // Run every 10 minutes to catch up if laptop was asleep at midnight
+    @Transactional
+    public void catchUpMissingFDInterest() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        
+        // Find the last successful EOD_FD run
+        com.hmcs.savings.entity.SchedulerLog lastLog = schedulerLogRepository.findFirstByTaskNameOrderByExecutionTimeDesc("EOD_FD").orElse(null);
+        
+        LocalDate lastProcessedDate;
+        if (lastLog == null) {
+            // If never run, let's just start from yesterday to avoid massive recalculation
+            lastProcessedDate = yesterday.minusDays(1);
+        } else {
+            lastProcessedDate = lastLog.getExecutionTime().toLocalDate();
+        }
+        
+        LocalDate dateToProcess = lastProcessedDate.plusDays(1);
+        boolean caughtUpAny = false;
+        
+        while (!dateToProcess.isAfter(yesterday)) {
+            processFixedDepositsForDate(dateToProcess);
+            caughtUpAny = true;
+            dateToProcess = dateToProcess.plusDays(1);
+        }
+        
+        if (caughtUpAny) {
+            com.hmcs.savings.entity.SchedulerLog log = new com.hmcs.savings.entity.SchedulerLog();
+            log.setTaskName("EOD_FD");
+            log.setExecutionTime(java.time.LocalDateTime.now());
+            log.setStatus("SUCCESS");
+            log.setDetails("CATCH-UP: Recovered missing FD interest up to " + yesterday);
+            schedulerLogRepository.save(log);
+            System.out.println("[FixedDepositInterestService] Catch-up complete for missed FD interest up to: " + yesterday);
+        }
+    }
+
+
+    public void processFixedDepositsForDate(LocalDate today) {
+        List<FixedDeposit> activeFDs = fdRepository.findByStatus("ACTIVE");
+        for (FixedDeposit fd : activeFDs) {
+            processSingleFixedDepositForDate(fd, today);
+            fdRepository.save(fd);
+        }
+    }
+
+    @Transactional
+    public void catchUpSingleFD(FixedDeposit fd) {
+        if (fd.getOpenedDate() == null || !fd.getOpenedDate().isBefore(LocalDate.now())) {
+            return;
+        }
+        
+        LocalDate dateToProcess = fd.getOpenedDate().plusDays(1);
+        LocalDate today = LocalDate.now();
+        
+        while (!dateToProcess.isAfter(today)) {
+            processSingleFixedDepositForDate(fd, dateToProcess);
+            dateToProcess = dateToProcess.plusDays(1);
+        }
+        fdRepository.save(fd);
+    }
+
+    private void processSingleFixedDepositForDate(FixedDeposit fd, LocalDate today) {
         int daysInYear = Year.isLeap(today.getYear()) ? 366 : 365;
         BigDecimal daysInYearBd = BigDecimal.valueOf(daysInYear);
         BigDecimal hundred = BigDecimal.valueOf(100);
 
-        for (FixedDeposit fd : activeFDs) {
-            // 1. Daily Accrual
+        // 1. Daily Accrual
             // Daily Interest = Principal * (Rate / 100) / DaysInYear
             if (fd.getPrincipalAmount() != null && fd.getInterestRate() != null) {
                 BigDecimal dailyInterest = fd.getPrincipalAmount()
@@ -94,7 +167,7 @@ public class FixedDepositInterestService {
                     fd.setPrincipalAmount(fd.getPrincipalAmount().add(accumulated));
                     fd.setAccumulatedInterest(BigDecimal.ZERO);
                     
-                } else if ("REINVEST_PRINCIPAL_ONLY".equals(instruction)) {
+                } else if ("REINVEST_PRINCIPAL_ONLY".equals(instruction) || "REINVEST_PRINCIPAL_PAY_INTEREST".equals(instruction)) {
                     // Payout Interest, Reinvest Principal
                     if (accumulated.compareTo(BigDecimal.ZERO) > 0) {
                         creditToSavings(fd, accumulated, "FD_MATURITY_INTEREST");
@@ -112,27 +185,11 @@ public class FixedDepositInterestService {
                     fd.setStatus("CLOSED");
                 }
 
-                // If renewing, update dates and interest rate
+                // If not closed, set status to MATURED pending manual renewal
                 if (!"CLOSED".equals(fd.getStatus())) {
-                    fd.setOpenedDate(today);
-                    fd.setLastInterestPayoutDate(today);
-                    fd.setMaturityDate(today.plusMonths(fd.getTermMonths()));
-                    
-                    // Fetch current prevailing rate
-                    if (fd.getTypeId() != null) {
-                        FixedDepositType currentType = typeRepository.findById(fd.getTypeId()).orElse(null);
-                        if (currentType != null) {
-                            BigDecimal newRate = "MONTHLY".equals(fd.getInterestPayoutMethod()) 
-                                    ? currentType.getInterestRateMonthly() 
-                                    : currentType.getInterestRateMaturity();
-                            fd.setInterestRate(newRate);
-                        }
-                    }
+                    fd.setStatus("MATURED");
                 }
             }
-
-            fdRepository.save(fd);
-        }
     }
 
     private void creditToSavings(FixedDeposit fd, BigDecimal amount, String transactionType) {
@@ -144,11 +201,12 @@ public class FixedDepositInterestService {
         if (savingsAcc != null && "ACTIVE".equals(savingsAcc.getStatus())) {
             
             BigDecimal netAmount = amount;
-            if (transactionType.contains("INTEREST") && Boolean.FALSE.equals(fd.getHasSubmittedTaxForm())) {
-                // Deduct 10% Withholding Tax if tax form is not submitted
+            if (Boolean.FALSE.equals(fd.getHasSubmittedTaxForm())) {
                 BigDecimal tax = amount.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
-                netAmount = amount.subtract(tax).setScale(2, RoundingMode.HALF_UP);
+                netAmount = amount.subtract(tax);
             }
+            netAmount = netAmount.setScale(2, RoundingMode.HALF_UP);
+
 
             if (netAmount.compareTo(BigDecimal.ZERO) > 0) {
                 savingsAcc.setBalance(savingsAcc.getBalance().add(netAmount));
