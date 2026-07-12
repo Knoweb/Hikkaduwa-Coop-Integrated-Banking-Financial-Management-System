@@ -256,6 +256,43 @@ public class LoanService {
     public List<Loan> getLoansByMemberId(UUID memberId) { return loanRepository.findByMemberId(memberId); }
     public List<Loan> getLoansByStatus(String status) { return loanRepository.findByStatus(status); }
 
+    private String getLoanTypeCode(com.hmcs.loan.entity.LoanType loanType) {
+        if (loanType == null) return "";
+        String desc = loanType.getDescription() != null ? loanType.getDescription() : "";
+        String name = loanType.getName() != null ? loanType.getName() : "";
+        
+        if (desc.contains("[CODE:")) {
+            int start = desc.indexOf("[CODE:") + 6;
+            int end = desc.indexOf("]", start);
+            if (end > start) return desc.substring(start, end).toUpperCase();
+        }
+        
+        // Fallback for older records
+        boolean isSinhala = name.matches(".*[\\u0D80-\\u0DFF].*");
+        String baseStr = isSinhala ? desc : name;
+        if (baseStr != null) {
+            return baseStr.replaceAll("\\s+", "_").toUpperCase();
+        }
+        return "";
+    }
+
+    public List<Loan> getInsuranceReportLoans(String monthStr) {
+        List<Loan> allLoans = loanRepository.findAll();
+        return allLoans.stream().filter(loan -> {
+            // Check if it's a Short Term Loan using the code
+            String code = getLoanTypeCode(loan.getLoanType());
+            boolean isKetiNaya = code.contains("SHORT_TERM");
+            if (!isKetiNaya) return false;
+
+            if (!"DISBURSED".equals(loan.getStatus()) && !"ACTIVE".equals(loan.getStatus()) && !"COMPLETED".equals(loan.getStatus())) {
+                return false;
+            }
+            String dateStr = loan.getDisbursementDate() != null ? loan.getDisbursementDate().toString() : 
+                             (loan.getAppliedDate() != null ? loan.getAppliedDate().toString() : "");
+            return dateStr.startsWith(monthStr);
+        }).collect(Collectors.toList());
+    }
+
     @Transactional
     public void deleteLoan(UUID loanId) {
         // Delete related entities first to avoid foreign key constraint violations
@@ -321,6 +358,18 @@ public class LoanService {
         if (currentIdx >= WORKFLOW_STAGES.size() - 1) throw new RuntimeException("Loan is already at the final stage");
 
         String nextStage = WORKFLOW_STAGES.get(currentIdx + 1);
+
+        // Custom workflow logic: 
+        // Only "සේවක ණය" and "කෙටි ණය" go to Loan Committee. Others skip to APPROVED.
+        if ("STAGE_2_LOAN_COMMITTEE_APPROVAL".equals(nextStage)) {
+            String code = getLoanTypeCode(loan.getLoanType());
+            boolean requiresCommittee = code.contains("EMPLOYEE") || code.contains("SHORT_TERM");
+            
+            if (!requiresCommittee) {
+                nextStage = "STAGE_3_APPROVED"; // Skip committee
+            }
+        }
+
         loan.setCurrentStage(nextStage);
         if (nextStage.equals("STAGE_3_APPROVED")) loan.setStatus("APPROVED");
         loanRepository.save(loan);
@@ -358,22 +407,30 @@ public class LoanService {
 
     // ── Disbursement ───────────────────────────────────────────────────────────
     @Transactional
-    public Loan disburseLoan(UUID loanId, BigDecimal amount, String actorUsername, String paymentMethod, String savingsAccountNumber) {
+    public Loan disburseLoan(UUID loanId, BigDecimal amount, String actorUsername, String paymentMethod, String savingsAccountNumber, String loanAccountNumber) {
         Loan loan = loanRepository.findById(loanId).orElseThrow(() -> new RuntimeException("Loan not found"));
         if (!"APPROVED".equals(loan.getStatus()) && !"STAGE_3_APPROVED".equals(loan.getCurrentStage())) {
             throw new RuntimeException("Loan must be fully approved before disbursement.");
         }
         
-        // Generate Account Number: e.g. LN-HKW-{year}-{seq}
-        String year = String.valueOf(LocalDate.now().getYear());
-        String seq = String.format("%04d", new Random().nextInt(10000));
-        loan.setAccountNumber("LN-HKW-" + year + "-" + seq);
+        if (loanAccountNumber == null || loanAccountNumber.trim().isEmpty()) {
+            throw new RuntimeException("Loan Account Number is mandatory for disbursement.");
+        }
+        loan.setAccountNumber(loanAccountNumber.trim());
 
         loan.setDisbursementDate(java.time.LocalDateTime.now());
         loan.setDisbursedAmount(amount != null ? amount : loan.getRequestedAmount());
         loan.setDisbursedBy(actorUsername);
         loan.setStatus("ACTIVE");
         loan.setCurrentStage("DISBURSED");
+
+        Map<String, Object> ad = loan.getApplicationData();
+        if (ad == null) ad = new HashMap<>();
+        ad.put("disbursementMethod", paymentMethod);
+        if ("SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod) && savingsAccountNumber != null) {
+            ad.put("disbursementSavingsAccount", savingsAccountNumber);
+        }
+        loan.setApplicationData(ad);
 
         // Execute Transfer if paymentMethod is SAVINGS_TRANSFER
         if ("SAVINGS_TRANSFER".equalsIgnoreCase(paymentMethod)) {
@@ -384,12 +441,32 @@ public class LoanService {
             Map<String, Object> depositRequest = new HashMap<>();
             depositRequest.put("accountNumber", savingsAccountNumber);
             depositRequest.put("amount", loan.getDisbursedAmount());
-            depositRequest.put("reference", "Disbursed Loan " + loan.getAccountNumber());
+            depositRequest.put("reference", "ණය මුදල (Loan Disbursement) - " + loan.getAccountNumber());
             depositRequest.put("requestApproval", false);
 
             try {
-                String savingsServiceUrl = "http://hmcs-savings-service:8082/api/v1/transactions/deposit";
-                restTemplate.postForEntity(savingsServiceUrl, depositRequest, Object.class);
+                String savingsServiceHost = System.getenv("SAVINGS_SERVICE_HOST");
+                if (savingsServiceHost == null || savingsServiceHost.isEmpty()) {
+                    savingsServiceHost = "localhost";
+                }
+                String savingsServiceUrl = "http://" + savingsServiceHost + ":8082/api/v1/transactions/deposit";
+                
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                // Use TenantContext if available, otherwise fall back to loan entity's tenantId
+                Integer currentTenant = com.hmcs.loan.multitenancy.TenantContext.getTenantId();
+                if (currentTenant == null) {
+                    currentTenant = loan.getTenantId();
+                }
+                if (currentTenant != null) {
+                    headers.set("X-Tenant-ID", String.valueOf(currentTenant));
+                    System.out.println("[LoanService] Sending deposit to savings. TenantId=" + currentTenant + ", Account=" + savingsAccountNumber);
+                } else {
+                    System.err.println("[LoanService] WARNING: No tenant ID found for savings deposit! Account=" + savingsAccountNumber);
+                }
+                org.springframework.http.HttpEntity<Map<String, Object>> requestEntity = new org.springframework.http.HttpEntity<>(depositRequest, headers);
+                
+                restTemplate.postForEntity(savingsServiceUrl, requestEntity, Object.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to credit savings account: " + e.getMessage(), e);
             }
@@ -596,8 +673,21 @@ public class LoanService {
             withdrawalRequest.put("requestApproval", false);
 
             try {
-                String savingsServiceUrl = "http://hmcs-savings-service:8082/api/v1/transactions/withdraw";
-                restTemplate.postForEntity(savingsServiceUrl, withdrawalRequest, Object.class);
+                String savingsServiceHost = System.getenv("SAVINGS_SERVICE_HOST");
+                if (savingsServiceHost == null || savingsServiceHost.isEmpty()) {
+                    savingsServiceHost = "localhost";
+                }
+                String savingsServiceUrl = "http://" + savingsServiceHost + ":8082/api/v1/transactions/withdraw";
+                
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                Integer currentTenant = com.hmcs.loan.multitenancy.TenantContext.getTenantId();
+                if (currentTenant != null) {
+                    headers.set("X-Tenant-ID", String.valueOf(currentTenant));
+                }
+                org.springframework.http.HttpEntity<Map<String, Object>> requestEntity = new org.springframework.http.HttpEntity<>(withdrawalRequest, headers);
+
+                restTemplate.postForEntity(savingsServiceUrl, requestEntity, Object.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to debit savings account for loan repayment: " + e.getMessage(), e);
             }
