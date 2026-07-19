@@ -47,7 +47,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     // Step 1: මූලික තොරතුරු
     applicationNumber: '',
     accountNumber: '',
-    appliedDate: new Date().toISOString().split('T')[0],
+    appliedDate: new Date().toLocaleDateString('en-CA'),
     applicantName: '',
     addressLine1: '',
     addressLine2: '',
@@ -268,11 +268,14 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     try {
         const totalAmount = Number(formData.requiredLoanCash || 0) + Number(formData.requiredLoanGoods || 0);
         const currentUser = AuthService.getCurrentUser();
+        const branchIdRaw = currentUser?.branchId;
+        const parsedBranchId = typeof branchIdRaw === 'string' ? parseInt(branchIdRaw, 10) : branchIdRaw;
+
         const payload = {
             memberId: memberId,
             requestedAmount: totalAmount,
             termMonths: parseInt(formData.repaymentPeriodMonths || '12'),
-            branchId: currentUser?.branchId || 1,
+            branchId: parsedBranchId || 1,
             appliedDate: formData.appliedDate,
             applicationNumber: formData.applicationNumber,
             repaymentMethod: formData.repaymentMethod,
@@ -359,7 +362,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                     onChange={(e) => setFormData({...formData, appliedDate: e.target.value})}
                     className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
                   />
-                  {formData.appliedDate && formData.appliedDate !== new Date().toISOString().split('T')[0] && (
+                  {formData.appliedDate && formData.appliedDate !== new Date().toLocaleDateString('en-CA') && (
                     <div className="mt-2 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs font-semibold border border-amber-200 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                       <AlertTriangle size={14} className="text-amber-500 flex-shrink-0"/>
                       <span>ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.</span>
@@ -515,7 +518,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                     <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
                       <label className="block text-sm font-bold text-emerald-900 mb-2">14. ණය ආපසු ගෙවීමේ කාලය <span className="text-red-500 font-bold">*</span> <span className="text-xs font-medium text-emerald-700 block mt-0.5">(මාසික වාරික සංඛ්‍යාව)</span></label>
                       <div className="flex items-center gap-3">
-                        <input type="number" min="1" max="120" name="repaymentPeriodMonths" value={formData.repaymentPeriodMonths} onChange={handleInputChange} className="flex-1 rounded-xl border-emerald-400 p-3.5 text-2xl font-bold text-emerald-900 border-2 focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-600 text-center shadow-inner" placeholder="0" />
+                        <input type="number" min="1" max="120" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '.') e.preventDefault(); }} name="repaymentPeriodMonths" value={formData.repaymentPeriodMonths} onChange={handleInputChange} className="flex-1 rounded-xl border-emerald-400 p-3.5 text-2xl font-bold text-emerald-900 border-2 focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-600 text-center shadow-inner" placeholder="0" />
                         <span className="text-sm font-bold text-emerald-800 bg-emerald-200/50 px-5 py-4 rounded-xl border border-emerald-300 shadow-sm whitespace-nowrap">
                           {(() => {
                             const m = parseInt(formData.repaymentPeriodMonths || '0');

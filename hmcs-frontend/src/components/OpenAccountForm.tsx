@@ -124,13 +124,13 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     branchName: '', // පද්ධතියෙන් ස්වයංක්රීයව පිරේ [cite: 71, 72]
     societyName: '', // [cite: 76, 78]
     // ගිණුම් සැකසුම්
-    date: new Date().toISOString().split('T')[0], // [cite: 75]
-    openedDate: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'), // [cite: 75]
+    openedDate: new Date().toLocaleDateString('en-CA'),
     accountNumber: '', // පද්ධතියෙන් ජනනය වේ [cite: 74]
     officerSignature: 'senior_hkw', // [cite: 74]
 
     // ගිණුම් සැකසුම්
-    accountType: 'samanaya',
+    accountType: 'NORMAL',
     accountMode: 'single', // [cite: 80]
     modeOfOperation: 'self', // [cite: 92, 93]
 
@@ -173,7 +173,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       setFormData(prev => ({
         ...prev,
         accountMode: 'single',
-        accountType: value === 'adult' ? 'samanaya' : 'arunalu'
+        accountType: value === 'adult' ? 'NORMAL' : 'ARUNALU'
       }));
     }
   };
@@ -242,12 +242,18 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       console.log('Account created:', res);
       
       const accountTypeNames: Record<string, string> = {
-        samanaya: 'සාමාන්ය ඉතුරුම් (Normal Savings)',
+        samanaya: 'සාමාන්‍ය ඉතුරුම් (Normal Savings)',
+        NORMAL: 'සාමාන්‍ය ඉතුරුම් (Normal Savings)',
         janasetha: 'ජනසෙත (Janasetha)',
+        JANASETHA: 'ජනසෙත (Janasetha)',
         dhana_yojana: 'ධන යෝජනා (Dhana Yojana)',
+        DHANA_YOJANA: 'ධන යෝජනා (Dhana Yojana)',
         vandana: 'වන්දනා (Vandana)',
+        VANDANA: 'වන්දනා (Vandana)',
         arunalu: 'අරුණලු (Arunalu Minor Savings)',
-        ranthilina: 'රන්තිලින (Ranthilina Minor Savings)'
+        ARUNALU: 'අරුණලු (Arunalu Minor Savings)',
+        ranthilina: 'රන්තිලින (Ranthilina Minor Savings)',
+        RANTHILINA: 'රන්තිලින (Ranthilina Minor Savings)'
       };
       const schemeName = accountTypeNames[formData.accountType] || formData.accountType;
 
@@ -672,15 +678,15 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
               <select name="accountType" value={formData.accountType} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]">
                 {clientType === 'adult' ? (
                   <>
-                    <option value="samanaya">සාමාන්ය ඉතුරුම් (Normal Savings)</option>
-                    <option value="janasetha">ජනසෙත (Janasetha)</option>
-                    <option value="dhana_yojana">ධන යෝජනා (Dhana Yojana)</option>
-                    <option value="vandana">වන්දනා (Vandana)</option>
+                    <option value="NORMAL">සාමාන්‍ය ඉතුරුම් (Normal Savings)</option>
+                    <option value="JANASETHA">ජනසෙත (Janasetha)</option>
+                    <option value="DHANA_YOJANA">ධන යෝජනා (Dhana Yojana)</option>
+                    <option value="VANDANA">වන්දනා (Vandana)</option>
                   </>
                 ) : (
                   <>
-                    <option value="arunalu">අරුණලු (Arunalu Minor Savings)</option>
-                    <option value="ranthilina">රන්තිලින (Ranthilina Minor Savings)</option>
+                    <option value="ARUNALU">අරුණලු (Arunalu Minor Savings)</option>
+                    <option value="RANTHILINA">රන්තිලින (Ranthilina Minor Savings)</option>
                   </>
                 )}
               </select>

@@ -84,11 +84,7 @@ export const getMembers = async (): Promise<MemberData[]> => {
 
 // Returns ONLY current branch members
 export const getBranchMembers = async (): Promise<MemberData[]> => {
-  const user = getCurrentUser();
-  const overrideBranchId = localStorage.getItem('overrideBranchId');
-  const bId = (user?.role === 'ORGANIZATION_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
-  const url = bId ? `${API_URL}members?branchId=${bId}` : `${API_URL}members`;
-  const res = await axios.get(url, { headers: authHeader() });
+  const res = await axios.get(API_URL + 'members?branchOnly=true', { headers: authHeader() });
   return filterByBranch(res.data);
 };
 

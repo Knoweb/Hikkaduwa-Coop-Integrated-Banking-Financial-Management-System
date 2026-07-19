@@ -49,7 +49,12 @@ public class TenantInterceptor implements HandlerInterceptor {
         if (tenantId != null) {
             TenantContext.setTenantId(tenantId);
         } else {
-            TenantContext.setTenantId(1);
+            try {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant ID is missing");
+            } catch (java.io.IOException e) {
+                // ignore
+            }
+            return false;
         }
 
         return true;

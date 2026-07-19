@@ -557,7 +557,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-t border-slate-200 pt-6">
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">තැන්පත් කළ දිනය (DEPOSIT DATE)</p>
-                    <p className="text-sm font-bold text-slate-800">{formData.openedDate || new Date().toISOString().split('T')[0]}</p>
+                    <p className="text-sm font-bold text-slate-800">{formData.openedDate || new Date().toLocaleDateString('en-CA')}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">කල්පිරෙන දිනය (MATURITY DATE)</p>

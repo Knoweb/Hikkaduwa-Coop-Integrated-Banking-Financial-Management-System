@@ -5,7 +5,7 @@ import { makePayment } from '../services/pawning.service';
 
 export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{open: boolean, msg: string, severity: 'success' | 'error' | 'warning'}>({ open: false, msg: '', severity: 'success' });
 
@@ -75,7 +75,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-amber-50 shrink-0">
           <div>
             <h3 className="text-lg font-bold text-amber-900">වාරික ගෙවීම (Payment)</h3>
-            <p className="text-xs font-medium text-amber-700 mt-0.5">PW-{ticket.ticketNumber}</p>
+            <p className="text-xs font-medium text-amber-700 mt-0.5">{ticket.ticketNumber}</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition">
             <X size={20} />
@@ -142,6 +142,9 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
               <span className="text-sm font-bold text-amber-900">මුළු ගෙවිය යුතු මුදල (Total Due)</span>
               <span className="text-lg font-black text-amber-900">Rs. {dynamicCalc.totalDue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
             </div>
+            <p className="text-[10px] text-slate-400 text-center mt-2 italic">
+              * ගණනය කිරීම: {carriedOver > 0 ? `පෙර ඉතිරි පොලිය Rs. ${carriedOver.toLocaleString()} + ` : ''} (ඉතිරි මූලික මුදල Rs. {remainingPrincipal.toLocaleString()} × දින {dynamicCalc.chargeableDays} × {rate}% වා.පො.) ÷ 36,500
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

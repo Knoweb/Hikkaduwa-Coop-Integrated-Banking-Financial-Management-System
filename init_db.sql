@@ -6792,7 +6792,7 @@ COPY auth_service.branches (branch_id, branch_name, location, status) FROM stdin
 --
 
 COPY auth_service.roles (role_id, role_name, description) FROM stdin;
-1	SYSTEM_ADMIN	Global IT Administrator
+1	SYSTEM_ADMIN	Tenant/Organization Administrator
 2	GENERAL_MANAGER	General Manager / Secretary with cross-branch view
 3	BRANCH_MANAGER	Manager of a specific branch
 4	BANK_SERVICE_MANAGER	Compliance and loan directive manager
@@ -7107,6 +7107,7 @@ b2a866d9-f40c-4c38-a0a9-0c53ad3c6580	2026-06-16 07:06:47.14284	Share Backed Loan
 61b2a798-43b3-4eaa-bbb3-63a2a9eeefeb	2026-06-16 07:06:47.14284	Advance Loan	\N	0.00	t	25000.00	6	අත්තිකාරම් ණය	2026-06-16 07:06:47.14284
 09b1ab24-8717-451a-aa66-f42c0a1855ce	2026-06-16 07:06:47.14284	Overdue Loan	\N	24.00	t	0.00	0	කල්පසු ණය	2026-06-16 07:06:47.14284
 31205fee-4988-4bf0-bd1c-05588cda646c	2026-06-16 07:06:47.14284	Society Overdue Loan	\N	24.00	t	0.00	0	සමිතියේ කල්පසු ණය	2026-06-16 07:06:47.14284
+00000000-0000-0000-0000-000000001001	2026-07-10 12:00:00.00000	Instant Loan	\N	18.00	t	50000.00	6	ක්ෂණික ණය	2026-07-10 12:00:00.00000
 \.
 
 

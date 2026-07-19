@@ -34,6 +34,7 @@ public class LoanService {
     @Autowired private LoanAssetDetailRepository assetDetailRepository;
     @Autowired private LoanGuarantorRepository guarantorRepository;
     @Autowired private LoanFamilyMemberRepository familyMemberRepository;
+    @Autowired private com.hmcs.loan.repository.PendingFieldCollectionRepository pendingFieldCollectionRepository;
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     private String str(Map<String, Object> m, String key) {
@@ -536,9 +537,12 @@ public class LoanService {
         BigDecimal monthlyPrincipal = principal.divide(BigDecimal.valueOf(termMonths), 2, RoundingMode.HALF_UP);
         BigDecimal dailyRate = annualRatePercent.divide(BigDecimal.valueOf(36500), 10, RoundingMode.HALF_UP);
         BigDecimal outstandingBalance = principal;
+        LocalDate previousDate = startDate;
         LocalDate dueDate = startDate.plusMonths(1);
         for (int i = 1; i <= termMonths; i++) {
-            BigDecimal interest = outstandingBalance.multiply(dailyRate).multiply(BigDecimal.valueOf(30)).setScale(2, RoundingMode.HALF_UP);
+            // Use actual days between previous and current due date (not fixed 30)
+            long actualDays = java.time.temporal.ChronoUnit.DAYS.between(previousDate, dueDate);
+            BigDecimal interest = outstandingBalance.multiply(dailyRate).multiply(BigDecimal.valueOf(actualDays)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal emi = monthlyPrincipal.add(interest);
             outstandingBalance = outstandingBalance.subtract(monthlyPrincipal);
             if (outstandingBalance.compareTo(BigDecimal.ZERO) < 0) outstandingBalance = BigDecimal.ZERO;
@@ -546,7 +550,9 @@ public class LoanService {
             row.put("installmentNo", i); row.put("dueDate", dueDate.toString());
             row.put("principalPortion", monthlyPrincipal); row.put("interestPortion", interest);
             row.put("emi", emi); row.put("outstandingBalance", outstandingBalance);
+            row.put("daysInPeriod", actualDays);
             schedule.add(row);
+            previousDate = dueDate;
             dueDate = dueDate.plusMonths(1);
         }
         return schedule;
@@ -704,24 +710,53 @@ public class LoanService {
 
     // ── Field Collection Handover ──────────────────────────────────────────────
     public java.math.BigDecimal getFieldCollectionBalance(String username) {
-        String account = "FIELD_CASH_" + username.toUpperCase();
-        return ledgerEntryRepository.getAccountBalance(account);
+        List<com.hmcs.loan.entity.PendingFieldCollection> pending = pendingFieldCollectionRepository.findByFieldOfficerUsernameAndStatus(username, "PENDING");
+        return pending.stream().map(com.hmcs.loan.entity.PendingFieldCollection::getAmount).reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+    }
+
+    public List<com.hmcs.loan.entity.PendingFieldCollection> getPendingFieldCollections(Long branchId) {
+        return pendingFieldCollectionRepository.findByBranchId(branchId);
+    }
+
+    public List<com.hmcs.loan.entity.PendingFieldCollection> getFieldCollectionHistory(String username) {
+        return pendingFieldCollectionRepository.findByFieldOfficerUsernameOrderByCreatedAtDesc(username);
+    }
+
+    @Transactional
+    public com.hmcs.loan.entity.PendingFieldCollection recordFieldCollection(UUID loanId, java.math.BigDecimal amount, String username, Long branchId) {
+        com.hmcs.loan.entity.PendingFieldCollection pfc = new com.hmcs.loan.entity.PendingFieldCollection();
+        pfc.setLoanId(loanId);
+        pfc.setFieldOfficerUsername(username);
+        pfc.setAmount(amount);
+        pfc.setStatus("PENDING");
+        pfc.setBranchId(branchId != null ? branchId : 1L);
+        return pendingFieldCollectionRepository.save(pfc);
     }
 
     @Transactional
     public void handoverFieldCash(String fieldOfficerUsername, java.math.BigDecimal amount, String tellerUsername, Integer branchId) {
-        String fieldAccount = "FIELD_CASH_" + fieldOfficerUsername.toUpperCase();
-        java.math.BigDecimal currentBalance = ledgerEntryRepository.getAccountBalance(fieldAccount);
-        if (currentBalance.compareTo(amount) < 0) {
+        List<com.hmcs.loan.entity.PendingFieldCollection> pending = pendingFieldCollectionRepository.findByFieldOfficerUsernameAndStatus(fieldOfficerUsername, "PENDING");
+        java.math.BigDecimal totalPending = pending.stream().map(com.hmcs.loan.entity.PendingFieldCollection::getAmount).reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        
+        if (totalPending.compareTo(amount) < 0) {
             throw new RuntimeException("Handover amount exceeds field cash balance.");
         }
 
+        // Mark all pending collections as HANDED_OVER (do NOT auto-pay installments)
+        // Loan installments must be recorded manually from the Loan Accounts tab.
+        for (com.hmcs.loan.entity.PendingFieldCollection pfc : pending) {
+            pfc.setStatus("HANDED_OVER");
+            pendingFieldCollectionRepository.save(pfc);
+        }
+
+        // Move the cash from FIELD_CASH to CASH_IN_VAULT in the ledger
+        String fieldAccount = "FIELD_CASH_" + fieldOfficerUsername.toUpperCase();
         LedgerEntry entry = new LedgerEntry();
         entry.setEntryDate(java.time.LocalDate.now());
         entry.setDescription("Field Cash Handover by " + fieldOfficerUsername);
         entry.setDebitAccount("CASH_IN_VAULT");
         entry.setCreditAccount(fieldAccount);
-        entry.setAmount(amount);
+        entry.setAmount(totalPending);
         entry.setEntryType("FIELD_CASH_HANDOVER");
         entry.setPaymentMethod("CASH");
         entry.setBranchId(branchId != null ? branchId : 1);
@@ -729,3 +764,4 @@ public class LoanService {
         ledgerEntryRepository.save(entry);
     }
 }
+

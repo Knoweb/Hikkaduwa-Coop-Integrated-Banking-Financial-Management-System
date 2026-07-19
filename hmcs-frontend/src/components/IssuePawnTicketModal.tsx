@@ -19,15 +19,17 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
     assessedValue: '',
     advanceAmount: '',
     interestRate: '',
-    issueDate: new Date().toISOString().split('T')[0]
+    issueDate: new Date().toLocaleDateString('en-CA')
   });
+
+  const [adminSettings, setAdminSettings] = useState({ advancePerSov: 120000, interestRate: 13.00 });
 
   useEffect(() => {
     AccountService.getMembers().then(setMembers).catch(() => {});
     PawningService.getAllSettings().then((settings: any[]) => {
-      const int = settings.find(s => s.settingKey === 'pw_int')?.settingValue || '13.00';
-      const adv = settings.find(s => s.settingKey === 'pw_adv')?.settingValue || '120000';
-      setForm(prev => ({ ...prev, advanceAmount: adv, interestRate: int }));
+      const int = Number(settings.find(s => s.settingKey === 'INTEREST_RATE')?.settingValue || '13.00');
+      setAdminSettings({ advancePerSov: 0, interestRate: int });
+      setForm(prev => ({ ...prev, interestRate: int.toString() }));
     }).catch(console.error);
   }, []);
 
@@ -51,8 +53,8 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
         grossWeightGrams: Number(form.grossWeightGrams),
         netWeightGrams: Number(form.netWeightGrams),
         purityKarat: Number(form.purityKarat),
-        assessedValue: Number(form.assessedValue),
-        advanceAmount: Number(form.advanceAmount),
+        assessedValue: 0, // Set later by Valuer/Committee
+        advanceAmount: 0, // Set later by Valuer/Committee
         interestRate: Number(form.interestRate),
         issueDate: form.issueDate,
         valuerId: '00000000-0000-0000-0000-000000000000' // Placeholder valuer ID
@@ -83,10 +85,21 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
-          <div className="mb-6 bg-yellow-50/50 p-4 rounded-xl border border-yellow-100/50">
+          <div className={`mb-6 p-4 rounded-xl border ${
+            form.issueDate && form.issueDate < new Date().toLocaleDateString('en-CA') 
+            ? 'bg-amber-100/60 border-amber-300' 
+            : 'bg-yellow-50/50 border-yellow-100/50'
+          }`}>
             <label className="block text-xs font-bold text-yellow-800 mb-1">ගිණුම ආරම්භ කළ දිනය / නිකුත් කළ දිනය (Issue Date) *</label>
             <input required type="date" value={form.issueDate} onChange={e => setForm({...form, issueDate: e.target.value})} className="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white" />
-            <p className="text-[10px] text-yellow-600 mt-1">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-[10px] text-yellow-600">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+              {form.issueDate && form.issueDate < new Date().toLocaleDateString('en-CA') && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full animate-in fade-in">
+                  ⚠️ පැරණි උකස් ඇතුළත් කිරීමක්
+                </span>
+              )}
+            </div>
           </div>
 
           {!selectedMember ? (
@@ -121,6 +134,12 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
                   <p className="font-bold text-slate-800">{selectedMember.fullName}</p>
                   <p className="text-sm text-slate-600">{selectedMember.nic} · {selectedMember.contactNumber}</p>
                 </div>
+                 <div className="flex flex-col items-end">
+                  <span className="text-xs font-bold text-slate-500 mb-1">වාර්ෂික පොලිය</span>
+                  <span className="bg-yellow-100 text-yellow-800 font-bold px-3 py-1 rounded-full text-sm">{form.interestRate}%</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center mb-6">
                 <button type="button" onClick={() => setSelectedMember(null)} className="text-xs text-blue-600 hover:underline">Change Member</button>
               </div>
 
@@ -153,28 +172,15 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
                     <option value="18">18K (75.0%)</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">තක්සේරු වටිනාකම (Assessed Value - Rs) *</label>
-                  <input required type="number" step="0.01" value={form.assessedValue} onChange={e => setForm({...form, assessedValue: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">අත්තිකාරම් මුදල (Advance Amount - Rs) *</label>
-                  <input required type="number" step="0.01" value={form.advanceAmount} onChange={e => setForm({...form, advanceAmount: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">වාර්ෂික පොලී අනුපාතය (Interest Rate % p.a.)</label>
-                  <input required type="number" step="0.01" value={form.interestRate} onChange={e => setForm({...form, interestRate: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm bg-slate-50 text-slate-500 focus:outline-none" readOnly />
-                </div>
               </div>
             </form>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-          <button type="button" onClick={onClose} className="px-5 py-2 text-slate-600 hover:bg-slate-200 rounded-xl font-bold text-sm transition">අවලංගු කරන්න (Cancel)</button>
+        <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-4 bg-slate-50">
+          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition">අවලංගු කරන්න (Cancel)</button>
           {selectedMember && (
-            <button type="submit" form="pawn-form" disabled={loading} className="px-5 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-bold text-sm shadow transition disabled:opacity-60">
+            <button type="submit" form="pawn-form" disabled={loading} className="px-6 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-bold text-sm shadow transition disabled:opacity-60">
               {loading ? 'Processing...' : 'නිකුත් කරන්න (Issue Ticket)'}
             </button>
           )}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Gem, Plus, Eye, Search } from 'lucide-react';
+import { Gem, Plus, Eye, Search, Banknote, X } from 'lucide-react';
 import * as PawningService from '../services/pawning.service';
 import * as AccountService from '../services/account.service';
 import IssuePawnTicketModal from './IssuePawnTicketModal';
 import PawnTicketViewModal from './PawnTicketViewModal';
 import PawnPaymentModal from './PawnPaymentModal';
+import PawningDisburseModal from './PawningDisburseModal';
 import { Snackbar, Alert } from '@mui/material';
 
 export default function PawningModule({ branchId }: { branchId: number }) {
@@ -15,10 +16,15 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [paymentTicket, setPaymentTicket] = useState<any>(null);
+  const [disburseTicket, setDisburseTicket] = useState<any>(null);
   const [interestRate, setInterestRate] = useState('13');
   const [filter, setFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [pawnActivityDate, setPawnActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [pawnActivityDate, setPawnActivityDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  
+  const [showPaymentSearchModal, setShowPaymentSearchModal] = useState(false);
+  const [searchTicketNumber, setSearchTicketNumber] = useState('');
+  const [searchError, setSearchError] = useState('');
 
   const [snackbar, setSnackbar] = useState<{open: boolean, msg: string, severity: 'success' | 'error' | 'warning'}>({ open: false, msg: '', severity: 'success' });
 
@@ -83,14 +89,22 @@ export default function PawningModule({ branchId }: { branchId: number }) {
 
   const filteredTickets = filteredByStatus.filter(t => {
     if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    const m = members.find(mem => String(mem.membership_number || mem.memberId) === String(t.memberId));
-    const nameStr = (m?.fullNameSinhala || m?.fullName || m?.name_with_initials || '').toLowerCase();
-    const nicStr = (m?.nic || '').toLowerCase();
-    const ticketStr = `pw-${t.ticketNumber}`.toLowerCase();
-    const pureNum = String(t.ticketNumber).toLowerCase();
-    return nameStr.includes(q) || nicStr.includes(q) || ticketStr.includes(q) || pureNum.includes(q);
+    const q = searchQuery.toLowerCase().trim().replace(/^(pw|PW|Pw|pW)-/, '');
+    const m = members.find(mem => String(mem.membershipNumber || mem.membership_number || mem.memberId) === String(t.memberId));
+    const nameStr = (m?.fullNameSinhala || m?.fullName || m?.nameWithInitials || m?.name_with_initials || t.memberName || '').toLowerCase();
+    const nicStr = (m?.nic || t.member?.nic || '').toLowerCase();
+    const ticketStr = String(t.ticketNumber).toLowerCase();
+    return nameStr.includes(q) || nicStr.includes(q) || ticketStr.includes(q);
   });
+
+  const eligibleTickets = tickets.filter(t => t.status !== 'PENDING' && t.status !== 'REDEEMED');
+  const cleanSearchInput = searchTicketNumber.trim().replace(/^(pw|PW|Pw|pW)-/, '');
+  const suggestions = searchTicketNumber.trim() 
+    ? eligibleTickets.filter(t => 
+        String(t.ticketNumber).toLowerCase().includes(cleanSearchInput.toLowerCase()) ||
+        `pw-${t.ticketNumber}`.toLowerCase().includes(searchTicketNumber.trim().toLowerCase())
+      )
+    : [];
 
   return (
     <div className="space-y-4">
@@ -104,12 +118,20 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             <p className="text-amber-100 text-[11px] font-medium mt-0.5">උකස් කළමනාකරණය (Pawning Management)</p>
           </div>
         </div>
-        <button 
-          onClick={() => setShowIssueModal(true)}
-          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
-        >
-          <Plus size={14} /> නව උකස් පත්‍රිකාවක් නිකුත් කිරීම
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={() => setShowPaymentSearchModal(true)}
+            className="flex items-center gap-2 bg-amber-900 hover:bg-amber-950 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap border border-amber-800/50"
+          >
+            <Banknote size={14} /> වාරික ගෙවීම
+          </button>
+          <button 
+            onClick={() => setShowIssueModal(true)}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Plus size={14} /> නව උකස් පත්‍රිකාවක් නිකුත් කිරීම
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-2">
@@ -166,7 +188,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="ගිණුම් අංකය, ජා.හැ.ප හෝ නම සොයන්න..."
+              placeholder="ටිකට් අංකය, සාමාජික අංකය, ජා.හැ.ප හෝ නම සොයන්න..."
               className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
             />
           </div>
@@ -179,8 +201,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                 <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">සාමාජික<br/>නම</th>
                 <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">නිකුත් කළ<br/>දිනය</th>
                 <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">භාණ්ඩ<br/>විස්තරය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">අත්තිකාරම්<br/>(Rs.)</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">පොලිය<br/>({interestRate}%)</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">උකස්<br/>අත්තිකාරම</th>
                 <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">කල් ඉකුත් වන<br/>දිනය</th>
                 <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
                 <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ක්‍රියාව</th>
@@ -188,10 +209,10 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {filteredTickets.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400 font-medium">උකස් ගිණුම් නොමැත. (No pawning tickets found)</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400 font-medium">උකස් ගිණුම් නොමැත. (No pawning tickets found)</td></tr>
               ) : filteredTickets.map(t => (
                 <tr key={t.ticketId} className="hover:bg-slate-50 transition group">
-                  <td className="px-3 py-3 border-r border-slate-100 font-bold text-amber-700 whitespace-nowrap text-xs">PW-{t.ticketNumber}</td>
+                  <td className="px-3 py-3 border-r border-slate-100 font-bold text-amber-700 whitespace-nowrap text-xs">{t.ticketNumber}</td>
                   <td className="px-3 py-3 border-r border-slate-100 font-semibold text-slate-800 text-xs">
                     <div className="flex items-center gap-2 whitespace-nowrap">
                       {getMemberInitials(t)}
@@ -203,9 +224,11 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                   <td className="px-3 py-3 border-r border-slate-100 whitespace-nowrap text-xs text-center">
                     <span className="text-slate-800 font-bold">{t.articleDescription}</span>
                   </td>
-                  <td className="px-3 py-3 border-r border-slate-100 text-right font-bold text-slate-800 whitespace-nowrap text-xs">Rs. {Number(t.advanceAmount).toLocaleString()}</td>
-                  <td className="px-3 py-3 border-r border-slate-100 text-right font-bold text-red-600 whitespace-nowrap text-xs">
-                    {t.status === 'REDEEMED' ? <span className="text-slate-400 font-normal">—</span> : `+ Rs. ${Number(t.accruedInterest).toLocaleString()}`}
+                  <td className="px-3 py-3 border-r border-slate-100 text-right font-bold whitespace-nowrap text-xs">
+                    {(t.status === 'PENDING' || t.status === 'APPROVED') 
+                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Pending</span>
+                      : <span className="text-slate-800">Rs. {Number(t.advanceAmount).toLocaleString()}</span>
+                    }
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 text-xs text-slate-600 font-medium whitespace-nowrap text-center">
                     {new Date(t.expiryDate).toLocaleDateString()}
@@ -216,11 +239,15 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                       return (
                         <span className={`text-[11px] px-3 py-1.5 rounded-full font-bold tracking-wider whitespace-nowrap ${
                           displayStatus === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          t.status === 'APPROVED' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          t.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                           displayStatus === 'REDEEMED' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
                           displayStatus === 'NEARING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                           'bg-red-50 text-red-700 border border-red-200'
                         }`}>
-                          {displayStatus === 'ACTIVE' ? 'ක්‍රියාකාරී' :
+                          {t.status === 'PENDING' ? 'අනුමැතියට යවා ඇත' :
+                           t.status === 'APPROVED' ? 'අනුමත කර ඇත' :
+                           displayStatus === 'ACTIVE' ? 'ක්‍රියාකාරී' :
                            displayStatus === 'INACTIVE' || t.status === 'OVERDUE' ? 'අක්‍රියයි' :
                            displayStatus === 'NEARING' ? 'කල් පිරීමට ආසන්නයි' :
                            displayStatus === 'REDEEMED' ? 'නිදහස් කළ' : displayStatus}
@@ -236,13 +263,14 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                       >
                         <Eye size={12} /> බලන්න
                       </button>
-                      <button 
-                        onClick={() => handleRedeem(t)}
-                        disabled={t.status === 'REDEEMED'}
-                        className="px-2.5 py-1.5 rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200/50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap gap-1 text-[11px] font-bold"
-                      >
-                        වාරික ගෙවීම
-                      </button>
+                      {t.status === 'APPROVED' && (
+                        <button 
+                          onClick={() => setDisburseTicket(enrichTicketWithMember(t))}
+                          className="px-2.5 py-1.5 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center shadow-sm whitespace-nowrap gap-1 text-[11px] font-bold"
+                        >
+                          මුදල් නිකුත් කරන්න
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -266,26 +294,141 @@ export default function PawningModule({ branchId }: { branchId: number }) {
         />
       )}
 
-      {selectedTicket && (
-        <PawnTicketViewModal
-          ticket={selectedTicket}
-          onClose={() => setSelectedTicket(null)}
-        />
-      )}
-
+      {selectedTicket && <PawnTicketViewModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} />}
+      
       {paymentTicket && (
-        <PawnPaymentModal
-          ticket={paymentTicket}
-          onClose={() => setPaymentTicket(null)}
-          onSuccess={() => {
-            setPaymentTicket(null);
-            setSnackbar({ open: true, msg: 'ගෙවීම සාර්ථකයි!', severity: 'success' });
-            loadTickets();
-          }}
+        <PawnPaymentModal 
+          ticket={paymentTicket} 
+          onClose={() => setPaymentTicket(null)} 
+          onSuccess={() => { setPaymentTicket(null); loadTickets(); }} 
         />
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      {disburseTicket && (
+        <PawningDisburseModal
+          ticket={disburseTicket}
+          onClose={() => setDisburseTicket(null)}
+          onSuccess={() => { setDisburseTicket(null); loadTickets(); }}
+        />
+      )}
+
+      {showPaymentSearchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-amber-50">
+              <div>
+                <h3 className="text-lg font-bold text-amber-900">වාරික ගෙවීම (Installment Payment)</h3>
+                <p className="text-xs font-medium text-amber-700 mt-0.5">උකස් පත්‍රිකා අංකය ඇතුළත් කරන්න</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowPaymentSearchModal(false);
+                  setSearchTicketNumber('');
+                  setSearchError('');
+                }} 
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              setSearchError('');
+              if (!searchTicketNumber.trim()) {
+                setSearchError('කරුණාකර උකස් පත්‍රිකා අංකයක් ඇතුළත් කරන්න.');
+                return;
+              }
+              const cleanInput = searchTicketNumber.trim().replace(/^(pw|PW|Pw|pW)-/, '');
+              const found = tickets.find(t => String(t.ticketNumber) === cleanInput);
+              if (!found) {
+                setSearchError('මෙම අංකයෙන් උකස් පත්‍රිකාවක් හමු නොවීය.');
+                return;
+              }
+              if (found.status === 'PENDING') {
+                setSearchError('මෙම උකස් පත්‍රිකාව තවමත් අනුමත වී නැත.');
+                return;
+              }
+              if (found.status === 'REDEEMED') {
+                setSearchError('මෙම උකස් පත්‍රිකාව දැනටමත් බේරාගෙන ඇත.');
+                return;
+              }
+              setPaymentTicket(enrichTicketWithMember(found));
+              setShowPaymentSearchModal(false);
+              setSearchTicketNumber('');
+            }} className="p-6 space-y-4">
+              {searchError && (
+                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 font-medium">
+                  {searchError}
+                </div>
+              )}
+              <div className="relative">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">උකස් පත්‍රිකා අංකය (Pawn Ticket Number) *</label>
+                <input 
+                  type="text"
+                  required
+                  value={searchTicketNumber}
+                  onChange={e => {
+                    setSearchTicketNumber(e.target.value);
+                    setSearchError('');
+                  }}
+                  placeholder="e.g. 87348349"
+                  className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 font-semibold focus:border-amber-500 focus:outline-none"
+                  autoComplete="off"
+                />
+                
+                {suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg z-50 divide-y divide-slate-100">
+                    {suggestions.map((t: any) => {
+                      const memberName = getMemberInitials(t);
+                      return (
+                        <button
+                          key={t.ticketId}
+                          type="button"
+                          onClick={() => {
+                            setPaymentTicket(enrichTicketWithMember(t));
+                            setShowPaymentSearchModal(false);
+                            setSearchTicketNumber('');
+                          }}
+                          className="w-full text-left px-4 py-2.5 hover:bg-amber-50/50 transition flex justify-between items-center text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-amber-900">{t.ticketNumber}</span>
+                            <span className="text-slate-400 mx-1.5">·</span>
+                            <span className="text-slate-600 font-medium">{memberName}</span>
+                          </div>
+                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{t.status}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowPaymentSearchModal(false);
+                    setSearchTicketNumber('');
+                    setSearchError('');
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition"
+                >
+                  අවලංගු කරන්න
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 px-4 py-3 rounded-xl bg-amber-700 text-white font-bold hover:bg-amber-800 transition"
+                >
+                  පිරික්සන්න (Proceed)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', fontSize: '1rem', fontWeight: 'bold' }}>
           {snackbar.msg}
         </Alert>

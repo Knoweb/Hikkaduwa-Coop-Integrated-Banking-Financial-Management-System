@@ -44,7 +44,7 @@ public class MemberController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Member> getMemberById(@PathVariable UUID id) {
-        return memberRepository.findById(id)
+        return memberRepository.findByIdIgnoreTenant(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

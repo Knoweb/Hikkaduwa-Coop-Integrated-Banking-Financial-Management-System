@@ -162,7 +162,7 @@ export default function Login() {
 
           <div className="mt-8 text-center space-y-1">
             <p className="text-slate-500 text-xs font-medium">සමුපකාර බැංකු පද්ධතිය / HMCS Bank</p>
-            <p className="text-slate-600 text-[10px]">© 2026 එනොවිටිව් බැංකු පද්ධතිය / Innovative Banking System</p>
+            <p className="text-slate-600 text-[10px]">© 2026 All Rights Reserved Knoweb (Pvt) Ltd</p>
           </div>
         </div>
       </div>

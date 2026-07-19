@@ -1,6 +1,6 @@
 com\hmcs\pawning\entity\PawningSetting.class
 com\hmcs\pawning\repository\PawnTicketRepository.class
-com\hmcs\pawning\config\CorsConfig.class
+com\hmcs\pawning\entity\PawningSettingId.class
 com\hmcs\pawning\controller\PawnController.class
 com\hmcs\pawning\dto\PawnTicketResponse.class
 com\hmcs\pawning\config\SecurityConfig.class
@@ -8,9 +8,13 @@ com\hmcs\pawning\repository\PawnPaymentRepository.class
 com\hmcs\pawning\dto\IssueTicketRequest.class
 com\hmcs\pawning\entity\PawnTicket.class
 com\hmcs\pawning\HmcsPawningServiceApplication.class
+com\hmcs\pawning\multitenancy\TenantContext.class
 com\hmcs\pawning\entity\PawnPayment.class
 com\hmcs\pawning\config\RestTemplateConfig.class
+com\hmcs\pawning\config\WebMvcConfig.class
+com\hmcs\pawning\multitenancy\TenantInterceptor.class
 com\hmcs\pawning\service\PawningSettingService.class
 com\hmcs\pawning\service\PawnService.class
 com\hmcs\pawning\repository\PawningSettingRepository.class
+com\hmcs\pawning\multitenancy\TenantIdentifierResolver.class
 com\hmcs\pawning\controller\PawningSettingController.class

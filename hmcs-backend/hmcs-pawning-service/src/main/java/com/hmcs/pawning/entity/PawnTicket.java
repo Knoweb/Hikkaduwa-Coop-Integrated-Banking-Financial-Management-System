@@ -75,6 +75,9 @@ public class PawnTicket {
     @Column(name = "carried_over_interest", precision = 15, scale = 2)
     private BigDecimal carriedOverInterest = BigDecimal.ZERO;
 
+    @Column(name = "committee_remarks", length = 500)
+    private String committeeRemarks;
+
     @PrePersist
     public void prePersist() {
         if (remainingAdvance == null) {

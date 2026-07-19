@@ -5,6 +5,8 @@ import { applyForLoan } from '../services/loan.service';
 import { searchMembers } from '../services/account.service';
 import * as AuthService from '../services/auth.service';
 import { AlertTriangle } from 'lucide-react';
+import { numberToSinhala } from '../utils/numberToSinhala';
+
 interface DisasterLoanFormProps {
   loanTypeId: string;
   onClose: () => void;
@@ -20,7 +22,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     designation: '',
     address: '',
     requestedAmount: '',
-    appliedDate: new Date().toISOString().split('T')[0],
+    appliedDate: new Date().toLocaleDateString('en-CA'),
     termMonths: '10',
     agreedAmount: '',
     
@@ -65,6 +67,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [docsCount, setDocsCount] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -84,6 +87,20 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, showDropdown]);
+
+  useEffect(() => {
+    if (formData.requestedAmount) {
+      const amount = parseFloat(formData.requestedAmount);
+      if (amount > 0) {
+        const words = numberToSinhala(amount);
+        setFormData(prev => ({ ...prev, agreedAmount: words ? `${words}ක` : '' }));
+      } else {
+        setFormData(prev => ({ ...prev, agreedAmount: '' }));
+      }
+    } else {
+        setFormData(prev => ({ ...prev, agreedAmount: '' }));
+    }
+  }, [formData.requestedAmount]);
 
   const selectMember = (member: any) => {
 
@@ -115,20 +132,32 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   };
 
   const handleSubmit = async () => {
-    if (!formData.appliedDate || !formData.name || !formData.requestedAmount || !formData.termMonths || !formData.guarantor1Name || !formData.guarantor2Name) {
-      showMessage("කරුණාකර අයදුම් කළ දිනය ඇතුළු සියලුම අත්‍යවශ්‍ය තොරතුරු පුරවන්න. (Please fill all essential fields including Applied Date)", 'warning');
-      return;
-    }
+    if (!formData.appliedDate) { showMessage("කරුණාකර අයදුම් කළ දිනය ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.name) { showMessage("කරුණාකර අයදුම්කරුගේ නම ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.officeMemberNo) { showMessage("කරුණාකර සාමාජික අංකය ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.designation) { showMessage("කරුණාකර තනතුර ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.address) { showMessage("කරුණාකර ලිපිනය ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.requestedAmount) { showMessage("කරුණාකර ඉල්ලන ණය මුදල ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.termMonths) { showMessage("කරුණාකර මාස ගණන ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.agreedAmount) { showMessage("කරුණාකර මාසිකව අයකර ගත යුතු එකඟතා මුදල ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.guarantor1Name) { showMessage("කරුණාකර පළමු ඇපකරුගේ නම ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.guarantor1Address) { showMessage("කරුණාකර පළමු ඇපකරුගේ ලිපිනය ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.guarantor2Name) { showMessage("කරුණාකර දෙවන ඇපකරුගේ නම ඇතුළත් කරන්න.", 'warning'); return; }
+    if (!formData.guarantor2Address) { showMessage("කරුණාකර දෙවන ඇපකරුගේ ලිපිනය ඇතුළත් කරන්න.", 'warning'); return; }
     
     setLoading(true);
     
     try {
+        const user = AuthService.getCurrentUser();
+        const bId = user?.branchId || 1;
+        
         const payload = {
             memberId: formData.memberId || '00000000-0000-0000-0000-000000000000',
             requestedAmount: parseFloat(formData.requestedAmount),
             termMonths: parseInt(formData.termMonths),
             appliedDate: formData.appliedDate,
             applicationNumber: formData.applicationNumber,
+            branchId: typeof bId === 'string' ? parseInt(bId, 10) : bId,
             
             applicationData: {
                 name: formData.name,
@@ -244,7 +273,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                   onChange={handleChange}
                   className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
                 />
-                {formData.appliedDate && formData.appliedDate !== new Date().toISOString().split('T')[0] && (
+                {formData.appliedDate && formData.appliedDate !== new Date().toLocaleDateString('en-CA') && (
                   <div className="mt-2 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs font-semibold border border-amber-200 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0"/>
                     <span>ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.</span>
@@ -256,25 +285,25 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">1. අයදුම්කරුගේ තොරතුරු</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">1. නම</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">1. නම <span className="text-red-500 font-bold">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">2. සාමාජික අංකය (UUID)</label>
-                  <input type="text" name="memberId" value={formData.memberId} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">2. සාමාජික අංකය <span className="text-red-500 font-bold">*</span></label>
+                  <input type="text" name="officeMemberNo" value={formData.officeMemberNo} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">කොටස් මුදල (රු.)</label>
-                  <input type="number" name="shareAmount" value={formData.shareAmount} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
+                  <input type="number" name="shareAmount" value={formData.shareAmount} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">3. තනතුර</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">3. තනතුර <span className="text-red-500 font-bold">*</span></label>
                 <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">4. ලිපිනය</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">4. ලිපිනය <span className="text-red-500 font-bold">*</span></label>
                 <textarea name="address" value={formData.address} onChange={handleChange} rows={1} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required></textarea>
               </div>
             </div>
@@ -283,21 +312,37 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           {/* Section 2: Loan & Guarantors */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">2. ණය සහ ඇපකරුවන්ගේ විස්තර</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">5. ඉල්ලන ණය මුදල (රු.)</label>
-                <input type="number" name="requestedAmount" value={formData.requestedAmount} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200">
+                <label className="block text-sm font-bold text-teal-900 mb-2">5. ඉල්ලන ණය මුදල (රු.) <span className="text-red-500 font-bold">*</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-700 font-bold text-lg">Rs.</span>
+                  <input type="number" min="0" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} name="requestedAmount" value={formData.requestedAmount} onChange={handleChange} className="w-full rounded-xl border-teal-400 p-2.5 pl-12 text-xl font-bold text-teal-900 border-2 focus:ring-4 focus:ring-teal-500/30 focus:border-teal-600 shadow-inner" required placeholder="0.00" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">මාස ගණන (Term)</label>
-                <input type="number" name="termMonths" value={formData.termMonths} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
+              <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200">
+                <label className="block text-sm font-bold text-teal-900 mb-2">මාස ගණන (Term) <span className="text-red-500 font-bold">*</span></label>
+                <div className="flex items-center gap-3">
+                  <input type="number" min="1" max="120" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '.') e.preventDefault(); }} name="termMonths" value={formData.termMonths} onChange={handleChange} className="w-32 rounded-xl border-teal-400 p-2.5 text-xl font-bold text-teal-900 border-2 focus:ring-4 focus:ring-teal-500/30 focus:border-teal-600 text-center shadow-inner" required placeholder="0" />
+                  <span className="text-sm font-bold text-teal-800 bg-teal-200/50 px-4 py-3 rounded-xl border border-teal-300 shadow-sm whitespace-nowrap">
+                    {(() => {
+                      const m = parseInt(formData.termMonths || '0');
+                      if (m >= 12) {
+                        const y = Math.floor(m / 12);
+                        const remM = m % 12;
+                        return `අවුරුදු ${y}${remM > 0 ? ` මාස ${remM}` : ''}`;
+                      }
+                      return 'මාස (Months)';
+                    })()}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div className="bg-teal-50 p-5 rounded-lg border border-teal-100 mb-5 text-sm text-gray-700 leading-relaxed font-medium">
               ඉහත සඳහන් මා හට මාසික වැටුපින් අයකර ගැනීමේ පදනම මත රුපියල් 
-              <input type="number" name="agreedAmount" value={formData.agreedAmount} onChange={handleChange} className="mx-2 w-32 border-b-2 border-teal-400 focus:border-teal-600 focus:outline-none bg-transparent text-center font-bold text-teal-800" placeholder="..........." required /> 
-              ආපදා ණය මුදලක් ලබාදෙන ලෙස ඉල්ලමි.
+              <input type="text" name="agreedAmount" value={formData.agreedAmount} onChange={handleChange} className="mx-2 w-64 border-b-2 border-teal-400 focus:border-teal-600 focus:outline-none bg-transparent text-center font-bold text-teal-800" placeholder="..........." required /> 
+              <span className="text-red-500 font-bold">*</span> ආපදා ණය මුදලක් ලබාදෙන ලෙස ඉල්ලමි.
             </div>
 
             <p className="text-sm font-semibold text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -309,8 +354,14 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
               <div className="p-4 border border-gray-200 rounded-lg bg-gray-50/50">
                 <span className="font-bold text-sm text-gray-700 block mb-3">6.1 පළමු ඇපකරු</span>
                 <div className="space-y-3">
-                  <input type="text" name="guarantor1Name" placeholder="නම" value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
-                  <textarea name="guarantor1Address" placeholder="ලිපිනය" value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">නම <span className="text-red-500 font-bold">*</span></label>
+                    <input type="text" name="guarantor1Name" placeholder="නම" value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">ලිපිනය <span className="text-red-500 font-bold">*</span></label>
+                    <textarea name="guarantor1Address" placeholder="ලිපිනය" value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  </div>
                   <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -323,7 +374,12 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                       }
                   }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
                   {formData.guarantor1DigitalSignatureUrl && (
-                      <img src={formData.guarantor1DigitalSignatureUrl} alt="Signature Preview" className="mt-2 h-16 border rounded" />
+                      <div className="flex items-center gap-2 mt-2">
+                        <img src={formData.guarantor1DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />
+                        <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> සාර්ථකයි
+                        </span>
+                      </div>
                   )}
                 </div>
               </div>
@@ -332,8 +388,14 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
               <div className="p-4 border border-gray-200 rounded-lg bg-gray-50/50">
                 <span className="font-bold text-sm text-gray-700 block mb-3">6.2 දෙවන ඇපකරු</span>
                 <div className="space-y-3">
-                  <input type="text" name="guarantor2Name" placeholder="නම" value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
-                  <textarea name="guarantor2Address" placeholder="ලිපිනය" value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">නම <span className="text-red-500 font-bold">*</span></label>
+                    <input type="text" name="guarantor2Name" placeholder="නම" value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">ලිපිනය <span className="text-red-500 font-bold">*</span></label>
+                    <textarea name="guarantor2Address" placeholder="ලිපිනය" value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                  </div>
                   <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -346,7 +408,12 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                       }
                   }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
                   {formData.guarantor2DigitalSignatureUrl && (
-                      <img src={formData.guarantor2DigitalSignatureUrl} alt="Signature Preview" className="mt-2 h-16 border rounded" />
+                      <div className="flex items-center gap-2 mt-2">
+                        <img src={formData.guarantor2DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />
+                        <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> සාර්ථකයි
+                        </span>
+                      </div>
                   )}
                 </div>
               </div>
@@ -360,7 +427,15 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">අතිරේක ලියකියවිලි (Supporting Documents)</h3>
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700 mb-1">ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න</label>
-              <input type="file" multiple className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
+              <input type="file" multiple onChange={(e) => setDocsCount(e.target.files?.length || 0)} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
+              {docsCount > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> 
+                    ගොනු {docsCount} ක් සාර්ථකව උඩුගත විය (Successfully uploaded)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

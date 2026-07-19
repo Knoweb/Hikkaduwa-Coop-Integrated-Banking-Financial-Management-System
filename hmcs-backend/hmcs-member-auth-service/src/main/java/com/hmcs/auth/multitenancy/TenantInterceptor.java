@@ -60,6 +60,8 @@ public class TenantInterceptor implements HandlerInterceptor {
             TenantContext.setTenantId(1);
         }
 
+        System.out.println("DEBUG: TenantInterceptor resolved tenantId = " + TenantContext.getTenantId() + " for URI: " + request.getRequestURI());
+
         return true;
     }
 

@@ -631,7 +631,7 @@ COPY auth_service.branches (branch_id, branch_name, location, status) FROM stdin
 --
 
 COPY auth_service.roles (role_id, role_name, description) FROM stdin;
-1	SYSTEM_ADMIN	Global IT Administrator
+1	SYSTEM_ADMIN	Tenant/Organization Administrator
 2	GENERAL_MANAGER	General Manager / Secretary with cross-branch view
 3	BRANCH_MANAGER	Manager of a specific branch
 4	BANK_SERVICE_MANAGER	Compliance and loan directive manager

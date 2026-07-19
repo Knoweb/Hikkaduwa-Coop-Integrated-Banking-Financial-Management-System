@@ -7,10 +7,13 @@ import GeneralManagerDashboard from './pages/GeneralManagerDashboard';
 import BranchDashboard from './pages/BranchDashboard';
 import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ToastContainer } from './components/ToastContainer';
+import './utils/toast';
 
 function App() {
   return (
     <LanguageProvider>
+      <ToastContainer />
       <Router>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />

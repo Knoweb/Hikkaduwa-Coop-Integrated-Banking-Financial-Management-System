@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power
+  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -12,6 +12,8 @@ import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as PawningService from '../services/pawning.service';
 import * as LedgerService from '../services/ledger.service';
+import * as BranchService from '../services/branch.service';
+import PawningApprovalsView from '../components/PawningApprovalsView';
 import { printAccountStatement, printLoanAgreement, printDisbursementReceipt, printPawnTicket } from '../utils/print';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
@@ -75,8 +77,9 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
   BRANCH_MANAGER:       [
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' }, 
     { isSection: true, label: 'Manager Operations' },
-    { icon: FileText, label: 'අනුමැතිය ලැබිය යුතු ණය', key: 'loans' },
+    { icon: FileText, label: 'කළමනාකාර අනුමැතිය', key: 'loans' },
     { icon: CheckCircle, label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' },
+    { icon: Briefcase, label: 'Pawning Approvals', key: 'pawning_approvals' },
     { isSection: true, label: 'Customer Relations' },
     { icon: UserPlus, label: 'Members', key: 'members' },
     { icon: Users, label: 'Non-Members', key: 'non-members' },
@@ -87,8 +90,10 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Scale, label: 'Pawning (Gold Loans)', key: 'pawning' },
     { icon: Shield, label: 'Insurance Report', key: 'insurance' },
     { isSection: true, label: 'Daily Operations' },
-    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
-    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
+    // { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
+    // { icon: BookOpen, label: 'General Ledger', key: 'gl' },
+    { icon: ClipboardList, label: 'Summary Ledger', key: 'summary-ledger' },
+    { icon: Banknote, label: 'Cash Balances', key: 'vault-cash' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
@@ -114,8 +119,11 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Scale, label: 'Pawning (Gold Loans)', key: 'pawning' },
     { icon: Shield, label: 'Insurance Report', key: 'insurance' },
     { isSection: true, label: 'Daily Operations' },
-    { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
-    { icon: BookOpen, label: 'General Ledger', key: 'gl' },
+    { icon: Briefcase, label: 'ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම්', key: 'handovers' },
+    // { icon: Banknote, label: 'Cash Transactions', key: 'transactions' },
+    // { icon: BookOpen, label: 'General Ledger', key: 'gl' },
+    { icon: ClipboardList, label: 'Summary Ledger', key: 'summary-ledger' },
+    { icon: Banknote, label: 'Cash Balances', key: 'vault-cash' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
@@ -123,8 +131,7 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: LayoutDashboard, label: 'දළ විශ්ලේෂණය', key: 'overview' }, 
     { isSection: true, label: 'ක්ෂේත්‍ර රාජකාරි' },
     { icon: FileText, label: 'ණය පරීක්ෂණ', key: 'evaluations' },
-    { icon: ClipboardList, label: 'මුදල් එකතු කිරීම', key: 'collection' },
-    { icon: Banknote, label: 'මුදල් භාරදීම', key: 'handover' }
+    { icon: ClipboardList, label: 'මුදල් එකතු කිරීම', key: 'collection' }
   ],
 
   TELLER:               [
@@ -152,6 +159,46 @@ function StatCard({ icon: Icon, label, value, sub, color }: any) {
         <p className="text-2xl font-bold text-slate-800">{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
+    </div>
+  );
+}
+
+// ── Loan Outstanding Cell ──────────────────────────────────────────────────────
+function LoanOutstandingCell({ loan }: { loan: any }) {
+  const [outstanding, setOutstanding] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (loan.status === 'ACTIVE' || loan.status === 'COMPLETED' || loan.currentStage === 'DISBURSED') {
+      setLoading(true);
+      LoanService.getRepayments(loan.loanId)
+        .then((repayments: any[]) => {
+          if (!repayments || repayments.length === 0) {
+            setOutstanding(loan.requestedAmount);
+          } else {
+            const totalPrincipalPaid = repayments.reduce((sum: number, r: any) => sum + Number(r.principalPortion || 0), 0);
+            const bal = Number(loan.requestedAmount) - totalPrincipalPaid;
+            setOutstanding(bal < 0 ? 0 : bal);
+          }
+        })
+        .catch(() => setOutstanding(loan.requestedAmount))
+        .finally(() => setLoading(false));
+    } else {
+      setOutstanding(loan.requestedAmount);
+    }
+  }, [loan.loanId, loan.status, loan.requestedAmount, loan.currentStage]);
+
+  if (loading) return <span className="animate-pulse text-slate-300">...</span>;
+  if (outstanding === null) return <span>-</span>;
+  
+  return (
+    <div className="flex flex-col items-end">
+      <span className="font-mono font-black text-rose-600 text-sm">
+        Rs. {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      </span>
+      {outstanding === 0 && (
+        <span className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">පියවා ඇත</span>
+      )}
     </div>
   );
 }
@@ -190,6 +237,8 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const ad = loan.applicationData || {};
 
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'SAVINGS_TRANSFER'>('CASH');
   const [memberAccounts, setMemberAccounts] = useState<any[]>([]);
@@ -217,28 +266,27 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   const [assigningFo, setAssigningFo] = useState(false);
 
   useEffect(() => {
-    if (loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL') {
-      import('../services/auth.service').then(Auth => {
-        Auth.getUsers().then(users => {
-          setFieldOfficers(users.filter(u => u.role === 'ROLE_FIELD_OFFICER' || u.role === 'FIELD_OFFICER' || u.role.includes('FIELD')));
-        }).catch(() => {});
-      });
-    }
-  }, [loan]);
+    import('../services/auth.service').then(Auth => {
+      Auth.getUsers().then(users => {
+        setFieldOfficers(users.filter(u => u.role === 'ROLE_FIELD_OFFICER' || u.role === 'FIELD_OFFICER' || u.role.includes('FIELD')));
+      }).catch(() => {});
+    });
+  }, []);
 
   const handleAssignFo = async () => {
     if (!selectedFo) {
-      alert('කරුණාකර ක්ෂේත්‍ර නිලධාරියෙකු තෝරන්න.');
+      (window as any).showToast('කරුණාකර ක්ෂේත්‍ර නිලධාරියෙකු තෝරන්න.');
       return;
     }
     setAssigningFo(true);
     try {
       await LoanService.assignEvaluator(loan.loanId, selectedFo);
-      alert('සාර්ථකව පැවරුවා!');
-      onAction();
-      onClose();
+      (window as any).showToast('සාර්ථකව පැවරුවා!');
+      loan.evaluatorId = selectedFo;
+      loan.evaluationStatus = 'ASSIGNED';
+      onAction('assign');
     } catch (e: any) {
-      alert('පැවරීමේ දෝෂයකි.');
+      (window as any).showToast('පැවරීමේ දෝෂයකි.');
     } finally {
       setAssigningFo(false);
     }
@@ -253,19 +301,19 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
       } else {
         await LoanService.rejectLoan(loan.loanId, user?.username || '', role, comments || `Rejected by ${role}`);
       }
-      onAction();
+      onAction(action);
       onClose();
-    } catch { alert('Action failed. Please try again.'); }
+    } catch { (window as any).showToast('Action failed. Please try again.'); }
     finally { setLoading(false); }
   };
 
   const handleDisburse = async () => {
     if (paymentMethod === 'SAVINGS_TRANSFER' && !selectedSavingsAcc) {
-      alert('කරුණාකර ඉතුරුම් ගිණුමක් තෝරන්න. (Please select a savings account.)');
+      (window as any).showToast('කරුණාකර ඉතුරුම් ගිණුමක් තෝරන්න. (Please select a savings account.)');
       return;
     }
     if (!loanAccountNumber.trim()) {
-      alert('කරුණාකර ණය ගිණුම් අංකය ඇතුළත් කරන්න. (Please enter the loan account number.)');
+      (window as any).showToast('කරුණාකර ණය ගිණුම් අංකය ඇතුළත් කරන්න. (Please enter the loan account number.)');
       return;
     }
     if (!await new Promise<boolean>(resolve => {
@@ -292,7 +340,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
       onAction();
       onClose();
     } catch (e: any) {
-      alert('ණය මුදල නිකුත කිරීමේ දෝෂයකි: ' + (e?.response?.data || e?.message || 'Unknown error'));
+      (window as any).showToast('ණය මුදල නිකුත කිරීමේ දෝෂයකි: ' + (e?.response?.data || e?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -425,7 +473,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                             {parsed.documents && parsed.documents.length > 0 && (
                               <div className="flex gap-2 flex-wrap">
                                 {parsed.documents.map((d: string, i: number) => (
-                                  <img key={i} src={d} alt="Report Doc" className="h-24 w-auto rounded-lg border border-slate-200 object-cover shadow-sm cursor-pointer hover:scale-105 transition" onClick={() => window.open(d, '_blank')} />
+                                  <img key={i} src={d} alt="Report Doc" className="h-32 w-auto max-w-[200px] rounded-lg border border-slate-200 object-contain bg-white shadow-sm cursor-pointer hover:scale-105 transition" onClick={() => setPreviewImage(d)} />
                                 ))}
                               </div>
                             )}
@@ -452,22 +500,24 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                 rows={3}
                 className="w-full border border-amber-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
               />
-              {loan.status === 'PENDING' && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
-                <div className="mt-4 pt-4 border-t border-amber-200">
-                  <h4 className="text-xs font-bold text-amber-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
-                  <div className="flex gap-2">
-                    <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                      <option value="">-- නිලධාරියා තෝරන්න --</option>
-                      {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
-                    </select>
-                    <button onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
-                      {assigningFo ? '...' : 'පවරන්න'}
-                    </button>
-                  </div>
-                  {loan.evaluatorId && (
-                     <p className="mt-2 text-xs font-semibold text-blue-700">දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
-                  )}
-                </div>
+            </div>
+          )}
+
+          {/* Field Officer Assignment */}
+          {user?.role?.includes('BRANCH_MANAGER') && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+              <h4 className="text-sm font-bold text-blue-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
+              <div className="flex gap-2">
+                <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">-- නිලධාරියා තෝරන්න --</option>
+                  {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
+                </select>
+                <button type="button" onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
+                  {assigningFo ? '...' : 'පවරන්න'}
+                </button>
+              </div>
+              {loan.evaluatorId && (
+                 <p className="mt-2 text-xs font-semibold text-green-700">✓ දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
               )}
             </div>
           )}
@@ -592,6 +642,17 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           </div>
         </div>
       </div>
+      
+      {/* Full Screen Image Preview Overlay */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4 cursor-pointer" onClick={() => setPreviewImage(null)}>
+          <button className="absolute top-4 right-4 text-white hover:text-red-500 bg-black/50 rounded-full p-2 transition-colors" onClick={() => setPreviewImage(null)}>
+            <X size={24} />
+          </button>
+          <img src={previewImage} alt="Preview" className="max-w-full max-h-[95vh] object-contain rounded-lg cursor-default shadow-2xl" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}
@@ -611,6 +672,10 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [search, setSearch] = useState('');
   const { language } = useLanguage();
+  const [viewMode, setViewMode] = useState<'pending' | 'history'>('pending');
+
+  // Reset viewMode when switching tabs to ensure sensible defaults
+  useEffect(() => { setViewMode('pending'); }, [activeTab]);
 
   const loadData = () => {
     AccountService.getBranchMembers().then(setMembers).catch(() => {});
@@ -631,6 +696,18 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 
   const loans = loanQueue;
   const managerPendingLoans = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
+
+  if (activeTab === 'pawning_approvals') {
+    return <PawningApprovalsView />;
+  }
+
+  if (activeTab === 'pawning_approvals') {
+
+    return <PawningApprovalsView />;
+
+  }
+
+
 
   if (activeTab === 'pawning') {
     return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
@@ -756,30 +833,37 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 
 
 
-  const [viewMode, setViewMode] = useState<'pending' | 'history'>('pending');
-
   if (activeTab === 'loans' || activeTab === 'committee-approved') {
     const isCommitteeApprovedTab = activeTab === 'committee-approved';
-    
-    // Reset viewMode when switching tabs to ensure sensible defaults
-    useEffect(() => { setViewMode('pending'); }, [activeTab]);
+
+    const requiresCommittee = (l: any) => {
+      const typeStr = (l.loanType?.name || l.loanTypeStr || '').toLowerCase();
+      return typeStr.includes('සේවක') || typeStr.includes('කෙටි');
+    };
 
     let displayedLoans = [];
     if (isCommitteeApprovedTab) {
       displayedLoans = viewMode === 'pending' 
-        ? loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED')
-        : loanQueue.filter(l => l.status === 'ACTIVE' || l.currentStage === 'DISBURSED' || l.status === 'COMPLETED');
+        ? loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED' && requiresCommittee(l))
+        : loanQueue.filter(l => (l.status === 'ACTIVE' || l.currentStage === 'DISBURSED' || l.status === 'COMPLETED') && requiresCommittee(l));
     } else {
       displayedLoans = viewMode === 'pending'
         ? loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING')
         : loanQueue.filter(l => l.currentStage !== 'STAGE_1_MANAGER_APPROVAL' || l.status !== 'PENDING');
     }
 
+    // Sort so newest ones appear at the top
+    displayedLoans.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.appliedDate || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.appliedDate || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+
     let pendingCount = 0;
     let historyCount = 0;
     if (isCommitteeApprovedTab) {
-      pendingCount = loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED').length;
-      historyCount = loanQueue.filter(l => l.currentStage === 'DISBURSED' || l.status === 'ACTIVE' || l.status === 'COMPLETED').length;
+      pendingCount = loanQueue.filter(l => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED' && requiresCommittee(l)).length;
+      historyCount = loanQueue.filter(l => (l.currentStage === 'DISBURSED' || l.status === 'ACTIVE' || l.status === 'COMPLETED') && requiresCommittee(l)).length;
     } else {
       pendingCount = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING').length;
       historyCount = loanQueue.filter(l => l.currentStage !== 'STAGE_1_MANAGER_APPROVAL' || l.status !== 'PENDING').length;
@@ -787,7 +871,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 
     return (
       <div className="space-y-4">
-        {selectedLoan && <LoanReviewModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} onAction={() => { loadData(); setViewMode('history'); }} />}
+        {selectedLoan && <LoanReviewModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} onAction={(action) => { loadData(); if (action !== 'assign') setViewMode('history'); }} />}
         
         {!isCommitteeApprovedTab && (
           <div className="flex items-center gap-2 mb-4 bg-white p-1 rounded-xl shadow-sm border border-slate-100 w-fit">
@@ -880,7 +964,9 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                       )}
                     </td>
                     <td className="px-5 py-3 text-center text-xs font-semibold text-indigo-600">
-                      {LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage)}
+                      {l.currentStage === 'STAGE_3_APPROVED' && !((l.loanType?.name || (l as any).loanTypeStr || '').toLowerCase().includes('සේවක') || (l.loanType?.name || (l as any).loanTypeStr || '').toLowerCase().includes('කෙටි'))
+                        ? 'අවසාන අනුමැතිය ලබා දෙන ලදී'
+                        : LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage)}
                     </td>
                     <td className="px-5 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
@@ -933,6 +1019,10 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 }
 
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
+  if (activeTab === 'pawning_approvals') {
+    return <PawningApprovalsView />;
+  }
+
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
@@ -1150,7 +1240,7 @@ function TellerView() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [activityDate, setActivityDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
 
   const fetchActivities = () => {
     setLoadingActivity(true);
@@ -1317,7 +1407,7 @@ function ValuerView() {
           <label className="block text-xs font-medium text-slate-500 mb-1">Advance Amount (Rs.)</label>
           <input value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: e.target.value }))} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
         </div>
-        <button onClick={() => alert('Pawn Ticket issued successfully!')} className="mt-5 w-full py-3 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-xl transition">Issue Pawn Ticket</button>
+        <button onClick={() => (window as any).showToast('Pawn Ticket issued successfully!')} className="mt-5 w-full py-3 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-xl transition">Issue Pawn Ticket</button>
       </div>
     </div>
   );
@@ -1354,7 +1444,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [loanSearch, setLoanSearch] = useState('');
-  const [loanFilter, setLoanFilter] = useState<'ALL' | 'MANAGER_APPROVED' | 'COMMITTEE_APPROVED'>('ALL');
+  const [loanFilter, setLoanFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'COMPLETED'>('ACTIVE');
   const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
@@ -1406,9 +1496,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [monitoringFd, setMonitoringFd] = useState<any>(null);
   const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
   const [loanLedgers, setLoanLedgers] = useState<any[]>([]);
-  const [loanActivityDate, setLoanActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [loanActivityDate, setLoanActivityDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [activities, setActivities] = useState<any[]>([]);
-  const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [activityDate, setActivityDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [activityDetails, setActivityDetails] = useState<any>(null);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [fdTypes, setFdTypes] = useState<any[]>([]);
@@ -1654,26 +1744,64 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const handleViewActivity = async (act: any) => {
     setLoadingActivity(true);
     try {
-      const details = await AccountService.getActivityDetails(act.type, act.id);
+      let details: any = {};
       let memberName = 'Unknown';
-      if (details.memberId) {
-        try {
-          const member = await AccountService.getMemberById(details.memberId);
-          if (language === 'si' && member.fullNameSinhala) {
-            memberName = member.fullNameSinhala;
-          } else {
-            memberName = member.fullName || member.fullNameSinhala || 'Unknown';
+
+      if (act.type === 'LOAN_DISBURSEMENT' || act.type === 'LOAN_REPAYMENT') {
+        const loansList = await LoanService.getLoans();
+        const loan = loansList.find(l => l.loanNumber === act.reference);
+        if (loan) {
+          details.transactionId = act.id;
+          details.accountNumber = loan.loanNumber;
+          details.amount = act.amount;
+          details.balanceAfter = act.balanceAfter;
+          details.memberId = loan.memberId;
+          details.branchId = loan.branchId;
+          details.timestamp = act.timestamp;
+          if (loan.memberId) {
+            const member = await AccountService.getMemberById(loan.memberId);
+            memberName = language === 'si' && member.fullNameSinhala ? member.fullNameSinhala : (member.fullName || 'Unknown');
           }
-        } catch (e) {
-          if (details.accountNumber) {
-            const acc = accounts.find(a => a.accountNumber === details.accountNumber);
-            if (acc && acc.childName) memberName = acc.childName + " (Child)";
+        }
+      } else if (act.type === 'PAWN_ISSUE' || act.type === 'PAWN_REPAYMENT') {
+        const ticketsList = await PawningService.getAllTickets();
+        const ticket = ticketsList.find(t => String(t.ticketNumber) === String(act.reference));
+        if (ticket) {
+          details.transactionId = act.id;
+          details.accountNumber = ticket.ticketNumber;
+          details.amount = act.amount;
+          details.balanceAfter = act.balanceAfter;
+          details.memberId = ticket.memberId;
+          details.branchId = ticket.branchId;
+          details.timestamp = act.timestamp;
+          if (ticket.memberId) {
+            const member = await AccountService.getMemberById(ticket.memberId);
+            memberName = language === 'si' && member.fullNameSinhala ? member.fullNameSinhala : (member.fullName || 'Unknown');
+          }
+        }
+      } else {
+        details = await AccountService.getActivityDetails(act.type, act.id);
+        if (details.memberId) {
+          try {
+            const member = await AccountService.getMemberById(details.memberId);
+            if (language === 'si' && member.fullNameSinhala) {
+              memberName = member.fullNameSinhala;
+            } else {
+              memberName = member.fullName || member.fullNameSinhala || 'Unknown';
+            }
+          } catch (e) {
+            if (details.accountNumber) {
+              const acc = accounts.find(a => a.accountNumber === details.accountNumber);
+              if (acc && acc.childName) memberName = acc.childName + " (Child)";
+            }
           }
         }
       }
+
       setActivityDetails({ ...act, ...details, _type: act.type, _memberName: memberName });
     } catch (e) {
-      alert("Failed to fetch activity details");
+      console.error('Failed to view activity details:', e);
+      (window as any).showToast("Failed to fetch activity details");
     } finally {
       setLoadingActivity(false);
     }
@@ -1697,6 +1825,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     return matchesSearch && matchesTab;
   });
 
+  if (activeTab === 'handovers') {
+    return <FieldHandoversView members={members} loans={loans} />;
+  }
+
   if (activeTab === 'overview') {
     return (
       <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
@@ -1712,6 +1844,16 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   if (activeTab === 'gl') {
     const currentUser = AuthService.getCurrentUser();
     return <LedgerView branchId={currentUser?.branchId || 1} />;
+  }
+
+  if (activeTab === 'summary-ledger') {
+    const currentUser = AuthService.getCurrentUser();
+    return <SummaryLedgerView branchId={currentUser?.branchId || 1} members={members} />;
+  }
+
+  if (activeTab === 'vault-cash') {
+    const currentUser = AuthService.getCurrentUser();
+    return <VaultCashView branchId={currentUser?.branchId || 1} />;
   }
 
   if (activeTab === 'fds') {
@@ -2050,6 +2192,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     );
   }
 
+  if (activeTab === 'pawning_approvals') {
+    return <PawningApprovalsView />;
+  }
+
+  if (activeTab === 'pawning_approvals') {
+
+    return <PawningApprovalsView />;
+
+  }
+
+
+
   if (activeTab === 'pawning') {
     return <PawningModule branchId={user?.branchId || 1} />;
   }
@@ -2060,13 +2214,22 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     const committeeApprovedCount = loans.filter(l => l.status === 'APPROVED').length;
     const totalLoanAmount = loans.reduce((sum, l) => sum + (Number(l.requestedAmount) || 0), 0);
     
+    const requiresCommittee = (l: any) => {
+      const typeStr = (l.loanType?.name || l.loanTypeStr || '').toLowerCase();
+      return typeStr.includes('සේවක') || typeStr.includes('කෙටි');
+    };
+
     const filteredLoans = loans.filter(l => {
-      if (loanFilter === 'COMMITTEE_APPROVED' && l.status !== 'APPROVED' && l.status !== 'ACTIVE' && l.currentStage !== 'STAGE_3_APPROVED') return false;
-      if (loanFilter === 'MANAGER_APPROVED' && l.currentStage !== 'STAGE_2_LOAN_COMMITTEE_APPROVAL') return false;
+      if (loanFilter === 'ACTIVE' && !(l.status === 'ACTIVE' || l.status === 'DISBURSED')) return false;
+      if (loanFilter === 'PENDING' && l.status !== 'PENDING' && !(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED')) return false;
+      if (loanFilter === 'COMPLETED' && l.status !== 'COMPLETED') return false;
+      const term = loanSearch.toLowerCase();
       const member = members.find(m => m.memberId === l.memberId);
-      const nameMatch = member ? (member.fullName || member.fullNameSinhala || '').toLowerCase().includes(loanSearch.toLowerCase()) : false;
-      const typeMatch = (l.loanType?.name || '').toLowerCase().includes(loanSearch.toLowerCase());
-      return nameMatch || typeMatch;
+      const nameMatch = member ? (member.fullName || member.fullNameSinhala || '').toLowerCase().includes(term) : false;
+      const typeMatch = (l.loanType?.name || '').toLowerCase().includes(term);
+      const accMatch = (l.accountNumber || '').toLowerCase().includes(term);
+      const appMatch = (l.applicationNumber || (l.applicationData as any)?.applicationNumber || '').toLowerCase().includes(term);
+      return nameMatch || typeMatch || accMatch || appMatch;
     });
 
     return (
@@ -2131,7 +2294,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             {/* Search - full width row */}
             <div className="relative w-full">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="ගිණුම් අංකය, සාමාජිකයා හෝ වර්ගය සොයන්න..."
+              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="ඉල්ලුම්පත් / ගිණුම් අංකය, සාමාජිකයා හෝ වර්ගය සොයන්න..."
                 className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
             </div>
 
@@ -2144,17 +2307,29 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   }`}>
                   සියලුම ණය
                 </button>
-                <button onClick={() => setLoanFilter('MANAGER_APPROVED')}
+                <button onClick={() => setLoanFilter('ACTIVE')}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    loanFilter === 'MANAGER_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    loanFilter === 'ACTIVE' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  කළමනාකරු අනුමත කළ
+                  සක්‍රීය ණය
                 </button>
-                <button onClick={() => setLoanFilter('COMMITTEE_APPROVED')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    loanFilter === 'COMMITTEE_APPROVED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                                <button onClick={() => setLoanFilter('PENDING')}
+                  className={`relative px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    loanFilter === 'PENDING' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  කමිටුව අනුමත කළ
+                  අනුමැතිය ලැබිය යුතු ණය
+                  {loans.some(l => l.status === 'PENDING' || (l.status === 'APPROVED' && l.currentStage !== 'DISBURSED')) && (
+                    <span className="flex h-2 w-2 relative -mt-3 -ml-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => setLoanFilter('COMPLETED')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    loanFilter === 'COMPLETED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  අවසන් කළ ණය
                 </button>
               </div>
               <p className="ml-auto text-xs text-slate-400">පෙන්වන්නේ <span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
@@ -2169,7 +2344,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">සාමාජිකයා</th>
                   <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ණය වර්ගය</th>
                   <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">මුදල (Rs.)</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">අදියර</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-rose-600 uppercase tracking-widest whitespace-nowrap">ගෙවීමට ඇති මුදල</th>
                   <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
                   <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">ක්‍රියා</th>
                 </tr>
@@ -2206,14 +2381,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100">
                       <span className="font-mono font-black text-slate-800 text-sm">Rs. {Number(l.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </td>
-                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
-                      <span className="text-xs font-bold text-indigo-600">
-                        {l.currentStage === 'DISBURSED' ? 'මුදා හැර ඇත' : 
-                         l.currentStage === 'COMPLETED' ? 'සම්පූර්ණයි' : 
-                         l.currentStage === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
-                         l.currentStage === 'ACTIVE' ? 'සක්‍රීයයි' :
-                         LoanService.STAGE_LABELS[l.currentStage]?.labelSi || l.currentStage}
-                      </span>
+                    <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100 bg-rose-50/20">
+                      <LoanOutstandingCell loan={l} />
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
                       <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
@@ -2629,7 +2798,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                             try {
                               await AccountService.updateAccountStatus(a.accountId!, a.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
                               fetchData();
-                            } catch (e) { alert('Failed to update account status'); }
+                            } catch (e) { (window as any).showToast('Failed to update account status'); }
                             setConfirmDialog(d => ({ ...d, isOpen: false }));
                           }
                         });
@@ -2881,7 +3050,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                                tx.transactionType === 'INITIAL_DEPOSIT' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
                                                tx.transactionType === 'BROUGHT_FORWARD' ? 'පෙර ශේෂය (BROUGHT FORWARD)' :
                                                tx.transactionType === 'WITHDRAWAL' ? 'මුදල් ආපසු ගැනීම (WITHDRAWAL)' :
-                                               tx.transactionType === 'DEPOSIT' ? 'තැන්පතුව (DEPOSIT)' :
+                                               tx.transactionType === 'DEPOSIT' ? (tx.reference && tx.reference.includes('Loan Disbursement') ? tx.reference : 'තැන්පතුව (DEPOSIT)') :
                                                tx.transactionType.replace('_', ' ')}
                                             </span>
                                             {isInterest && (
@@ -2943,7 +3112,15 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   const sortedMonths = Object.keys(balancesByMonth).sort((a, b) => b.localeCompare(a));
                   
                   if (sortedMonths.length === 0) {
-                    return <p className="text-center text-slate-500 py-8">No interest records found.</p>;
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Calculator size={48} className="text-slate-300 mb-4" />
+                        <h4 className="text-lg font-medium text-slate-700 mb-2">පොලී වාර්තා නොමැත (No interest records yet)</h4>
+                        <p className="text-slate-500 max-w-sm">
+                          මෙම ගිණුම සඳහා දෛනික පොලී වාර්තා තවමත් සකසා නොමැත. දෛනික පොලිය ගණනය වන්නේ සෑම දිනකම මධ්‍යම රාත්‍රියේදී (End of Day) ය. අද දින ආරම්භ කළ ගිණුම් වල පොලී විස්තර හෙට දින සිට මෙතැනින් බලාගත හැක.
+                        </p>
+                      </div>
+                    );
                   }
 
                   return (
@@ -2980,7 +3157,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                       <tr>
                                         <th className="px-3 py-2 font-medium border-b border-slate-200 rounded-tl-lg">Date</th>
                                         <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">EOD Balance</th>
-                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">Interest Base</th>
+                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">Annual Rate</th>
                                         <th className="px-3 py-2 font-medium border-b border-slate-200 text-right rounded-tr-lg">Earned</th>
                                       </tr>
                                     </thead>
@@ -2989,7 +3166,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                                           <td className="px-3 py-2 text-slate-600 font-mono text-xs">{db.recordDate}</td>
                                           <td className="px-3 py-2 text-right font-mono text-xs text-slate-700">Rs. {(db.closingBalance || db.endOfDayBalance || 0).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">Rs. {(db.interestBase || 0).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">
+                                             {db.annualInterestRate != null
+                                               ? `${(parseFloat(db.annualInterestRate) * 100).toFixed(2)}%`
+                                               : '6.00%'}
+                                           </td>
                                           <td className="px-3 py-2 text-right font-mono text-xs font-medium text-emerald-600">+ {(db.dailyInterestEarned || db.dailyInterest || 0).toFixed(2)}</td>
                                         </tr>
                                       ))}
@@ -3018,6 +3199,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       </div>
     );
   }
+
+  if (activeTab === 'pawning_approvals') {
+    return <PawningApprovalsView />;
+  }
+
+  if (activeTab === 'pawning_approvals') {
+
+    return <PawningApprovalsView />;
+
+  }
+
+
 
   if (activeTab === 'pawning') {
     return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
@@ -3568,6 +3761,217 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     );
 }
 
+function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }) {
+  const [allCollections, setAllCollections] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [handoversSummary, setHandoversSummary] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; officer: string; total: number } | null>(null);
+  const [acceptedOfficers, setAcceptedOfficers] = useState<string[]>([]);
+  const [filterDate, setFilterDate] = useState<string>('');
+  const user = AuthService.getCurrentUser();
+
+  const fetchHandovers = () => {
+    setLoading(true);
+    LoanService.getPendingFieldCollections(user?.branchId || 1)
+      .then(data => {
+        setAllCollections(data);
+      })
+      .catch((e) => console.error('Failed to fetch handovers', e))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchHandovers();
+  }, []);
+
+  useEffect(() => {
+    const filtered = allCollections.filter((item: any) => {
+      if (!filterDate) return true;
+      if (!item.createdAt) return false;
+      let dateStr = "";
+      if (typeof item.createdAt === 'string') {
+        dateStr = item.createdAt.split('T')[0].split(' ')[0];
+      } else if (Array.isArray(item.createdAt)) {
+        dateStr = `${item.createdAt[0]}-${String(item.createdAt[1]).padStart(2, '0')}-${String(item.createdAt[2]).padStart(2, '0')}`;
+      } else {
+         const d = new Date(item.createdAt);
+         dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+      return dateStr === filterDate;
+    });
+
+    filtered.sort((a: any, b: any) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+      if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+      
+      const getTime = (dateVal: any) => {
+        if (!dateVal) return 0;
+        if (typeof dateVal === 'string') return new Date(dateVal).getTime();
+        if (Array.isArray(dateVal)) return new Date(dateVal[0], dateVal[1] - 1, dateVal[2], dateVal[3] || 0, dateVal[4] || 0, dateVal[5] || 0).getTime();
+        return new Date(dateVal).getTime();
+      };
+      
+      return getTime(b.createdAt) - getTime(a.createdAt);
+    });
+
+    setCollections(filtered);
+
+    const grouped = filtered.reduce((acc: any, curr: any) => {
+      if (curr.status !== 'PENDING') return acc;
+      const officer = curr.fieldOfficerUsername || curr.collectedBy;
+      if (!acc[officer]) acc[officer] = { officer, total: 0, count: 0 };
+      acc[officer].total += Number(curr.amount);
+      acc[officer].count += 1;
+      return acc;
+    }, {});
+    setHandoversSummary(Object.values(grouped));
+  }, [allCollections, filterDate]);
+
+  const executeAccept = async () => {
+    if (!confirmState) return;
+    try {
+      await LoanService.handoverFieldCash({
+        fieldOfficerUsername: confirmState.officer,
+        amount: confirmState.total,
+        tellerUsername: user?.username,
+        branchId: user?.branchId
+      });
+      (window as any).showToast('සාර්ථකව භාරගන්නා ලදී! (Handover Accepted)');
+      setAcceptedOfficers(prev => [...prev, confirmState.officer]);
+    } catch (e: any) {
+      (window as any).showToast('දෝෂයකි: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setConfirmState(null);
+    }
+  };
+
+  const handleAcceptClick = (officer: string) => {
+    const summary = handoversSummary.find(s => s.officer === officer);
+    if (summary) {
+      setConfirmState({ isOpen: true, officer: summary.officer, total: summary.total });
+    }
+  };
+
+  if (loading) return <div className="text-center p-10"><span className="animate-pulse">Loading...</span></div>;
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+          <Briefcase size={18} className="text-blue-600" /> පවරා ඇති ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම් (Field Officer Handovers)
+        </h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">දිනය (Date):</span>
+          <input 
+            type="date" 
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+          />
+        </div>
+      </div>
+      {collections.length === 0 ? (
+        <p className="text-slate-500 text-sm">මේ මොහොතේ ක්ෂේත්‍ර නිලධාරීන්ගෙන් භාරගැනීමට මුදල් නොමැත. (No pending handovers from field officers at this moment.)</p>
+      ) : (
+        <div className="border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[12px] font-semibold uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4 border border-slate-200">සාමාජිකයා (Member)</th>
+                <th className="px-6 py-4 border border-slate-200">ලිපිනය (Address)</th>
+                <th className="px-6 py-4 border border-slate-200">ණය අංකය (Loan No)</th>
+                <th className="px-6 py-4 border border-slate-200">දිනය (Date)</th>
+                <th className="px-6 py-4 text-right border border-slate-200">මුදල (Amount)</th>
+                <th className="px-6 py-4 text-center border border-slate-200">ක්‍රියාව (Action)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {collections.map((item, i) => {
+                const loan = loans.find(l => l.loanId === item.loanId || l.id === item.loanId);
+                const member = members.find(m => m.memberId === loan?.memberId || m.id === loan?.memberId);
+                const officerName = item.fieldOfficerUsername || item.collectedBy;
+                
+                // Only show the Accept button on the first row for each officer
+                const isFirstForOfficer = collections.findIndex(c => (c.fieldOfficerUsername || c.collectedBy) === officerName) === i;
+                const officerSummary = handoversSummary.find(s => s.officer === officerName);
+
+                return (
+                  <tr key={i} className="hover:bg-slate-50 transition-colors bg-white">
+                    <td className="px-6 py-4 border border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                          <User size={14} />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-800 text-[13px]">{member?.fullName || 'නොදන්නා'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 text-[12px] border border-slate-200" title={member?.address}>
+                      {member?.address || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-slate-700 font-mono text-[13px] font-bold border border-slate-200">
+                      {loan?.accountNumber || item.loanId?.substring(0,8) || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 text-[12px] border border-slate-200">
+                      {(() => {
+                        let d = new Date();
+                        if (typeof item.createdAt === 'string') d = new Date(item.createdAt);
+                        else if (Array.isArray(item.createdAt)) d = new Date(item.createdAt[0], item.createdAt[1] - 1, item.createdAt[2], item.createdAt[3] || 0, item.createdAt[4] || 0, item.createdAt[5] || 0);
+                        else if (item.createdAt) d = new Date(item.createdAt);
+                        return d.toLocaleString('si-LK');
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 text-right border border-slate-200">
+                      <span className="font-mono text-[14px] font-black text-slate-800">
+                        Rs. {Number(item.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center border border-slate-200">
+                      {item.status === 'HANDED_OVER' || acceptedOfficers.includes(officerName) ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[11px]">
+                          <CheckCircle size={14} /> භාරගන්නා ලදී
+                        </span>
+                      ) : (
+                        isFirstForOfficer && officerSummary ? (
+                          <button 
+                            onClick={() => handleAcceptClick(officerName)} 
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition inline-flex items-center gap-2 text-[11px]"
+                            title={`Accept all cash from ${officerName} (Rs. ${officerSummary.total.toLocaleString()})`}
+                          >
+                            <CheckCircle size={14} /> භාරගන්න
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-[11px]"></span>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmState?.isOpen && (
+        <ConfirmDialog
+          isOpen={true}
+          title="මුදල් භාරගැනීම තහවුරු කරන්න"
+          message={`ඔබට විශ්වාසද ${confirmState.officer} වෙතින් Rs. ${confirmState.total.toLocaleString()} ක මුදලක් භාරගැනීමට අවශ්‍ය බව?`}
+          confirmText="ඔව්, භාරගන්න"
+          cancelText="අවලංගු කරන්න"
+          variant="info"
+          onConfirm={executeAccept}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 function BankServiceManagerView() {
   return (
     <div className="space-y-6">
@@ -3581,7 +3985,7 @@ function BankServiceManagerView() {
         {[
           { name: 'K.D. Perera', amount: 250000, status: 'PENDING', date: '2026-06-01' },
           { name: 'S.M. Silva',  amount: 500000, status: 'PENDING', date: '2026-06-02' },
-        ].map((l, i) => <QueueRow key={i} {...l} actionLabel="Issue Directive" actionColor="bg-purple-600" onAction={() => alert('Directive issued!')} />)}
+        ].map((l, i) => <QueueRow key={i} {...l} actionLabel="Issue Directive" actionColor="bg-purple-600" onAction={() => (window as any).showToast('Directive issued!')} />)}
       </div>
     </div>
   );
@@ -3596,11 +4000,47 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [evaluationStatus, setEvaluationStatus] = useState('RECOMMENDED');
   const [submitting, setSubmitting] = useState(false);
 
+  const [evalTab, setEvalTab] = useState<'pending' | 'history'>('pending');
+
   const [evaluationDocs, setEvaluationDocs] = useState<string[]>([]);
+
+  // Mobile Collection States
+  const [searchAccNum, setSearchAccNum] = useState('');
+  const [searchedLoan, setSearchedLoan] = useState<any>(null);
+  const [searchError, setSearchError] = useState('');
 
   const fetchLoans = () => {
     setLoading(true);
     LoanService.getLoans().then(setLoans).catch(() => {}).finally(() => setLoading(false));
+  };
+
+  const handleSearchLoan = async () => {
+    if (!searchAccNum.trim()) {
+      setSearchError('කරුණාකර ගිණුම් අංකයක් ඇතුලත් කරන්න');
+      return;
+    }
+    setSearchError('');
+    setSearchedLoan(null);
+    setLoading(true);
+    try {
+      const currentUser = AuthService.getCurrentUser();
+      const branchLoans = currentUser?.branchId 
+        ? await LoanService.getBranchLoans(currentUser.branchId) 
+        : await LoanService.getGlobalLoans();
+        
+      const found = branchLoans.find((l: any) => l.accountNumber === searchAccNum.trim());
+      if (!found) {
+        setSearchError('මෙම ගිණුම් අංකය සඳහා ණයක් මෙම ශාඛාවෙන් සොයාගත නොහැකි විය.');
+      } else if (found.status !== 'ACTIVE' && found.currentStage !== 'DISBURSED') {
+        setSearchError('මෙම ණය ගිණුම දැනට සක්‍රීය තත්වයේ නොමැත.');
+      } else {
+        setSearchedLoan(found);
+      }
+    } catch (e) {
+      setSearchError('සෙවීමේදී දෝෂයක් ඇති විය.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -3617,7 +4057,22 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectAmount, setCollectAmount] = useState('');
   const [collectionLoan, setCollectionLoan] = useState<any>(null);
+  const [collectDate, setCollectDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [selectedLoanForDetails, setSelectedLoanForDetails] = useState<any>(null);
+
+  // New UI states
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [myCollections, setMyCollections] = useState<any[]>([]);
+  const [collectionHistoryFilter, setCollectionHistoryFilter] = useState('');
+
+  const fetchMyCollections = async () => {
+    try {
+      if (user?.username) {
+        const all = await LoanService.getFieldCollectionHistory(user.username);
+        setMyCollections(all);
+      }
+    } catch (e) {}
+  };
 
   const fetchFieldBalance = async () => {
     try {
@@ -3629,12 +4084,15 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   };
 
   useEffect(() => {
-    if (activeTab === 'handover' || activeTab === 'overview') {
+    if (activeTab === 'handover' || activeTab === 'overview' || activeTab === 'collection') {
       fetchFieldBalance();
     }
-  }, [activeTab]);
+    if (activeTab === 'collection') {
+      fetchMyCollections();
+    }
+  }, [activeTab, user?.username, loans.length]);
 
-  const collectionList = loans.filter(l => l.status === 'ACTIVE' && (l.repaymentMethod === 'FIELD_COLLECTION' || l.applicationData?.repaymentMethod === 'FIELD_COLLECTION'));
+  const collectionList = loans.filter(l => l.status === 'ACTIVE' && l.evaluatorId === currentUserId && (l.repaymentMethod === 'FIELD_COLLECTION' || l.applicationData?.repaymentMethod === 'FIELD_COLLECTION'));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -3649,59 +4107,61 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   };
 
   const handleSubmit = async (loanId: string) => {
-    if (!evaluationNotes.trim()) return alert('කරුණාකර සටහන් ඇතුලත් කරන්න');
+    if (!evaluationNotes.trim()) return (window as any).showToast('කරුණාකර සටහන් ඇතුලත් කරන්න');
     setSubmitting(true);
     try {
       const payload = JSON.stringify({ text: evaluationNotes, documents: evaluationDocs });
       await LoanService.submitEvaluation(loanId, evaluationStatus, payload);
-      alert('වාර්තාව සාර්ථකව යවන ලදී!');
+      (window as any).showToast('වාර්තාව සාර්ථකව යවන ලදී!');
       setSelectedLoan(null);
       setEvaluationNotes('');
       setEvaluationDocs([]);
       fetchLoans();
     } catch(e) {
-      alert('දෝෂයකි');
+      (window as any).showToast('දෝෂයකි');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCollect = async () => {
-    if (!collectAmount || isNaN(Number(collectAmount))) return alert('කරුණාකර නිවැරදි මුදලක් ඇතුලත් කරන්න');
+    if (!collectAmount || isNaN(Number(collectAmount))) return (window as any).showToast('කරුණාකර නිවැරදි මුදලක් ඇතුලත් කරන්න');
     setSubmitting(true);
     try {
-      await LoanService.repayInstallment(
+      await LoanService.recordFieldCollection(
         collectionLoan.loanId,
         Number(collectAmount),
-        'FIELD_COLLECTION',
-        'Mobile Collection',
         user?.username || 'system',
-        user?.branchId || 1
+        user?.branchId || 1,
+        collectDate
       );
-      alert('මුදල සාර්ථකව එකතු කරන ලදී!');
+      (window as any).showToast('මුදල සාර්ථකව එකතු කරන ලදී! (Pending Handover)');
       setShowCollectModal(false);
+      setShowSearchModal(false);
       setCollectAmount('');
+      setCollectDate(new Date().toLocaleDateString('en-CA'));
       fetchLoans();
       fetchFieldBalance();
+      fetchMyCollections();
     } catch(e) {
-      alert('දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.');
+      (window as any).showToast('දෝෂයක්! කරුණාකර නැවත උත්සාහ කරන්න.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleHandover = async () => {
-    if (collectionBalance <= 0) return alert('භාරදීමට මුදල් නොමැත.');
+    if (collectionBalance <= 0) return (window as any).showToast('භාරදීමට මුදල් නොමැත.');
     setSubmitting(true);
     try {
       await LoanService.handoverFieldCash({
         fieldOfficerUsername: user?.username || '',
         amount: collectionBalance
       });
-      alert('මුදල් භාරදීම සාර්ථකයි!');
+      (window as any).showToast('මුදල් භාරදීම සාර්ථකයි!');
       fetchFieldBalance();
     } catch(e) {
-      alert('දෝෂයක්!');
+      (window as any).showToast('දෝෂයක්!');
     } finally {
       setSubmitting(false);
     }
@@ -3725,6 +4185,17 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
     );
   }
 
+  const filteredCollections = myCollections.filter((c: any) => {
+    if (!collectionHistoryFilter.trim()) return true;
+    const loan = loans.find(l => l.loanId === c.loanId);
+    const accNum = loan?.accountNumber || '';
+    const name = loan?.applicationData?.name || loan?.applicationData?.applicantName || '';
+    const dateStr = new Date(c.createdAt || c.collectedAt).toLocaleDateString();
+    
+    const term = collectionHistoryFilter.toLowerCase();
+    return accNum.toLowerCase().includes(term) || name.toLowerCase().includes(term) || dateStr.includes(term);
+  });
+
   if (activeTab === 'evaluations') {
     return (
       <div className="space-y-4">
@@ -3740,111 +4211,131 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           </div>
         </div>
         
-        {selectedLoan ? (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> වාර්තාව ඇතුලත් කිරීම</h3>
-            <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
-               <div className="flex justify-between items-start mb-4">
-                 <div>
-                   <h4 className="font-bold text-lg">{selectedLoan.applicationData?.name || selectedLoan.applicationData?.applicantName || 'N/A'}</h4>
-                   <p className="text-sm text-amber-700">Rs. {Number(selectedLoan.requestedAmount).toLocaleString()} - {selectedLoan.loanType?.name || 'ණය'}</p>
-                 </div>
-                 <button onClick={() => { setSelectedLoan(null); setEvaluationDocs([]); }} className="text-amber-500 hover:text-amber-700"><X size={20}/></button>
-               </div>
+        <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-6 w-max">
+          <button 
+            onClick={() => { setEvalTab('pending'); setSelectedLoan(null); }}
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all ${evalTab === 'pending' ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          >
+            පවරා ඇති ණය පරීක්ෂණ (Pending)
+            {assignedLoans.length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${evalTab === 'pending' ? 'bg-amber-200 text-amber-800' : 'bg-slate-200 text-slate-600'}`}>{assignedLoans.length}</span>
+            )}
+          </button>
+          <button 
+            onClick={() => { setEvalTab('history'); setSelectedLoan(null); }}
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all ${evalTab === 'history' ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          >
+            අවසන් කළ ණය පරීක්ෂණ (History)
+          </button>
+        </div>
 
-               <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
-                 <h5 className="font-bold text-slate-800 text-sm">Customer Details (ගනුදෙනුකරුගේ විස්තර)</h5>
-                 <p className="text-sm text-slate-600"><strong>ලිපිනය (Address):</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
-                 <p className="text-sm text-slate-600"><strong>දුරකථන (Phone):</strong> {selectedLoan.applicationData?.phone}</p>
-                 <p className="text-sm text-slate-600"><strong>හැඳුනුම්පත (NIC):</strong> {selectedLoan.applicationData?.nic}</p>
-                 <p className="text-sm text-slate-600"><strong>ණය අරමුණ (Purpose):</strong> {selectedLoan.applicationData?.loanPurpose}</p>
-               </div>
-               
-               <div className="space-y-4">
-                 <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-1">නිර්දේශය (Recommendation)</label>
-                   <select value={evaluationStatus} onChange={e => setEvaluationStatus(e.target.value)} className="w-full border border-amber-300 rounded-lg p-2 bg-white">
-                     <option value="RECOMMENDED">අනුමත කිරීමට නිර්දේශ කරමි (Recommend)</option>
-                     <option value="NOT_RECOMMENDED">නිර්දේශ නොකරමි (Not Recommend)</option>
-                     <option value="NEEDS_MORE_INFO">වැඩිදුර තොරතුරු අවශ්‍යයි (Needs More Info)</option>
-                   </select>
+        {evalTab === 'pending' ? (
+          selectedLoan ? (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+              <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> වාර්තාව ඇතුලත් කිරීම</h3>
+              <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
+                 <div className="flex justify-between items-start mb-4">
+                   <div>
+                     <h4 className="font-bold text-lg">{selectedLoan.applicationData?.name || selectedLoan.applicationData?.applicantName || 'N/A'}</h4>
+                     <p className="text-sm text-amber-700">Rs. {Number(selectedLoan.requestedAmount).toLocaleString()} - {selectedLoan.loanType?.name || 'ණය'}</p>
+                   </div>
+                   <button onClick={() => { setSelectedLoan(null); setEvaluationDocs([]); }} className="text-amber-500 hover:text-amber-700"><X size={20}/></button>
                  </div>
-                 <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-1">ඇගයීම් සටහන් (Evaluation Notes)</label>
-                   <textarea value={evaluationNotes} onChange={e => setEvaluationNotes(e.target.value)} rows={4} className="w-full border border-amber-300 rounded-lg p-2 bg-white" placeholder="පරීක්ෂාවේදී නිරීක්ෂණය කළ කරුණු..."></textarea>
+
+                 <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
+                   <h5 className="font-bold text-slate-800 text-sm">Customer Details (ගනුදෙනුකරුගේ විස්තර)</h5>
+                   <p className="text-sm text-slate-600"><strong>ලිපිනය (Address):</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
+                   <p className="text-sm text-slate-600"><strong>දුරකථන (Phone):</strong> {selectedLoan.applicationData?.phone}</p>
+                   <p className="text-sm text-slate-600"><strong>හැඳුනුම්පත (NIC):</strong> {selectedLoan.applicationData?.nic}</p>
+                   <p className="text-sm text-slate-600"><strong>ණය අරමුණ (Purpose):</strong> {selectedLoan.applicationData?.loanPurpose}</p>
                  </div>
-                 <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-1">ඡායාරූප / ලියකියවිලි (Documents/Photos)</label>
-                   <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
-                   {evaluationDocs.length > 0 && (
-                     <div className="flex gap-2 mt-2 flex-wrap">
-                       {evaluationDocs.map((doc, i) => (
-                         <img key={i} src={doc} alt="Preview" className="h-16 w-auto rounded border border-amber-200 object-cover" />
-                       ))}
-                     </div>
+                 
+                 <div className="space-y-4">
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">නිර්දේශය (Recommendation)</label>
+                     <select value={evaluationStatus} onChange={e => setEvaluationStatus(e.target.value)} className="w-full border border-amber-300 rounded-lg p-2 bg-white">
+                       <option value="RECOMMENDED">අනුමත කිරීමට නිර්දේශ කරමි (Recommend)</option>
+                       <option value="NOT_RECOMMENDED">නිර්දේශ නොකරමි (Not Recommend)</option>
+                       <option value="NEEDS_MORE_INFO">වැඩිදුර තොරතුරු අවශ්‍යයි (Needs More Info)</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">ඇගයීම් සටහන් (Evaluation Notes)</label>
+                     <textarea value={evaluationNotes} onChange={e => setEvaluationNotes(e.target.value)} rows={4} className="w-full border border-amber-300 rounded-lg p-2 bg-white" placeholder="පරීක්ෂාවේදී නිරීක්ෂණය කළ කරුණු..."></textarea>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">ඡායාරූප / ලියකියවිලි (Documents/Photos)</label>
+                     <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
+                     {evaluationDocs.length > 0 && (
+                       <div className="flex gap-2 mt-2 flex-wrap">
+                         {evaluationDocs.map((doc, i) => (
+                           <img key={i} src={doc} alt="Preview" className="h-16 w-auto rounded border border-amber-200 object-cover" />
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                   <button onClick={() => handleSubmit(selectedLoan.loanId)} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50">
+                     {submitting ? 'යැවෙමින් පවතී...' : 'වාර්තාව යවන්න (Submit)'}
+                   </button>
+                 </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                 <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> පවරා ඇති ණය පරීක්ෂණ (Pending)</h3>
+                 <div className="space-y-3">
+                   {loading ? (
+                     <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
+                   ) : assignedLoans.length === 0 ? (
+                     <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">පවරා ඇති ණය පරීක්ෂණ නොමැත.</p>
+                   ) : (
+                     assignedLoans.map((l: any) => {
+                       const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                       return (
+                         <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
+                           <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{loanName.charAt(0)}</div>
+                             <div>
+                               <p className="text-sm font-semibold text-slate-800">{loanName}</p>
+                               <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
+                             </div>
+                           </div>
+                           <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">වාර්තාව ඇතුලත් කරන්න</button>
+                         </div>
+                       );
+                     })
                    )}
                  </div>
-                 <button onClick={() => handleSubmit(selectedLoan.loanId)} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50">
-                   {submitting ? 'යැවෙමින් පවතී...' : 'වාර්තාව යවන්න (Submit)'}
-                 </button>
-               </div>
+              </div>
             </div>
-          </div>
+          )
         ) : (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> පවරා ඇති ණය පරීක්ෂණ (Pending)</h3>
-               <div className="space-y-3">
-                 {loading ? (
-                   <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
-                 ) : assignedLoans.length === 0 ? (
-                   <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">පවරා ඇති ණය පරීක්ෂණ නොමැත.</p>
-                 ) : (
-                   assignedLoans.map((l: any) => {
-                     const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
-                     return (
-                       <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
-                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{loanName.charAt(0)}</div>
-                           <div>
-                             <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                             <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
-                           </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+             <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අවසන් කළ ණය පරීක්ෂණ (History)</h3>
+             <div className="space-y-3">
+               {loading ? (
+                 <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
+               ) : completedLoans.length === 0 ? (
+                 <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">අවසන් කළ ණය පරීක්ෂණ නොමැත.</p>
+               ) : (
+                 completedLoans.map((l: any) => {
+                   const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                   return (
+                     <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{loanName.charAt(0)}</div>
+                         <div>
+                           <p className="text-sm font-semibold text-slate-800">{loanName}</p>
+                           <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - {l.evaluationStatus}</p>
                          </div>
-                         <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">වාර්තාව ඇතුලත් කරන්න</button>
                        </div>
-                     );
-                   })
-                 )}
-               </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අවසන් කළ ණය පරීක්ෂණ (Completed)</h3>
-               <div className="space-y-3">
-                 {loading ? (
-                   <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
-                 ) : completedLoans.length === 0 ? (
-                   <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">අවසන් කළ ණය පරීක්ෂණ නොමැත.</p>
-                 ) : (
-                   completedLoans.map((l: any) => {
-                     const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
-                     return (
-                       <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
-                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{loanName.charAt(0)}</div>
-                           <div>
-                             <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                             <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - {l.evaluationStatus}</p>
-                           </div>
-                         </div>
-                         <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">යවා ඇත</span>
-                       </div>
-                     );
-                   })
-                 )}
-               </div>
-            </div>
+                       <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">යවා ඇත</span>
+                     </div>
+                   );
+                 })
+               )}
+             </div>
           </div>
         )}
       </div>
@@ -3852,6 +4343,15 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   }
 
   if (activeTab === 'collection') {
+    const searchSuggestions = searchAccNum.trim().length >= 2 && (!searchedLoan || searchedLoan.accountNumber !== searchAccNum)
+      ? loans.filter((l: any) => 
+          (l.branchId === user?.branchId || !l.branchId) && // Some loans might not have branchId in older mock data
+          (l.status === 'ACTIVE' || l.currentStage === 'DISBURSED') &&
+          (l.accountNumber.toLowerCase().includes(searchAccNum.toLowerCase()) || 
+          (l.applicationData?.name || '').toLowerCase().includes(searchAccNum.toLowerCase()))
+        ).slice(0, 5)
+      : [];
+
     return (
       <div className="space-y-4">
         <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
@@ -3867,46 +4367,197 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-emerald-600" /> අද දින මුදල් එකතු කිරීමේ මාර්ගය</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2"><MapPin size={16} className="text-emerald-600" /> මුදල් එකතු කිරීම් ඉතිහාසය (Collection History)</h3>
+            <button 
+              onClick={() => { setSearchAccNum(''); setSearchedLoan(null); setShowSearchModal(true); }}
+              className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 flex items-center gap-2 shadow-sm transition-all"
+            >
+              <Plus size={16} /> අලුත් එකතු කිරීමක් (Add Collection)
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="දිනය, නම හෝ ගිණුම් අංකයෙන් සොයන්න (Search by date, name or account number)"
+                value={collectionHistoryFilter}
+                onChange={e => setCollectionHistoryFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
           
           <div className="space-y-3">
-            {loading ? (
-              <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
-            ) : collectionList.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">එකතු කිරීමට නියමිත ගනුදෙනුකරුවන් නොමැත.</p>
+            {filteredCollections.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-8 border border-dashed rounded-xl border-slate-300 bg-slate-50">
+                ගැලපෙන කිසිදු මුදල් එකතු කිරීමක් හමු නොවිණි.
+              </p>
             ) : (
-              collectionList.map((l: any) => {
-                const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+              filteredCollections.map((c: any, i: number) => {
+                const matchedLoan = loans.find(l => l.loanId === c.loanId);
+                const name = matchedLoan?.applicationData?.name || matchedLoan?.applicationData?.applicantName || 'Unknown';
+                const accNum = matchedLoan?.accountNumber || c.loanId.substring(0, 8);
+                const isHandedOver = c.status === 'HANDED_OVER';
+
                 return (
-                  <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">{loanName.charAt(0)}</div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                        <p className="text-xs text-slate-500">{l.applicationData?.addressLine1} | {l.applicationData?.nic}</p>
+                <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:shadow-md hover:border-emerald-200 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl ${isHandedOver ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'} flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform`}>
+                      <Banknote size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-slate-800"><span className="text-slate-600 font-medium text-sm mr-2">සාමාජිකයාගේ නම:</span>{name}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[12px] font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-800 font-bold">
+                           <span className="text-slate-500 font-semibold font-sans mr-1">ණය අංකය:</span>{accNum}
+                        </span>
+                        {(matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo || matchedLoan?.applicationData?.nic) && (
+                          <span className="text-[12px] font-bold bg-slate-50 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
+                            <span className="text-slate-500 font-semibold mr-1">{matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo ? 'සාමාජික අංකය:' : 'ජා.හැ.ප අංකය:'}</span>
+                            {matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo || matchedLoan?.applicationData?.nic}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-2 text-[12px] text-slate-700 font-bold">
+                        <Calendar size={14} className="text-slate-500" />
+                        <span>{new Date(c.createdAt || c.collectedAt || Date.now()).toLocaleDateString('si-LK')}</span>
+                        <span className="text-slate-400 mx-1">•</span>
+                        <Clock size={14} className="text-slate-500" />
+                        <span>{new Date(c.createdAt || c.collectedAt || Date.now()).toLocaleTimeString('si-LK', {hour: '2-digit', minute:'2-digit'})}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setSelectedLoanForDetails(l)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300 flex items-center gap-2">
-                        <Eye size={14} /> විස්තර බලන්න
-                      </button>
-                      <button onClick={() => { setCollectionLoan(l); setShowCollectModal(true); setCollectAmount(''); }} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center gap-2">
-                        <DollarSign size={14} /> වාරිකය ලබාගන්න
-                      </button>
+                  </div>
+                  <div className="text-right flex flex-col items-end">
+                    <p className={`text-lg font-black tracking-tight ${isHandedOver ? 'text-blue-700' : 'text-emerald-700'}`}>Rs. {c.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg mt-1.5 border ${isHandedOver ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                      {isHandedOver ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{isHandedOver ? 'Handed Over' : 'Pending Handover'}</span>
                     </div>
                   </div>
-                );
-              })
+                </div>
+              )})
             )}
           </div>
         </div>
+
+        {/* Search Modal */}
+        {showSearchModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+             <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Search className="text-emerald-600" size={20}/> ණය ගිණුම සොයන්න</h3>
+                  <button onClick={() => setShowSearchModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                </div>
+                
+                <div className="flex gap-3 mb-6 relative">
+                  <div className="flex-1 relative">
+                    <input 
+                      type="text" 
+                      placeholder="උදා: LN-12345 (Enter Loan Account Number)" 
+                      value={searchAccNum} 
+                      onChange={e => { setSearchAccNum(e.target.value); setSearchedLoan(null); setSearchError(''); }}
+                      onKeyDown={e => e.key === 'Enter' && handleSearchLoan()}
+                      className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      autoFocus
+                    />
+                    {searchSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {searchSuggestions.map((s: any) => (
+                          <div 
+                            key={s.loanId} 
+                            onClick={() => {
+                              setSearchAccNum(s.accountNumber);
+                              setSearchedLoan(s);
+                              setSearchError('');
+                            }}
+                            className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors"
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-slate-800">{s.applicationData?.name || s.applicationData?.applicantName || 'Unknown'}</p>
+                              <p className="text-xs text-slate-500 font-mono mt-0.5">{s.accountNumber}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={handleSearchLoan} 
+                    disabled={loading}
+                    className="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center gap-2 transition-colors h-[50px] self-start"
+                  >
+                    {loading ? 'සොයමින්...' : 'සොයන්න'}
+                  </button>
+                </div>
+
+                {searchError && (
+                  <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+                    <AlertTriangle size={16} /> {searchError}
+                  </div>
+                )}
+
+                {searchedLoan && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex items-center justify-between p-5 rounded-xl border-2 border-emerald-100 bg-emerald-50/50">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold text-xl shadow-inner">
+                          {(searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || 'U').charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-slate-800">{searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || 'Unknown'}</p>
+                          <p className="text-sm text-slate-600 font-medium font-mono bg-white px-2 py-0.5 rounded border border-slate-100 inline-block mt-1">{searchedLoan.accountNumber}</p>
+                          <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1"><MapPin size={12}/> {searchedLoan.applicationData?.addressLine1}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => setSelectedLoanForDetails(searchedLoan)} className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 flex items-center gap-1 shadow-sm transition-colors">
+                            <Eye size={14} /> විස්තර
+                          </button>
+                          <button onClick={() => { setCollectionLoan(searchedLoan); setShowCollectModal(true); setCollectAmount(''); setCollectDate(new Date().toLocaleDateString('en-CA')); }} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-md transition-all hover:scale-105 active:scale-95">
+                            <Plus size={14} /> එකතු කරන්න
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+             </div>
+          </div>
+        )}
 
         {/* Collection Modal */}
         {showCollectModal && collectionLoan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
                 <h3 className="text-lg font-bold text-slate-800 mb-2">වාරිකය එකතු කිරීම</h3>
-                <p className="text-sm text-slate-500 mb-4">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName}</p>
+                <div className="flex justify-between items-start mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-800">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName}</p>
+                    <ul className="mt-2 space-y-1.5 list-disc list-inside text-xs text-slate-600 ml-1 marker:text-emerald-500">
+                      <li>
+                        <span className="font-bold text-slate-800">ණය අංකය:</span> <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{collectionLoan.accountNumber}</span>
+                      </li>
+                      {(collectionLoan.applicationData?.membershipNumber || collectionLoan.applicationData?.memberNo || collectionLoan.applicationData?.nic) && (
+                        <li>
+                          <span className="font-bold text-slate-800">{collectionLoan.applicationData?.membershipNumber || collectionLoan.applicationData?.memberNo ? 'සාමාජික අංකය:' : 'ජා.හැ.ප අංකය:'}</span>{' '}
+                          <span className="bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded font-medium border border-emerald-100">
+                            {collectionLoan.applicationData?.membershipNumber || collectionLoan.applicationData?.memberNo || collectionLoan.applicationData?.nic}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  <input 
+                    type="date" 
+                    value={collectDate}
+                    onChange={(e) => setCollectDate(e.target.value)}
+                    className="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded-md border border-slate-300 shadow-sm mt-0.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+                  />
+                </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-700 mb-1">මුදල (Rs.)</label>
                   <input type="number" value={collectAmount} onChange={e => setCollectAmount(e.target.value)} className="w-full border-2 border-emerald-500 rounded-xl p-3 text-lg font-bold text-emerald-800 focus:outline-none" autoFocus placeholder="1000" />
@@ -4136,12 +4787,1033 @@ function LedgerView({ branchId }: { branchId?: number }) {
   );
 }
 
+// ── Summary Ledger View (ශේෂ පත්‍ර ලේඛන සාරාංශය) ──────────────────────────────
+function SummaryLedgerView({ branchId, members }: { branchId?: number; members: AccountService.MemberData[] }) {
+  const { t } = useLanguage();
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
+  const [branches, setBranches] = useState<any[]>([]);
+
+  useEffect(() => {
+    BranchService.getBranches().then(setBranches).catch(() => {});
+  }, []);
+
+  const getDynamicBranchName = () => {
+    const b = branches.find(x => x.branchId === branchId);
+    return b ? b.branchName : `Branch ${branchId}`;
+  };
+  const [summaryData, setSummaryData] = useState<{
+    memberActive: { name: string; count: number; balance: number }[];
+    memberInactive: { name: string; count: number; balance: number }[];
+    nonMemberActive: { name: string; count: number; balance: number }[];
+    nonMemberInactive: { name: string; count: number; balance: number }[];
+    fds: { name: string; count: number; balance: number }[];
+    loans: { name: string; count: number; balance: number }[];
+    pawning: { name: string; count: number; balance: number }[];
+    totalSavings: number;
+    totalFds: number;
+    totalLoans: number;
+    totalPawn: number;
+    totalLiabilities: number;
+    totalAssets: number;
+  } | null>(null);
+
+  const MONTHS = [
+    { value: 1, label: 'ජනවාරි (January)' },
+    { value: 2, label: 'පෙබරවාරි (February)' },
+    { value: 3, label: 'මාර්තු (March)' },
+    { value: 4, label: 'අප්‍රේල් (April)' },
+    { value: 5, label: 'මැයි (May)' },
+    { value: 6, label: 'ජූනි (June)' },
+    { value: 7, label: 'ජූලි (July)' },
+    { value: 8, label: 'අගෝස්තු (August)' },
+    { value: 9, label: 'සැප්තැම්බර් (September)' },
+    { value: 10, label: 'ඔක්තෝබර් (October)' },
+    { value: 11, label: 'නොවැම්බර් (November)' },
+    { value: 12, label: 'දෙසැම්බර් (December)' },
+  ];
+
+  const fetchSummary = async () => {
+    setLoading(true);
+    try {
+      const [savings, fds, loansList, pawnTickets, fdTypes] = await Promise.all([
+        AccountService.getBranchAccounts().catch(() => []),
+        AccountService.getFixedDeposits().catch(() => []),
+        LoanService.getLoans().catch(() => []),
+        PawningService.getTicketsByBranch(branchId || 1).catch(() => []),
+        AccountService.getFixedDepositTypes().catch(() => [])
+      ]);
+
+      const year = new Date().getFullYear();
+      const endDay = new Date(year, selectedMonth, 0).getDate();
+      const toDateStr = `${year}-${String(selectedMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+      const toDateVal = new Date(toDateStr);
+
+      const isBeforeDate = (dateVal: any) => {
+        if (!dateVal) return true;
+        return new Date(dateVal) <= toDateVal;
+      };
+
+      // Filter by selected month
+      const filteredSavings = savings.filter((a: any) => isBeforeDate(a.openedDate));
+      const filteredFds = fds.filter((f: any) => f.status === 'ACTIVE' && isBeforeDate(f.openedDate));
+      
+      const filteredLoans = loansList.filter((l: any) => {
+        if (l.status !== 'ACTIVE' && l.status !== 'DISBURSED') return false;
+        const lDate = l.disbursementDate || l.createdAt || l.appliedDate;
+        return isBeforeDate(lDate);
+      });
+
+      const filteredPawn = pawnTickets.filter((t: any) => {
+        if (t.status !== 'ACTIVE' && t.status !== 'OVERDUE') return false;
+        return isBeforeDate(t.issueDate);
+      });
+
+      const getDisplayName = (typeStr: string) => {
+        const tLower = typeStr.toLowerCase().trim();
+        if (tLower === 'samanaya' || tLower === 'normal') return 'සාමාන්‍ය';
+        if (tLower === 'janasetha') return 'ජනසෙත';
+        if (tLower === 'ranthilina') return 'රන්තිලින';
+        if (tLower === 'arunalu') return 'අරුණලු';
+        if (tLower === 'dhana_yojana' || tLower === 'dhana yojana') return 'ධනෝපායන';
+        if (tLower === 'vandana') return 'වන්දනා';
+        if (tLower === 'jeewana' || tLower === 'jeevana') return 'ජීවන';
+        if (tLower === 'sewana') return 'සෙවන';
+        return typeStr;
+      };
+
+      // 1. Group Savings by member status and active status
+      const memberActiveGroups: { [key: string]: { count: number; balance: number } } = {};
+      const memberInactiveGroups: { [key: string]: { count: number; balance: number } } = {};
+      const nonMemberActiveGroups: { [key: string]: { count: number; balance: number } } = {};
+      const nonMemberInactiveGroups: { [key: string]: { count: number; balance: number } } = {};
+
+      filteredSavings.forEach((a: any) => {
+        const rawType = a.accountType || 'Normal Savings';
+        const type = getDisplayName(rawType);
+        const member = members.find((m: any) => m.memberId === a.memberId);
+        const isMember = member ? member.isMember !== false : false;
+        const isActive = a.status === 'ACTIVE';
+
+        const targetGroup = isMember 
+          ? (isActive ? memberActiveGroups : memberInactiveGroups)
+          : (isActive ? nonMemberActiveGroups : nonMemberInactiveGroups);
+
+        if (!targetGroup[type]) {
+          targetGroup[type] = { count: 0, balance: 0 };
+        }
+        targetGroup[type].count += 1;
+        targetGroup[type].balance += Number(a.balance) || 0;
+      });
+
+      const memberActiveList = Object.keys(memberActiveGroups).map(name => ({
+        name,
+        count: memberActiveGroups[name].count,
+        balance: memberActiveGroups[name].balance
+      }));
+      const memberInactiveList = Object.keys(memberInactiveGroups).map(name => ({
+        name,
+        count: memberInactiveGroups[name].count,
+        balance: memberInactiveGroups[name].balance
+      }));
+      const nonMemberActiveList = Object.keys(nonMemberActiveGroups).map(name => ({
+        name,
+        count: nonMemberActiveGroups[name].count,
+        balance: nonMemberActiveGroups[name].balance
+      }));
+      const nonMemberInactiveList = Object.keys(nonMemberInactiveGroups).map(name => ({
+        name,
+        count: nonMemberInactiveGroups[name].count,
+        balance: nonMemberInactiveGroups[name].balance
+      }));
+
+      // 2. Fixed Deposits (Group by category only)
+      const getFdCategoryName = (f: any) => {
+        const typeObj = fdTypes.find((t: any) => t.id === f.typeId || t.id === f.fdTypeId);
+        if (typeObj && typeObj.name) {
+          // E.g. "සාමාන්‍ය ස්ථාවර තැන්පතු - 12 මාස" -> "සාමාන්‍ය ස්ථාවර තැන්පතු"
+          return typeObj.name.split(' - ')[0].trim();
+        }
+        // Fallback if type not found
+        return 'සාමාන්‍ය ස්ථාවර තැන්පතු';
+      };
+
+      const fdGroups: { [key: string]: { count: number; balance: number } } = {};
+      filteredFds.forEach((f: any) => {
+        const type = getFdCategoryName(f);
+        
+        if (!fdGroups[type]) {
+          fdGroups[type] = { count: 0, balance: 0 };
+        }
+        fdGroups[type].count += 1;
+        fdGroups[type].balance += Number(f.principalAmount) || 0;
+      });
+
+      const fdList = Object.keys(fdGroups).map(name => ({
+        name,
+        count: fdGroups[name].count,
+        balance: fdGroups[name].balance
+      }));
+
+      // 3. Group Loans by type
+      const loanGroups: { [key: string]: { count: number; balance: number } } = {};
+      filteredLoans.forEach((l: any) => {
+        const type = l.loanType?.name || l.loanTypeStr || 'Normal Loan';
+        if (!loanGroups[type]) {
+          loanGroups[type] = { count: 0, balance: 0 };
+        }
+        loanGroups[type].count += 1;
+        loanGroups[type].balance += Number(l.outstandingBalance || l.amount || 0);
+      });
+
+      const loanList = Object.keys(loanGroups).map(name => ({
+        name,
+        count: loanGroups[name].count,
+        balance: loanGroups[name].balance
+      }));
+
+      // 4. Pawning
+      const totalPawnLoan = filteredPawn.reduce((sum: number, t: any) => sum + (Number(t.advanceAmount) || 0), 0);
+      let totalPaymentsCount = 0;
+      let totalPaymentsAmount = 0;
+      filteredPawn.forEach((t: any) => {
+        if (t.payments && Array.isArray(t.payments)) {
+          totalPaymentsCount += t.payments.length;
+          totalPaymentsAmount += t.payments.reduce((sum: number, p: any) => sum + (Number(p.paymentAmount) || 0), 0);
+        }
+      });
+
+      const pawnList: any[] = [];
+      if (filteredPawn.length > 0) {
+        pawnList.push({ name: 'උ/ණය (Pawn Loans)', count: filteredPawn.length, balance: totalPawnLoan });
+        pawnList.push({ name: 'උ/වාරික (Pawn Repayments)', count: totalPaymentsCount, balance: totalPaymentsAmount });
+      }
+
+      const totalS = filteredSavings.reduce((s: number, a: any) => s + (Number(a.balance) || 0), 0);
+      const totalF = fdList.reduce((s, i) => s + i.balance, 0);
+      const totalL = loanList.reduce((s, i) => s + i.balance, 0);
+      const totalP = totalPawnLoan - totalPaymentsAmount;
+
+      setSummaryData({
+        memberActive: memberActiveList,
+        memberInactive: memberInactiveList,
+        nonMemberActive: nonMemberActiveList,
+        nonMemberInactive: nonMemberInactiveList,
+        fds: fdList,
+        loans: loanList,
+        pawning: pawnList,
+        totalSavings: totalS,
+        totalFds: totalF,
+        totalLoans: totalL,
+        totalPawn: totalP,
+        totalLiabilities: totalS + totalF,
+        totalAssets: totalL + totalP
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSummary();
+  }, [branchId, selectedMonth]);
+
+  const splitBalance = (val: number) => {
+    const parts = Number(val || 0).toFixed(2).split('.');
+    return {
+      rupees: parts[0],
+      cents: parts[1]
+    };
+  };
+
+  const handlePrint = () => {
+    const element = document.getElementById('summary-ledger-printable');
+    if (!element) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    // Copy all style links and scripts from the parent document to print window so styles compile
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(node => node.outerHTML)
+      .join('\n');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Summary Ledger - ${t(getDynamicBranchName())}</title>
+          ${styles}
+          <style>
+            @media print {
+              body {
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+              }
+              /* Landscape orientation for wider tables */
+              @page {
+                size: A4 landscape;
+                margin: 5mm;
+              }
+              #summary-ledger-printable {
+                border: 3px solid #1E40AF !important;
+                box-shadow: none !important;
+                padding: 15px !important;
+                background-image: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+              }
+            }
+            body {
+              padding: 20px;
+              background-color: #FAF8F5;
+              font-family: 'Noto Sans Sinhala', sans-serif;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="w-full">
+            ${element.outerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Premium Outside Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 select-none">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50/50 flex items-center justify-center text-[#1E40AF]">
+            <ClipboardList size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-800">ශාඛා සාරාංශ ලේඛනය (Branch Summary Ledger)</h4>
+            <p className="text-xs text-slate-500 font-medium">ශාඛාව (Branch): {t(getDynamicBranchName())}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-600">මාසය තෝරන්න (Select Month):</span>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm min-w-[150px]"
+            >
+              {MONTHS.map(m => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-[#1E40AF] hover:bg-[#1E3A8A] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm hover:shadow transition-all cursor-pointer"
+          >
+            <Printer size={14} />
+            මුද්‍රණය කරන්න (Print)
+          </button>
+        </div>
+      </div>
+
+      <div id="summary-ledger-printable" className="bg-[#FAF8F5] rounded-3xl border-4 border-[#1E40AF]/30 shadow-2xl p-8 relative overflow-hidden select-none"
+           style={{
+             backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px)',
+             backgroundSize: '100% 30px',
+             lineHeight: '30px'
+           }}>
+        
+        {/* Lined Notebook Header */}
+        <div className="flex justify-between items-center mb-6 border-b-2 border-blue-500/40 pb-3 shrink-0">
+          <div className="text-xs font-bold text-blue-600 font-mono">ශාඛාව (Branch): {t(getDynamicBranchName())}</div>
+          <div className="text-xs font-bold text-blue-600 font-mono">
+            මාසය (Month): {MONTHS.find(m => m.value === selectedMonth)?.label}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-blue-700 animate-pulse font-bold text-sm">දත්ත සාරාංශය සකස් කරමින්... (Generating ledger balances...)</div>
+        ) : !summaryData ? (
+          <div className="p-12 text-center text-blue-700 font-bold text-sm">දත්ත ලබා ගැනීමට අපොහොසත් විය.</div>
+        ) : (
+          <div className="grid grid-cols-2 border-4 border-[#1E40AF] rounded-2xl overflow-hidden divide-x-4 divide-double divide-[#1E40AF] bg-[#FAF8F5]">
+            
+            {/* Left Side: Liabilities (Savings & Fixed) */}
+            <div>
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-[#1E40AF] text-[#1E40AF] font-bold bg-blue-50/30">
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">ලේඛනය (Category)</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">ගි/ගණ</th>
+                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>ශේෂය (Balance)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-semibold text-[#1D3D8C]">
+                  
+                  {/* 1. Main Headline */}
+                  <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ඉතුරුම් තැන්පතු (Savings Deposits)</td>
+                  </tr>
+
+                  {/* 1.1 සාමාජික ගිණුම් (Member Accounts) */}
+                  {summaryData.memberActive.length > 0 && (
+                    <>
+                      <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික ගිණුම් (Member Accounts)</td>
+                      </tr>
+                      {summaryData.memberActive.map((item, idx) => {
+                        const sb = splitBalance(item.balance);
+                        return (
+                          <tr key={`sav-ma-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                            <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික ගිණුම්)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
+                          {summaryData.memberActive.reduce((s, i) => s + i.count, 0)}
+                        </td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20 text-[11px]">
+                          {splitBalance(summaryData.memberActive.reduce((s, i) => s + i.balance, 0)).rupees}
+                        </td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                          {splitBalance(summaryData.memberActive.reduce((s, i) => s + i.balance, 0)).cents}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  {/* 1.2 සාමාජික නොවන ගිණුම් (Non-Member Accounts) */}
+                  {summaryData.nonMemberActive.length > 0 && (
+                    <>
+                      <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික නොවන ගිණුම් (Non-Member Accounts)</td>
+                      </tr>
+                      {summaryData.nonMemberActive.map((item, idx) => {
+                        const sb = splitBalance(item.balance);
+                        return (
+                          <tr key={`sav-nma-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                            <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික නොවන ගිණුම්)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
+                          {summaryData.nonMemberActive.reduce((s, i) => s + i.count, 0)}
+                        </td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20 text-[11px]">
+                          {splitBalance(summaryData.nonMemberActive.reduce((s, i) => s + i.balance, 0)).rupees}
+                        </td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                          {splitBalance(summaryData.nonMemberActive.reduce((s, i) => s + i.balance, 0)).cents}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  {/* 1.3 සාමාජික අක්‍රීය ගිණුම් (Inactive Member Accounts) */}
+                  {summaryData.memberInactive.length > 0 && (
+                    <>
+                      <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික අක්‍රීය ගිණුම් (Inactive Member Accounts)</td>
+                      </tr>
+                      {summaryData.memberInactive.map((item, idx) => {
+                        const sb = splitBalance(item.balance);
+                        return (
+                          <tr key={`sav-mi-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20 text-slate-500 bg-blue-50/5">
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                            <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික අක්‍රීය)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
+                          {summaryData.memberInactive.reduce((s, i) => s + i.count, 0)}
+                        </td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20 text-[11px]">
+                          {splitBalance(summaryData.memberInactive.reduce((s, i) => s + i.balance, 0)).rupees}
+                        </td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                          {splitBalance(summaryData.memberInactive.reduce((s, i) => s + i.balance, 0)).cents}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  {/* 1.4 සාමාජික නොවන අක්‍රීය ගිණුම් (Inactive Non-Member Accounts) */}
+                  {summaryData.nonMemberInactive.length > 0 && (
+                    <>
+                      <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික නොවන අක්‍රීය ගිණුම් (Inactive Non-Member Accounts)</td>
+                      </tr>
+                      {summaryData.nonMemberInactive.map((item, idx) => {
+                        const sb = splitBalance(item.balance);
+                        return (
+                          <tr key={`sav-nmi-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20 text-slate-500 bg-blue-50/5">
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                            <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික නොවන අක්‍රීය)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
+                          {summaryData.nonMemberInactive.reduce((s, i) => s + i.count, 0)}
+                        </td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20 text-[11px]">
+                          {splitBalance(summaryData.nonMemberInactive.reduce((s, i) => s + i.balance, 0)).rupees}
+                        </td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                          {splitBalance(summaryData.nonMemberInactive.reduce((s, i) => s + i.balance, 0)).cents}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  {/* 1.3 මුළු ඉතුරුම් තැන්පතු එකතුව */}
+                  <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
+                    <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ඉතුරුම් තැන්පතු)</td>
+                    <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
+                      {summaryData.memberActive.reduce((s, i) => s + i.count, 0) +
+                       summaryData.memberInactive.reduce((s, i) => s + i.count, 0) +
+                       summaryData.nonMemberActive.reduce((s, i) => s + i.count, 0) +
+                       summaryData.nonMemberInactive.reduce((s, i) => s + i.count, 0)}
+                    </td>
+                    <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">
+                      {splitBalance(summaryData.totalSavings).rupees}
+                    </td>
+                    <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                      {splitBalance(summaryData.totalSavings).cents}
+                    </td>
+                  </tr>
+
+                  {/* 2. Fixed Deposits Section Headline */}
+                  <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ස්ථාවර තැන්පතු (Fixed Deposits)</td>
+                  </tr>
+                  {summaryData.fds.map((item, idx) => {
+                    const sb = splitBalance(item.balance);
+                    return (
+                      <tr key={`fd-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                      </tr>
+                    );
+                  })}
+                  {summaryData.fds.length > 0 && (
+                    <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ස්ථාවර තැන්පතු)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
+                        {summaryData.fds.reduce((s, i) => s + i.count, 0)}
+                      </td>
+                      <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">
+                        {splitBalance(summaryData.totalFds).rupees}
+                      </td>
+                      <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                        {splitBalance(summaryData.totalFds).cents}
+                      </td>
+                    </tr>
+                  )}
+
+                </tbody>
+              </table>
+            </div>
+
+            {/* Right Side: Assets (Loans & Pawning) */}
+            <div>
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-[#1E40AF] text-[#1E40AF] font-bold bg-blue-50/30">
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">ලේඛනය (Category)</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">ගි/ගණ</th>
+                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>ශේෂය (Balance)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-semibold text-[#1D3D8C]">
+                  
+                  {/* 1. Loans Section Headline */}
+                  <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ණය ගිණුම් (Loans & Advances)</td>
+                  </tr>
+                  {summaryData.loans.map((item, idx) => {
+                    const sb = splitBalance(item.balance);
+                    return (
+                      <tr key={`loan-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                      </tr>
+                    );
+                  })}
+                  {summaryData.loans.length > 0 && (
+                    <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ණය ගිණුම්)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
+                        {summaryData.loans.reduce((s, i) => s + i.count, 0)}
+                      </td>
+                      <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">
+                        {splitBalance(summaryData.totalLoans).rupees}
+                      </td>
+                      <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                        {splitBalance(summaryData.totalLoans).cents}
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* 2. Pawning Section Headline */}
+                  <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>උකස් අත්තිකාරම් (Pawn Advances)</td>
+                  </tr>
+                  {summaryData.pawning.map((item, idx) => {
+                    const sb = splitBalance(item.balance);
+                    return (
+                      <tr key={`pawn-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
+                        <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
+                        <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
+                      </tr>
+                    );
+                  })}
+                  {summaryData.pawning.length > 0 && (
+                    <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (උකස් අත්තිකාරම්)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
+                        {summaryData.pawning.reduce((s, i) => s + i.count, 0)}
+                      </td>
+                      <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">
+                        {splitBalance(summaryData.totalPawn).rupees}
+                      </td>
+                      <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">
+                        {splitBalance(summaryData.totalPawn).cents}
+                      </td>
+                    </tr>
+                  )}
+
+                </tbody>
+              </table>
+            </div>
+
+
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Vault Cash View (මුදල් ශේෂය සහ ගනුදෙනු) ──────────────────────────────
+function VaultCashView({ branchId }: { branchId?: number }) {
+  const [loading, setLoading] = useState(true);
+  const [filterMode, setFilterMode] = useState<'MONTH' | 'DAY'>('MONTH');
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [membersMap, setMembersMap] = useState<Record<string, { memberNo: string, name: string }>>({});
+  
+  useEffect(() => {
+    AccountService.getBranchMembers().then(members => {
+      const map: Record<string, { memberNo: string, name: string }> = {};
+      members.forEach(m => {
+        if (m.memberId) {
+          map[m.memberId] = {
+            memberNo: m.membershipNumber || '',
+            name: m.nameWithInitials || m.fullName || 'Unknown'
+          };
+        }
+      });
+      setMembersMap(map);
+    }).catch(console.error);
+  }, [branchId]);
+
+  const [cashData, setCashData] = useState<{
+    inflow: { parsed: { title: string; details: string[]; account: string }; amount: number }[];
+    outflow: { parsed: { title: string; details: string[]; account: string }; amount: number }[];
+    totalInflow: number;
+    totalOutflow: number;
+    vaultBalance: number;
+  } | null>(null);
+
+  const MONTHS = [
+    { value: 1, label: 'ජනවාරි (January)' },
+    { value: 2, label: 'පෙබරවාරි (February)' },
+    { value: 3, label: 'මාර්තු (March)' },
+    { value: 4, label: 'අප්‍රේල් (April)' },
+    { value: 5, label: 'මැයි (May)' },
+    { value: 6, label: 'ජූනි (June)' },
+    { value: 7, label: 'ජූලි (July)' },
+    { value: 8, label: 'අගෝස්තු (August)' },
+    { value: 9, label: 'සැප්තැම්බර් (September)' },
+    { value: 10, label: 'ඔක්තෝබර් (October)' },
+    { value: 11, label: 'නොවැම්බර් (November)' },
+    { value: 12, label: 'දෙසැම්බර් (December)' },
+  ];
+
+  const parseLedgerDescription = (raw: string, relatedAccount: string, mMap: Record<string, { memberNo: string, name: string }>) => {
+    if (!raw) return { title: 'හඳුනා නොගත් ගනුදෙනුවක් (Unknown Transaction)', details: [], account: relatedAccount };
+    
+    const titleTranslations: Record<string, string> = {
+      'Loan Disbursement': 'ණය මුදල නිකුත් කිරීම',
+      'Loan Repayment (Cash In)': 'ණය වාරිකය අයකර ගැනීම',
+      'Loan Repayment': 'ණය වාරිකය අයකර ගැනීම',
+      'Cash Deposit': 'මුදල් තැන්පතුව',
+      'Cash Withdrawal': 'මුදල් ආපසු ගැනීම',
+      'Pawning Advance': 'උකස් අත්තිකාරම් නිකුතුව',
+      'Pawning Redemption': 'උකස් බේරා ගැනීම'
+    };
+
+    // Split by '—' or '|'
+    const parts = raw.split(/—|\|/).map(s => s.trim()).filter(Boolean);
+    
+    let originalTitle = parts[0] || 'Transaction';
+    let title = originalTitle;
+    
+    // Handle specific dynamic titles
+    if (originalTitle.startsWith('Field Cash Handover by')) {
+      const username = originalTitle.replace('Field Cash Handover by', '').trim();
+      title = `ක්ෂේත්‍ර නිලධාරී අත්තිකාරම් බේරුම් කිරීම (${username})`;
+    } else {
+      title = titleTranslations[originalTitle] || originalTitle;
+    }
+    
+    const details: string[] = [];
+    
+    if (parts.length > 1) {
+      for (let i = 1; i < parts.length; i++) {
+        let detail = parts[i];
+        if (detail.startsWith('Member:')) {
+          const uuid = detail.replace('Member:', '').trim();
+          const memberInfo = mMap[uuid];
+          if (memberInfo) {
+            detail = `සාමාජික අංකය: ${memberInfo.memberNo} - ${memberInfo.name}`;
+          } else {
+            detail = `සාමාජික අංකය: ${uuid}`;
+          }
+        } else if (detail.startsWith('සාමාජික අංකය:')) {
+          const uuid = detail.replace('සාමාජික අංකය:', '').trim();
+          const memberInfo = mMap[uuid];
+          if (memberInfo) {
+            detail = `සාමාජික අංකය: ${memberInfo.memberNo} - ${memberInfo.name}`;
+          }
+        }
+        if (detail.startsWith('Method:')) detail = detail.replace('Method:', 'ක්‍රමය:');
+        details.push(detail);
+      }
+    }
+    return { title, details, account: relatedAccount };
+  };
+
+  const fetchCashData = async () => {
+    setLoading(true);
+    try {
+      const ledgerData = await LedgerService.getBranchLedger(branchId || 1).catch(() => []);
+
+      const year = new Date().getFullYear();
+      let targetDateEnd: Date;
+      let isDisplayMatch: (d: any) => boolean;
+
+      if (filterMode === 'MONTH') {
+        const endDay = new Date(year, selectedMonth, 0).getDate();
+        targetDateEnd = new Date(year, selectedMonth - 1, endDay, 23, 59, 59);
+        isDisplayMatch = (dateVal: any) => {
+          if (!dateVal) return false;
+          try {
+             let y, m;
+             if (Array.isArray(dateVal)) {
+                y = Number(dateVal[0]);
+                m = Number(dateVal[1]);
+             } else {
+                const d = new Date(dateVal);
+                y = d.getFullYear();
+                m = d.getMonth() + 1;
+             }
+             return y === year && m === selectedMonth;
+          } catch(e) { return false; }
+        };
+      } else {
+        const [sy, sm, sd] = selectedDate.split('-').map(Number);
+        targetDateEnd = new Date(sy, sm - 1, sd, 23, 59, 59);
+        isDisplayMatch = (dateVal: any) => {
+          if (!dateVal) return false;
+          try {
+             let y, m, d;
+             if (Array.isArray(dateVal)) {
+                y = Number(dateVal[0]);
+                m = Number(dateVal[1]);
+                d = Number(dateVal[2]);
+             } else {
+                const dt = new Date(dateVal);
+                y = dt.getFullYear();
+                m = dt.getMonth() + 1;
+                d = dt.getDate();
+             }
+             return y === sy && m === sm && d === sd;
+          } catch(e) { return false; }
+        };
+      }
+
+      let cumulativeIn = 0;
+      let cumulativeOut = 0;
+      ledgerData.forEach((e: any) => {
+        let dObj: Date;
+        if (Array.isArray(e.entryDate) && e.entryDate.length >= 3) {
+           dObj = new Date(e.entryDate[0], e.entryDate[1] - 1, e.entryDate[2]);
+        } else {
+           dObj = new Date(e.entryDate);
+        }
+        if (dObj && !isNaN(dObj.getTime()) && dObj <= targetDateEnd) {
+          const amt = Number(e.amount) || 0;
+          if (e.debitAccount === 'CASH_IN_VAULT') cumulativeIn += amt;
+          if (e.creditAccount === 'CASH_IN_VAULT') cumulativeOut += amt;
+        }
+      });
+      const vaultBalance = Math.max(0, cumulativeIn - cumulativeOut);
+
+      const inflowList: { parsed: any; amount: number }[] = [];
+      const outflowList: { parsed: any; amount: number }[] = [];
+
+      ledgerData.filter((e: any) => isDisplayMatch(e.entryDate)).forEach((e: any) => {
+        const amt = Number(e.amount) || 0;
+        if (e.debitAccount === 'CASH_IN_VAULT') {
+          const parsed = parseLedgerDescription(e.description || 'Cash Inflow', e.creditAccount || 'Other', membersMap);
+          const timeStamp = e.createdAt || e.entryDate;
+          if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
+          inflowList.push({ parsed, amount: amt });
+        }
+        if (e.creditAccount === 'CASH_IN_VAULT') {
+          const parsed = parseLedgerDescription(e.description || 'Cash Outflow', e.debitAccount || 'Other', membersMap);
+          const timeStamp = e.createdAt || e.entryDate;
+          if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
+          outflowList.push({ parsed, amount: amt });
+        }
+      });
+
+      const totalIn = inflowList.reduce((sum, item) => sum + item.amount, 0);
+      const totalOut = outflowList.reduce((sum, item) => sum + item.amount, 0);
+
+      setCashData({
+        inflow: inflowList,
+        outflow: outflowList,
+        totalInflow: totalIn,
+        totalOutflow: totalOut,
+        vaultBalance
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCashData();
+  }, [branchId, selectedMonth, selectedDate, filterMode, membersMap]);
+
+  const splitBalance = (val: number) => {
+    const parts = Number(val || 0).toFixed(2).split('.');
+    return {
+      rupees: parts[0] || '0',
+      cents: parts[1] || '00'
+    };
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-[#FAF8F5] rounded-3xl border-4 border-indigo-600/30 shadow-2xl p-8 relative overflow-hidden select-none"
+           style={{
+             backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px)',
+             backgroundSize: '100% 30px',
+             lineHeight: '30px'
+           }}>
+        
+        {/* Header */}
+        <div className="flex flex-wrap justify-between items-center mb-8 border-b-2 border-indigo-500 pb-4 gap-4">
+          <div className="text-sm font-bold text-indigo-600 font-mono">ශාඛාව (Branch): {getBranchName(branchId || 1)}</div>
+          <h3 className="text-xl font-bold text-indigo-700 text-center uppercase tracking-widest font-mono flex-1 pl-4">
+            මුදල් ශේෂ විස්තරය (VAULT CASH STATEMENT)
+          </h3>
+          <div className="flex items-center gap-4 bg-indigo-50/50 p-2 rounded-xl border border-indigo-100 shadow-sm">
+            <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider pl-2 hidden sm:inline-block">Filter By:</span>
+            <div className="flex border-2 border-indigo-500 rounded-lg overflow-hidden shrink-0 shadow-sm">
+              <button
+                className={`px-4 py-1.5 text-xs font-bold transition-colors ${filterMode === 'MONTH' ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}
+                onClick={() => setFilterMode('MONTH')}
+              >
+                මාසික (Monthly)
+              </button>
+              <button
+                className={`px-4 py-1.5 text-xs font-bold transition-colors ${filterMode === 'DAY' ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}
+                onClick={() => setFilterMode('DAY')}
+              >
+                දෛනික (Daily)
+              </button>
+            </div>
+            
+            <div className="h-8 w-px bg-indigo-200 mx-1"></div>
+            
+            {filterMode === 'MONTH' ? (
+              <div className="relative">
+                <select
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(Number(e.target.value))}
+                  className="appearance-none border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+                >
+                  {MONTHS.map(m => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+            ) : (
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+              />
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-indigo-700 animate-pulse font-bold text-sm">දත්ත ලබා ගනිමින්... (Loading vault details...)</div>
+        ) : !cashData ? (
+          <div className="p-12 text-center text-indigo-700 font-bold text-sm">දත්ත ලබා ගැනීමට අපොහොසත් විය.</div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 border-4 border-indigo-600 rounded-2xl overflow-hidden divide-x-4 divide-double divide-indigo-600 bg-[#FAF8F5]">
+              
+              {/* Left Side: Cash Inflow */}
+              <div>
+                <div className="bg-indigo-50 p-2 font-bold text-center border-b-2 border-indigo-600 text-indigo-700 text-sm tracking-wide">
+                  මුදල් ලැබීම් (Cash Inflows / Debits)
+                </div>
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
+                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">විස්තරය (Description)</th>
+                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>මුදල (Amount)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-semibold text-indigo-900">
+                    {cashData.inflow.length === 0 && (
+                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">ලැබීම් නොමැත (No inflows)</td></tr>
+                    )}
+                    {cashData.inflow.map((item, idx) => {
+                      const sb = splitBalance(item.amount);
+                      return (
+                        <tr key={`in-${idx}`} className="hover:bg-indigo-50/20 border-b border-indigo-600/20">
+                          <td className="px-3 py-2 border-r border-indigo-600/40 align-top">
+                            <div className="font-bold text-indigo-900 mb-1">{item.parsed.title}</div>
+                            {item.parsed.details.map((d: string, i: number) => (
+                              <div key={i} className="text-[10px] text-indigo-700 font-mono mt-0.5 opacity-90">• {d}</div>
+                            ))}
+                            <div className="text-[9px] bg-indigo-100/70 border border-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded inline-block mt-1.5 font-mono uppercase">
+                              {item.parsed.account}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono border-r border-indigo-600/20 align-top pt-3">{sb.rupees}</td>
+                          <td className="px-1.5 py-2 text-center font-mono text-[10px] w-8 align-top pt-3.5">{sb.cents}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Right Side: Cash Outflow */}
+              <div>
+                <div className="bg-indigo-50 p-2 font-bold text-center border-b-2 border-indigo-600 text-indigo-700 text-sm tracking-wide">
+                  මුදල් ගෙවීම් (Cash Outflows / Credits)
+                </div>
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
+                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">විස්තරය (Description)</th>
+                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>මුදල (Amount)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-semibold text-indigo-900">
+                    {cashData.outflow.length === 0 && (
+                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">ගෙවීම් නොමැත (No outflows)</td></tr>
+                    )}
+                    {cashData.outflow.map((item, idx) => {
+                      const sb = splitBalance(item.amount);
+                      return (
+                        <tr key={`out-${idx}`} className="hover:bg-indigo-50/20 border-b border-indigo-600/20">
+                          <td className="px-3 py-2 border-r border-indigo-600/40 align-top">
+                            <div className="font-bold text-indigo-900 mb-1">{item.parsed.title}</div>
+                            {item.parsed.details.map((d: string, i: number) => (
+                              <div key={i} className="text-[10px] text-indigo-700 font-mono mt-0.5 opacity-90">• {d}</div>
+                            ))}
+                            <div className="text-[9px] bg-indigo-100/70 border border-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded inline-block mt-1.5 font-mono uppercase">
+                              {item.parsed.account}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono border-r border-indigo-600/20 align-top pt-3">{sb.rupees}</td>
+                          <td className="px-1.5 py-2 text-center font-mono text-[10px] w-8 align-top pt-3.5">{sb.cents}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+
+            {/* Vault Balance Card removed as per request */}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function BranchDashboard({ overrideActiveTab, hideSidebar, overrideRole, readOnly, onBack }: { overrideActiveTab?: string, hideSidebar?: boolean, overrideRole?: string, readOnly?: boolean, onBack?: () => void } = {}) {
   const navigate   = useNavigate();
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const user       = AuthService.getCurrentUser();
+  const role       = overrideRole || user?.role?.replace('ROLE_', '') || 'TELLER';
+  const navItems   = ROLE_NAV[role] || ROLE_NAV['TELLER'];
   const [internalTab, setTabState] = useState(() => localStorage.getItem('hmcs_active_tab') || 'overview');
-  const tab = overrideActiveTab || internalTab;
+  const tab = overrideActiveTab || (navItems.some(n => n.key === internalTab) ? internalTab : 'overview');
   
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({ open: false, message: '', severity: 'info' });
   const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => setSnackbar({ open: true, message, severity });
@@ -4150,6 +5822,9 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [committeeApprovedCount, setCommitteeApprovedCount] = useState(0);
+  const [pendingPawnCount, setPendingPawnCount] = useState(0);
+  const [pendingEvaluationsCount, setPendingEvaluationsCount] = useState(0);
+  const [pendingHandoversCount, setPendingHandoversCount] = useState(0);
 
   useEffect(() => {
     const currentRole = user?.role?.replace('ROLE_', '');
@@ -4161,7 +5836,11 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
           const pending = myLoans.filter((l: any) => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
           setPendingApprovalsCount(pending.length);
           
-          const committee = myLoans.filter((l: any) => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED');
+          const requiresCommittee = (l: any) => {
+            const typeStr = (l.loanType?.name || l.loanTypeStr || '').toLowerCase();
+            return typeStr.includes('සේවක') || typeStr.includes('කෙටි');
+          };
+          const committee = myLoans.filter((l: any) => l.currentStage === 'STAGE_3_APPROVED' && l.status === 'APPROVED' && requiresCommittee(l));
           setCommitteeApprovedCount(committee.length);
           
           if (pending.length > 0) {
@@ -4181,14 +5860,64 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
         }).catch(() => {});
       });
     }
+
+    // For LOAN_COMMITTEE - fetch pending pawning tickets count and pending loan approvals
+    if (currentRole === 'LOAN_COMMITTEE') {
+      import('../services/loan.service').then(LoanService => {
+        LoanService.getLoans().then(loans => {
+          const pending = loans.filter((l: any) => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' && l.status === 'PENDING');
+          setPendingApprovalsCount(pending.length);
+        }).catch(() => {});
+      });
+      PawningService.getAllTickets().then((tickets: any[]) => {
+        const pending = tickets.filter((t: any) => t.status === 'PENDING');
+        setPendingPawnCount(pending.length);
+        if (pending.length > 0) {
+          setNotifications(prev => {
+            const pawnNotifs = pending.map((t: any) => ({
+              type: 'PAWN_APPROVAL',
+              isRead: false,
+              title: `නව උකස් අනුමැතිය අවශ්‍යයි (${t.ticketNumber})`,
+              message: `ශාඛාව ${t.branchId} ගෙන් උකස් පත්‍රිකාවක් අනුමැතිය ලබා ගැනීමට ඉදිරිපත් වී ඇත.`,
+              timestamp: new Date().toISOString()
+            }));
+            const filtered = prev.filter(n => n.type !== 'PAWN_APPROVAL');
+            return [...pawnNotifs, ...filtered];
+          });
+        }
+      }).catch(() => {});
+    }
+
+    // For FIELD_OFFICER - fetch pending loan evaluations count
+    if (currentRole === 'FIELD_OFFICER' || currentRole?.includes('FIELD')) {
+      import('../services/loan.service').then(LoanService => {
+        LoanService.getLoans().then(loans => {
+          const currentUserId = user?.userId || (user?.username === 'field_hkw' ? '5c64fca7-e8d7-454f-b882-467b904d5dbb' : null);
+          const pending = loans.filter((l: any) => l.evaluatorId === currentUserId && l.evaluationStatus === 'ASSIGNED');
+          setPendingEvaluationsCount(pending.length);
+        }).catch(() => {});
+      });
+    }
+
+    // For SENIOR_OFFICER - fetch pending field cash handovers count
+    if (currentRole === 'SENIOR_OFFICER') {
+      import('../services/loan.service').then(LoanService => {
+        LoanService.getPendingFieldCollections(user?.branchId || 1).then((data: any[]) => {
+          const pending = data.filter((item: any) => item.status === 'PENDING');
+          setPendingHandoversCount(pending.length);
+        }).catch(() => {});
+      });
+    }
   }, [user]);
 
   useEffect(() => {
     AccountService.getBranchNotifications().then(async (notifs) => {
       // Fetch Pawning Tickets to check for nearing maturity
       try {
-        const { getTicketsByBranch } = await import('../services/pawning.service');
-        const tickets = await getTicketsByBranch(user.branchId);
+        const tickets = await PawningService.getTicketsByBranch(user.branchId);
+        const pending = tickets.filter((t: any) => t.status === 'PENDING');
+        setPendingPawnCount(pending.length);
+        
         const nearingPawning = tickets.filter((t: any) => {
           if (t.status === 'REDEEMED' || t.status === 'OVERDUE') return false;
           const expiry = new Date(t.expiryDate);
@@ -4198,7 +5927,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
         const pawningNotifs = nearingPawning.map((t: any) => ({
           type: 'PW_MATURITY',
           isRead: false,
-          title: `උකස් පත්‍රිකාව කල්පිරීමට ආසන්නයි (PW-${t.ticketNumber})`,
+          title: `උකස් පත්‍රිකාව කල්පිරීමට ආසන්නයි (${t.ticketNumber})`,
           message: `මෙම උකස් පත්‍රිකාව (${t.ticketNumber}) දින ${Math.ceil((new Date(t.expiryDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} කින් කල් පිරේ.`
         }));
         setNotifications([...pawningNotifs, ...notifs]);
@@ -4217,7 +5946,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
 
   if (!user) { navigate('/login'); return null; }
 
-  const role    = overrideRole || user.role?.replace('ROLE_', '') || 'TELLER';
+
   const roleConfig = ROLE_CONFIG[role]  || ROLE_CONFIG['TELLER'];
   const branchTheme = BRANCH_THEMES[user.branchId] || BRANCH_THEMES[1];
   
@@ -4229,7 +5958,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     logoBg: branchTheme.logoBg
   };
 
-  const navItems = ROLE_NAV[role]    || ROLE_NAV['TELLER'];
+
 
   const renderContent = () => {
     if (tab === 'rates') {
@@ -4238,7 +5967,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
 
     switch (role) {
       case 'BRANCH_MANAGER':
-        if (['overview', 'approvals', 'loans', 'manager-approved', 'committee-approved'].includes(tab)) {
+        if (['overview', 'approvals', 'loans', 'manager-approved', 'committee-approved', 'pawning_approvals'].includes(tab)) {
           return <BranchManagerView activeTab={tab} />;
         }
         return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
@@ -4337,7 +6066,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                   <item.icon size={20} className={`mr-3.5 shrink-0 ${tab === item.key ? config.color : 'text-white/80'}`} />
                   <span>{t(item.label)}</span>
                 </div>
-                {item.key === 'loans' && pendingApprovalsCount > 0 && (
+                {(item.key === 'loans' || item.key === 'approvals') && pendingApprovalsCount > 0 && (
                   <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                     {pendingApprovalsCount}
                   </span>
@@ -4345,6 +6074,21 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                 {item.key === 'committee-approved' && committeeApprovedCount > 0 && (
                   <span className="bg-emerald-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-sm ml-2">
                     {committeeApprovedCount}
+                  </span>
+                )}
+                {item.key === 'pawning_approvals' && pendingPawnCount > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                    {pendingPawnCount}
+                  </span>
+                )}
+                {item.key === 'evaluations' && pendingEvaluationsCount > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                    {pendingEvaluationsCount}
+                  </span>
+                )}
+                {item.key === 'handovers' && pendingHandoversCount > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                    {pendingHandoversCount}
                   </span>
                 )}
               </button>

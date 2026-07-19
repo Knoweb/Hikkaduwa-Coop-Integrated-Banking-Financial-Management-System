@@ -301,6 +301,7 @@ const translations: Translations = {
   'Pawning Interest Rate (% p.a.)': { en: 'Pawning Interest Rate (% p.a.)', si: 'උකස් පොලී අනුපාතය (වාර්ෂික %)' },
   'Advance per Gold Sovereign (Rs.)': { en: 'Advance per Gold Sovereign (Rs.)', si: 'රන් පවුමකට අත්තිකාරම් (රු.)' },
   'Advance per Gold Sovereign': { en: 'Advance per Gold Sovereign', si: 'රන් පවුමකට අත්තිකාරම්' },
+  'Pawning Approvals': { en: 'Pawning Approvals', si: 'උකස් අනුමැතීන්' },
   // Save All Rates
   'Save All Rates': { en: 'Save All Rates', si: 'සියලුම අනුපාත සුරකින්න' },
   'Branch updated successfully!': { en: 'Branch updated successfully!', si: 'ශාඛාව සාර්ථකව යාවත්කාලීන කරන ලදී!' },

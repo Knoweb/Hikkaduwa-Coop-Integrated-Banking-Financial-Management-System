@@ -18,11 +18,18 @@ public class PawningSettingService {
     }
 
     public PawningSetting getSetting(String key) {
-        return repository.findById(key).orElse(null);
+        Integer tenantId = com.hmcs.pawning.multitenancy.TenantContext.getTenantId();
+        if (tenantId == null) tenantId = 1;
+        return repository.findById(new com.hmcs.pawning.entity.PawningSettingId(tenantId, key)).orElse(null);
     }
 
     public PawningSetting updateSetting(String key, String value, String description) {
-        PawningSetting setting = repository.findById(key).orElse(new PawningSetting());
+        Integer tenantId = com.hmcs.pawning.multitenancy.TenantContext.getTenantId();
+        if (tenantId == null) tenantId = 1;
+        com.hmcs.pawning.entity.PawningSettingId id = new com.hmcs.pawning.entity.PawningSettingId(tenantId, key);
+        
+        PawningSetting setting = repository.findById(id).orElse(new PawningSetting());
+        setting.setTenantId(tenantId);
         setting.setSettingKey(key);
         setting.setSettingValue(value);
         if (description != null) {

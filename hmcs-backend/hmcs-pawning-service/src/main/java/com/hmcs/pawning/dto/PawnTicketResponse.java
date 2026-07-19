@@ -27,6 +27,7 @@ public class PawnTicketResponse {
     private BigDecimal remainingAdvance;
     private LocalDate lastPaymentDate;
     private BigDecimal carriedOverInterest;
+    private String committeeRemarks;
     private java.util.List<com.hmcs.pawning.entity.PawnPayment> payments;
 
     // Computed fields
@@ -52,8 +53,9 @@ public class PawnTicketResponse {
         response.setExpiryDate(ticket.getExpiryDate());
         response.setStatus(ticket.getStatus());
         response.setRemainingAdvance(ticket.getRemainingAdvance() != null ? ticket.getRemainingAdvance() : ticket.getAdvanceAmount());
-        response.setLastPaymentDate(ticket.getLastPaymentDate() != null ? ticket.getLastPaymentDate() : ticket.getIssueDate());
-        response.setCarriedOverInterest(ticket.getCarriedOverInterest() != null ? ticket.getCarriedOverInterest() : BigDecimal.ZERO);
+        response.setLastPaymentDate(ticket.getLastPaymentDate());
+        response.setCarriedOverInterest(ticket.getCarriedOverInterest());
+        response.setCommitteeRemarks(ticket.getCommitteeRemarks());
         
         response.setDaysElapsed(daysElapsed);
         response.setAccruedInterest(accruedInterest);

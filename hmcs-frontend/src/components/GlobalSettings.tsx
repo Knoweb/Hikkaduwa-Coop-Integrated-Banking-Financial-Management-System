@@ -29,8 +29,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       { id: 'ln_bus', label: 'Business Loan', value: 15.0, unit: '%' },
     ],
     pawning: [
-      { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: 13.0, unit: '%' },
-      { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: 120000, unit: 'Rs.' },
+      { id: 'INTEREST_RATE', label: 'Pawning Interest Rate (% p.a.)', value: 13.0, unit: '%' }
     ],
     general: [
       { id: 'gen_share_price', label: 'Share Price (Rs.)', value: Number(localStorage.getItem('SYS_SHARE_PRICE')) || 100.0, unit: 'Rs.' }
@@ -73,7 +72,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       setEditingRateId(null);
     } catch (error) {
       console.error(error);
-      alert('Failed to update rate');
+      (window as any).showToast('Failed to update rate');
     }
   };
 
@@ -206,16 +205,16 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       await LoanService.updateLoanType(lt.loanTypeId, { ...lt, interestRate: newRate });
       fetchLoanTypes();
       setEditingLoanRateId(null);
-    } catch { alert('Failed to update rate.'); }
+    } catch { (window as any).showToast('Failed to update rate.'); }
   };
 
   const handleDeleteLoanType = async (id: string) => {
     if (!confirm('Delete this loan type?')) return;
-    try { await LoanService.deleteLoanType(id); fetchLoanTypes(); } catch { alert('Failed to delete.'); }
+    try { await LoanService.deleteLoanType(id); fetchLoanTypes(); } catch { (window as any).showToast('Failed to delete.'); }
   };
 
   const handleToggleLoanTypeActive = async (lt: LoanService.LoanType) => {
-    try { await LoanService.updateLoanType(lt.loanTypeId, { ...lt, isActive: !lt.isActive }); fetchLoanTypes(); } catch { alert('Failed.'); }
+    try { await LoanService.updateLoanType(lt.loanTypeId, { ...lt, isActive: !lt.isActive }); fetchLoanTypes(); } catch { (window as any).showToast('Failed.'); }
 
   };
 
@@ -261,14 +260,12 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
   const fetchPawningSettings = async () => {
     try {
       const settings = await PawningService.getAllSettings();
-      const interestRate = settings.find((s: any) => s.settingKey === 'pw_int')?.settingValue || '13.0';
-      const advanceAmount = settings.find((s: any) => s.settingKey === 'pw_adv')?.settingValue || '120000';
+      const interestRate = settings.find((s: any) => s.settingKey === 'INTEREST_RATE')?.settingValue || '13.0';
       
       setRatesData(prev => ({
         ...prev,
         pawning: [
-          { id: 'pw_int', label: 'Pawning Interest Rate (% p.a.)', value: Number(interestRate), unit: '%' },
-          { id: 'pw_adv', label: 'Advance per Gold Sovereign', value: Number(advanceAmount), unit: 'Rs.' },
+          { id: 'INTEREST_RATE', label: 'Pawning Interest Rate (% p.a.)', value: Number(interestRate), unit: '%' }
         ]
       }));
     } catch (err) {
@@ -315,7 +312,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       fetchFdTypes();
     } catch (err: any) {
       console.error(err);
-      alert("මෙම කාල සීමාව දැනටමත් ඇතුළත් කර ඇත! වෙනත් මාස ගණනක් ලබා දෙන්න. (This time period already exists!)");
+      (window as any).showToast("මෙම කාල සීමාව දැනටමත් ඇතුළත් කර ඇත! වෙනත් මාස ගණනක් ලබා දෙන්න. (This time period already exists!)");
     }
   };
 
@@ -336,7 +333,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
         await AccountService.deleteSavingsAccountType(id);
         fetchSavingsTypes();
       } catch (err) {
-        alert("Failed to delete account type.");
+        (window as any).showToast("Failed to delete account type.");
       }
     }
   };

@@ -24,6 +24,11 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.issueTicket(request));
     }
 
+    @GetMapping
+    public ResponseEntity<List<PawnTicketResponse>> getAllTickets() {
+        return ResponseEntity.ok(pawnService.getAllTickets());
+    }
+
     @GetMapping("/branch/{branchId}")
     public ResponseEntity<List<PawnTicketResponse>> getTicketsByBranch(@PathVariable Integer branchId) {
         return ResponseEntity.ok(pawnService.getTicketsByBranch(branchId));
@@ -37,6 +42,26 @@ public class PawnController {
     @PostMapping("/{ticketId}/redeem")
     public ResponseEntity<PawnTicketResponse> redeemTicket(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(pawnService.redeemTicket(ticketId));
+    }
+
+    @PostMapping("/{ticketId}/approve")
+    public ResponseEntity<PawnTicketResponse> approveTicket(
+            @PathVariable UUID ticketId,
+            @RequestBody java.util.Map<String, Object> request
+    ) {
+        java.math.BigDecimal assessedValue = new java.math.BigDecimal(request.get("assessedValue").toString());
+        String remarks = request.containsKey("remarks") && request.get("remarks") != null 
+                ? request.get("remarks").toString() : null;
+        return ResponseEntity.ok(pawnService.approveTicket(ticketId, assessedValue, remarks));
+    }
+
+    @PostMapping("/{ticketId}/disburse")
+    public ResponseEntity<PawnTicketResponse> disburseTicket(
+            @PathVariable UUID ticketId,
+            @RequestBody java.util.Map<String, Object> request
+    ) {
+        java.math.BigDecimal advanceAmount = new java.math.BigDecimal(request.get("advanceAmount").toString());
+        return ResponseEntity.ok(pawnService.disburseTicket(ticketId, advanceAmount));
     }
 
     @PostMapping("/{ticketId}/payments")

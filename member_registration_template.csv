@@ -1,0 +1,2 @@
+tenant_id,member_id,membership_number,nic,name_with_initials,full_name,date_of_birth,gender,marital_status,address,contact_number,is_member,registered_branch_id,status,created_at,age_category
+1,UUID_HERE,M-1-1001,1990123456X,A. B. Perera,Amara Bandara Perera,1990-01-01,MALE,UNMARRIED,Colombo,0771234567,true,1,ACTIVE,2026-07-13 00:00:00,ADULT

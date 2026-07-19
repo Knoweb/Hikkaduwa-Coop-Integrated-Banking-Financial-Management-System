@@ -3,9 +3,11 @@ package com.hmcs.savings.controller;
 import com.hmcs.savings.entity.Account;
 import com.hmcs.savings.entity.Transaction;
 import com.hmcs.savings.entity.PendingApproval;
+import com.hmcs.savings.entity.LedgerEntry;
 import com.hmcs.savings.repository.AccountRepository;
 import com.hmcs.savings.repository.TransactionRepository;
 import com.hmcs.savings.repository.PendingApprovalRepository;
+import com.hmcs.savings.repository.LedgerEntryRepository;
 import com.hmcs.savings.security.BranchContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,7 @@ public class SavingsController {
     private final PendingApprovalRepository pendingApprovalRepository;
     private final com.hmcs.savings.service.InterestCalculationService interestCalculationService;
     private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
 
     public SavingsController(AccountRepository accountRepository,
                              TransactionRepository transactionRepository,
@@ -40,7 +43,8 @@ public class SavingsController {
                              RestTemplate restTemplate,
                              PendingApprovalRepository pendingApprovalRepository,
                              com.hmcs.savings.service.InterestCalculationService interestCalculationService,
-                             com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository) {
+                             com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository,
+                             LedgerEntryRepository ledgerEntryRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
@@ -50,6 +54,7 @@ public class SavingsController {
         this.pendingApprovalRepository = pendingApprovalRepository;
         this.interestCalculationService = interestCalculationService;
         this.schedulerLogRepository = schedulerLogRepository;
+        this.ledgerEntryRepository = ledgerEntryRepository;
     }
 
     @GetMapping("/savings")
@@ -206,6 +211,19 @@ public class SavingsController {
                 }
             }
             transactionRepository.save(tx);
+
+            if (!Boolean.TRUE.equals(body.migrationAccount)) {
+                LedgerEntry le = new LedgerEntry();
+                le.setEntryDate(LocalDate.now());
+                le.setDescription("Initial Deposit: " + savedAccount.getAccountNumber());
+                le.setDebitAccount("CASH_IN_VAULT");
+                le.setCreditAccount("SAVINGS_DEPOSITS");
+                le.setAmount(body.initialDeposit);
+                le.setEntryType("INITIAL_DEPOSIT");
+                le.setPaymentMethod("CASH");
+                le.setBranchId(branchId);
+                ledgerEntryRepository.save(le);
+            }
         }
 
         return ResponseEntity.ok(savedAccount);
@@ -272,6 +290,17 @@ public class SavingsController {
         tx.setProcessedBy(UUID.randomUUID()); // System/Teller ID
         transactionRepository.save(tx);
 
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(LocalDate.now());
+        le.setDescription("Savings Deposit: " + account.getAccountNumber());
+        le.setDebitAccount("CASH_IN_VAULT");
+        le.setCreditAccount("SAVINGS_DEPOSITS");
+        le.setAmount(body.amount);
+        le.setEntryType("DEPOSIT");
+        le.setPaymentMethod("CASH");
+        le.setBranchId(currentBranchId);
+        ledgerEntryRepository.save(le);
+
         return ResponseEntity.ok(account);
     }
 
@@ -333,6 +362,17 @@ public class SavingsController {
         tx.setBranchId(currentBranchId);
         tx.setProcessedBy(UUID.randomUUID());
         transactionRepository.save(tx);
+
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(LocalDate.now());
+        le.setDescription("Savings Withdrawal: " + account.getAccountNumber());
+        le.setDebitAccount("SAVINGS_DEPOSITS");
+        le.setCreditAccount("CASH_IN_VAULT");
+        le.setAmount(body.amount);
+        le.setEntryType("WITHDRAWAL");
+        le.setPaymentMethod("CASH");
+        le.setBranchId(currentBranchId);
+        ledgerEntryRepository.save(le);
 
         return ResponseEntity.ok(account);
     }

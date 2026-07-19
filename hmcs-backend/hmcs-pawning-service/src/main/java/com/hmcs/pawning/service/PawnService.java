@@ -6,6 +6,8 @@ import com.hmcs.pawning.entity.PawnTicket;
 import com.hmcs.pawning.entity.PawnPayment;
 import com.hmcs.pawning.repository.PawnTicketRepository;
 import com.hmcs.pawning.repository.PawnPaymentRepository;
+import com.hmcs.pawning.repository.LedgerEntryRepository;
+import com.hmcs.pawning.entity.LedgerEntry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ public class PawnService {
 
     private final PawnTicketRepository pawnTicketRepository;
     private final PawnPaymentRepository pawnPaymentRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
 
 
     public PawnTicketResponse issueTicket(IssueTicketRequest request) {
@@ -53,11 +56,65 @@ public class PawnService {
             ticket.setTicketNumber(String.format("%06d", 698594 + count));
         }
 
+        // Default status is PENDING for new workflow
+        ticket.setStatus("PENDING");
+
         ticket = pawnTicketRepository.save(ticket);
 
 
 
         return enrichWithCalculations(ticket, LocalDate.now());
+    }
+
+    public PawnTicketResponse approveTicket(UUID ticketId, BigDecimal assessedValue, String remarks) {
+        PawnTicket ticket = pawnTicketRepository.findByIdIgnoreTenant(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+        
+        if (!"PENDING".equals(ticket.getStatus())) {
+            throw new RuntimeException("Only PENDING tickets can be approved");
+        }
+        
+        ticket.setAssessedValue(assessedValue);
+        ticket.setCommitteeRemarks(remarks);
+        ticket.setStatus("APPROVED");
+        
+        ticket = pawnTicketRepository.save(ticket);
+        return enrichWithCalculations(ticket, LocalDate.now());
+    }
+
+    public PawnTicketResponse disburseTicket(UUID ticketId, BigDecimal advanceAmount) {
+        PawnTicket ticket = pawnTicketRepository.findByIdIgnoreTenant(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                
+        if (!"APPROVED".equals(ticket.getStatus())) {
+            throw new RuntimeException("Only APPROVED tickets can be disbursed");
+        }
+        
+        ticket.setAdvanceAmount(advanceAmount);
+        ticket.setRemainingAdvance(advanceAmount);
+        ticket.setStatus("ACTIVE");
+        
+        ticket = pawnTicketRepository.save(ticket);
+        
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(LocalDate.now());
+        le.setDescription("Pawning Advance — Ticket: " + ticket.getTicketNumber() + " | Member: " + ticket.getMemberId() + " | Method: CASH");
+        le.setDebitAccount("PAWN_LOANS");
+        le.setCreditAccount("CASH_IN_VAULT");
+        le.setAmount(advanceAmount);
+        le.setEntryType("PAWN_DISBURSEMENT");
+        le.setPaymentMethod("CASH");
+        le.setBranchId(ticket.getBranchId());
+        ledgerEntryRepository.save(le);
+        
+        return enrichWithCalculations(ticket, LocalDate.now());
+    }
+
+    public List<PawnTicketResponse> getAllTickets() {
+        return pawnTicketRepository.findAllIgnoreTenant()
+                .stream()
+                .map(ticket -> enrichWithCalculations(ticket, LocalDate.now()))
+                .collect(Collectors.toList());
     }
 
     public List<PawnTicketResponse> getTicketsByBranch(Integer branchId) {
@@ -68,13 +125,13 @@ public class PawnService {
     }
 
     public PawnTicketResponse getTicket(UUID ticketId) {
-        PawnTicket ticket = pawnTicketRepository.findById(ticketId)
+        PawnTicket ticket = pawnTicketRepository.findByIdIgnoreTenant(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
         return enrichWithCalculations(ticket, LocalDate.now());
     }
 
     public PawnTicketResponse redeemTicket(UUID ticketId) {
-        PawnTicket ticket = pawnTicketRepository.findById(ticketId)
+        PawnTicket ticket = pawnTicketRepository.findByIdIgnoreTenant(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
         
         if (!"ACTIVE".equals(ticket.getStatus()) && !"OVERDUE".equals(ticket.getStatus())) {
@@ -84,13 +141,27 @@ public class PawnService {
         ticket.setStatus("REDEEMED");
         ticket = pawnTicketRepository.save(ticket);
         
-        // TODO: Call ledger service via API Gateway or Feign Client to record the transaction
+        PawnTicketResponse currentCalc = enrichWithCalculations(ticket, LocalDate.now());
+        BigDecimal totalDue = currentCalc.getTotalDue();
         
-        return enrichWithCalculations(ticket, LocalDate.now());
+        if (totalDue != null && totalDue.compareTo(BigDecimal.ZERO) > 0) {
+            LedgerEntry le = new LedgerEntry();
+            le.setEntryDate(LocalDate.now());
+            le.setDescription("Pawning Redemption — Ticket: " + ticket.getTicketNumber() + " | Member: " + ticket.getMemberId() + " | Method: CASH");
+            le.setDebitAccount("CASH_IN_VAULT");
+            le.setCreditAccount("PAWN_REPAYMENTS");
+            le.setAmount(totalDue);
+            le.setEntryType("PAWN_REDEMPTION");
+            le.setPaymentMethod("CASH");
+            le.setBranchId(ticket.getBranchId());
+            ledgerEntryRepository.save(le);
+        }
+        
+        return currentCalc;
     }
 
     public PawnTicketResponse makePayment(UUID ticketId, BigDecimal amount, LocalDate paymentDate) {
-        PawnTicket ticket = pawnTicketRepository.findById(ticketId)
+        PawnTicket ticket = pawnTicketRepository.findByIdIgnoreTenant(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         if ("REDEEMED".equals(ticket.getStatus())) {
@@ -140,7 +211,21 @@ public class PawnService {
         payment.setPaymentDate(paymentDate.atStartOfDay());
         pawnPaymentRepository.save(payment);
 
-
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(paymentDate);
+        if ("REDEEMED".equals(ticket.getStatus())) {
+            le.setDescription("Pawning Redemption — Ticket: " + ticket.getTicketNumber() + " | Member: " + ticket.getMemberId() + " | Method: CASH");
+            le.setEntryType("PAWN_REDEMPTION");
+        } else {
+            le.setDescription("Pawning Repayment — Ticket: " + ticket.getTicketNumber() + " | Member: " + ticket.getMemberId() + " | Method: CASH");
+            le.setEntryType("PAWN_REPAYMENT");
+        }
+        le.setDebitAccount("CASH_IN_VAULT");
+        le.setCreditAccount("PAWN_REPAYMENTS");
+        le.setAmount(amount);
+        le.setPaymentMethod("CASH");
+        le.setBranchId(ticket.getBranchId());
+        ledgerEntryRepository.save(le);
 
         return enrichWithCalculations(ticket, LocalDate.now());
     }
@@ -157,15 +242,12 @@ public class PawnService {
 
         long chargeableDays = 0;
         if (daysSinceLastPayment > 0) {
-            long months = daysSinceLastPayment / 30;
-            long rem = daysSinceLastPayment % 30;
-            
-            if (rem == 0) {
-                chargeableDays = months * 30;
-            } else if (rem <= 15) {
-                chargeableDays = months * 30 + 15;
+            if (daysSinceLastPayment <= 15) {
+                chargeableDays = 15;
+            } else if (daysSinceLastPayment <= 30) {
+                chargeableDays = 30;
             } else {
-                chargeableDays = (months + 1) * 30;
+                chargeableDays = daysSinceLastPayment;
             }
         }
 

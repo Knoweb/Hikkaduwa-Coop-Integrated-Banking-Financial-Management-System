@@ -3,10 +3,12 @@ package com.hmcs.savings.service;
 import com.hmcs.savings.entity.Account;
 import com.hmcs.savings.entity.DailyBalance;
 import com.hmcs.savings.entity.Transaction;
+import com.hmcs.savings.multitenancy.TenantContext;
 import com.hmcs.savings.repository.AccountRepository;
 import com.hmcs.savings.repository.DailyBalanceRepository;
 import com.hmcs.savings.repository.TransactionRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,74 +30,106 @@ public class InterestCalculationService {
     private final DailyBalanceRepository dailyBalanceRepository;
     private final TransactionRepository transactionRepository;
     private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     private final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public InterestCalculationService(AccountRepository accountRepository,
                                       DailyBalanceRepository dailyBalanceRepository,
                                       TransactionRepository transactionRepository,
-                                      com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository) {
+                                      com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository,
+                                      JdbcTemplate jdbcTemplate) {
         this.accountRepository = accountRepository;
         this.dailyBalanceRepository = dailyBalanceRepository;
         this.transactionRepository = transactionRepository;
         this.schedulerLogRepository = schedulerLogRepository;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Gets all active tenant IDs from organizations table.
+     * This ensures new tenants are picked up automatically as soon as they register,
+     * even before they create any savings accounts.
+     */
+    private List<Integer> getAllTenantIds() {
+        return jdbcTemplate.queryForList(
+            "SELECT organization_id FROM auth_service.organizations WHERE status = 'ACTIVE' AND organization_id > 0",
+            Integer.class
+        );
     }
 
     /**
      * Runs on server startup to backfill any missing daily balance snapshots
-     * for days the server was offline.
-     *
-     * For each missing day, it determines the EXACT closing balance by looking at
-     * the last transaction on or before that day. This ensures interest is calculated
-     * on the correct historical balance — not the current balance.
+     * for days the server was offline. Runs for ALL tenants.
      */
     @PostConstruct
     @Scheduled(fixedDelay = 600000) // Run every 10 minutes to catch up if laptop was asleep at midnight
-    @Transactional
     public void catchUpMissingDailyBalances() {
+        List<Integer> tenantIds = getAllTenantIds();
+        System.out.println("[InterestCalculationService] Running catch-up for tenants: " + tenantIds);
+        for (Integer tenantId : tenantIds) {
+            try {
+                TenantContext.setTenantId(tenantId);
+                catchUpForTenant(tenantId);
+            } finally {
+                TenantContext.clear();
+            }
+        }
+    }
+
+    @Transactional
+    public void catchUpForTenant(Integer tenantId) {
         LocalDate yesterday = LocalDate.now().minusDays(1);
+        
+        com.hmcs.savings.entity.SchedulerLog lastLog = schedulerLogRepository
+                .findFirstByTaskNameOrderByExecutionTimeDesc("EOD_SAVINGS").orElse(null);
+
+        LocalDate lastProcessedDate;
+        if (lastLog == null) {
+            lastProcessedDate = yesterday.minusMonths(3);
+        } else {
+            lastProcessedDate = lastLog.getExecutionTime().toLocalDate();
+        }
+
+        LocalDate startDate = lastProcessedDate.plusDays(1);
+        if (startDate.isAfter(yesterday)) {
+            return;
+        }
+
         boolean caughtUpAny = false;
 
         List<Account> activeAccounts = accountRepository.findAll().stream()
                 .filter(a -> "ACTIVE".equals(a.getStatus()))
                 .toList();
 
-        for (Account account : activeAccounts) {
-            // Start from account opening date (or 3 months back as a limit)
-            LocalDate startDate = account.getOpenedDate() != null
-                    ? account.getOpenedDate()
-                    : yesterday.minusMonths(3);
+        System.out.println("[InterestCalculationService] Tenant " + tenantId + ": catching up from " + startDate + " to " + yesterday + " for " + activeAccounts.size() + " accounts");
 
-            // Get all transactions for this account, sorted by timestamp ascending
-            List<Transaction> allTransactions = transactionRepository
-                    .findByAccountAccountId(account.getAccountId())
-                    .stream()
-                    .sorted(Comparator.comparing(Transaction::getTransactionTimestamp))
-                    .toList();
+        LocalDate date = startDate;
+        while (!date.isAfter(yesterday)) {
+            caughtUpAny = true;
+            for (Account account : activeAccounts) {
+                // Get all transactions for this account, sorted by timestamp ascending
+                List<Transaction> allTransactions = transactionRepository
+                        .findByAccountAccountId(account.getAccountId())
+                        .stream()
+                        .sorted(Comparator.comparing(Transaction::getTransactionTimestamp))
+                        .toList();
 
-            // Get all already-recorded snapshot dates
-            List<LocalDate> recordedDates = dailyBalanceRepository
-                    .findByAccountId(account.getAccountId())
-                    .stream()
-                    .map(DailyBalance::getRecordDate)
-                    .toList();
+                // Get all already-recorded snapshot dates
+                List<LocalDate> recordedDates = dailyBalanceRepository
+                        .findByAccountId(account.getAccountId())
+                        .stream()
+                        .map(DailyBalance::getRecordDate)
+                        .toList();
 
-            // Walk through each day from startDate up to yesterday
-            LocalDate date = startDate;
-            while (!date.isAfter(yesterday)) {
                 if (!recordedDates.contains(date)) {
-                    caughtUpAny = true;
-                    // Find the closing balance for this day:
-                    // = balanceAfter of the LAST transaction on or before end of this day
                     LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
                     Optional<Transaction> lastTx = allTransactions.stream()
                             .filter(tx -> !tx.getTransactionTimestamp().isAfter(endOfDay))
-                            .reduce((first, second) -> second); // gets the last element
+                            .reduce((first, second) -> second);
 
-                    // If no transaction yet before this date, skip (account not yet opened)
                     if (lastTx.isEmpty()) {
-                        date = date.plusDays(1);
                         continue;
                     }
 
@@ -110,25 +144,24 @@ public class InterestCalculationService {
                             : new BigDecimal("0.0600"));
                     dailyBalanceRepository.save(snapshot);
                 }
-                
+
                 // If this is the last day of the month, check if we missed monthly interest calculation
                 if (date.equals(date.withDayOfMonth(date.lengthOfMonth()))) {
                     final LocalDate finalDate = date;
                     boolean alreadyCredited = transactionRepository.findByAccountAccountId(account.getAccountId())
                             .stream()
-                            .anyMatch(tx -> "MONTHLY_INTEREST".equals(tx.getTransactionType()) && 
-                                            tx.getTransactionTimestamp().toLocalDate().equals(finalDate));
-                    
+                            .anyMatch(tx -> "INTEREST_CREDIT".equals(tx.getTransactionType()) &&
+                                            tx.getTransactionTimestamp().toLocalDate().getMonth().equals(finalDate.getMonth()) &&
+                                            tx.getTransactionTimestamp().toLocalDate().getYear() == finalDate.getYear());
+
                     if (!alreadyCredited) {
-                        caughtUpAny = true;
                         int daysInYear = Year.isLeap(date.getYear()) ? 366 : 365;
                         calculateAndCreditMonthlyInterest(account, date, daysInYear);
                         System.out.println("[InterestCalculationService] Auto-caught up monthly interest for account: " + account.getAccountId() + " for " + date);
                     }
                 }
-                
-                date = date.plusDays(1);
             }
+            date = date.plusDays(1);
         }
 
         if (caughtUpAny) {
@@ -136,20 +169,34 @@ public class InterestCalculationService {
             log.setTaskName("EOD_SAVINGS");
             log.setExecutionTime(LocalDateTime.now());
             log.setStatus("SUCCESS");
-            log.setDetails("CATCH-UP: Recovered missing snapshots/interest for active accounts up to " + yesterday);
+            log.setDetails("CATCH-UP: Tenant " + tenantId + " - Recovered missing snapshots/interest for active accounts up to " + yesterday);
             schedulerLogRepository.save(log);
         }
 
-        System.out.println("[InterestCalculationService] Catch-up complete for missing daily snapshots up to: " + yesterday);
+        System.out.println("[InterestCalculationService] Catch-up complete for tenant " + tenantId + " up to: " + yesterday);
     }
 
     /**
      * Runs every day at 23:59 to take an end-of-day snapshot of the balance
      * and calculate/credit interest if it's the last day of the month.
+     * Runs for ALL tenants.
      */
     @Scheduled(cron = "0 59 23 * * ?")
-    @Transactional
     public void processDailyBalancesAndMonthlyInterest() {
+        List<Integer> tenantIds = getAllTenantIds();
+        System.out.println("[InterestCalculationService] EOD running for tenants: " + tenantIds);
+        for (Integer tenantId : tenantIds) {
+            try {
+                TenantContext.setTenantId(tenantId);
+                processDailyForTenant(tenantId);
+            } finally {
+                TenantContext.clear();
+            }
+        }
+    }
+
+    @Transactional
+    public void processDailyForTenant(Integer tenantId) {
         LocalDate today = LocalDate.now();
         List<Account> activeAccounts = accountRepository.findAll().stream()
                 .filter(a -> "ACTIVE".equals(a.getStatus()))
@@ -158,7 +205,6 @@ public class InterestCalculationService {
         int daysInYear = Year.isLeap(today.getYear()) ? 366 : 365;
 
         for (Account account : activeAccounts) {
-            // Save today's snapshot only if not already recorded
             boolean alreadyRecorded = dailyBalanceRepository
                     .findByAccountId(account.getAccountId())
                     .stream()
@@ -175,28 +221,35 @@ public class InterestCalculationService {
                 dailyBalanceRepository.save(snapshot);
             }
 
-            // If last day of month -> credit monthly interest
             if (today.equals(today.withDayOfMonth(today.lengthOfMonth()))) {
                 calculateAndCreditMonthlyInterest(account, today, daysInYear);
             }
         }
-        
+
         com.hmcs.savings.entity.SchedulerLog log = new com.hmcs.savings.entity.SchedulerLog();
         log.setTaskName("EOD_SAVINGS");
         log.setExecutionTime(LocalDateTime.now());
         log.setStatus("SUCCESS");
-        log.setDetails("Processed " + activeAccounts.size() + " accounts.");
+        log.setDetails("EOD: Tenant " + tenantId + " - Processed " + activeAccounts.size() + " accounts for " + today);
         schedulerLogRepository.save(log);
     }
 
     public void forceTriggerMonthlyInterest(int year, int month) {
-        LocalDate endOfMonth = LocalDate.of(year, month, 1).withDayOfMonth(LocalDate.of(year, month, 1).lengthOfMonth());
-        int daysInYear = Year.isLeap(year) ? 366 : 365;
-        List<Account> activeAccounts = accountRepository.findAll().stream()
-                .filter(a -> "ACTIVE".equals(a.getStatus()))
-                .toList();
-        for (Account account : activeAccounts) {
-            calculateAndCreditMonthlyInterest(account, endOfMonth, daysInYear);
+        List<Integer> tenantIds = getAllTenantIds();
+        for (Integer tenantId : tenantIds) {
+            try {
+                TenantContext.setTenantId(tenantId);
+                LocalDate endOfMonth = LocalDate.of(year, month, 1).withDayOfMonth(LocalDate.of(year, month, 1).lengthOfMonth());
+                int daysInYear = Year.isLeap(year) ? 366 : 365;
+                List<Account> activeAccounts = accountRepository.findAll().stream()
+                        .filter(a -> "ACTIVE".equals(a.getStatus()))
+                        .toList();
+                for (Account account : activeAccounts) {
+                    calculateAndCreditMonthlyInterest(account, endOfMonth, daysInYear);
+                }
+            } finally {
+                TenantContext.clear();
+            }
         }
         System.out.println("[InterestCalculationService] Force triggered monthly interest for " + year + "-" + month);
     }
@@ -219,10 +272,7 @@ public class InterestCalculationService {
         }
 
         if (grossInterest.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal netInterest = grossInterest;
-
-            // No tax deducted for savings accounts.
-            netInterest = grossInterest.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal netInterest = grossInterest.setScale(2, RoundingMode.HALF_UP);
 
             if (netInterest.compareTo(BigDecimal.ZERO) > 0) {
                 account.setBalance(account.getBalance().add(netInterest));

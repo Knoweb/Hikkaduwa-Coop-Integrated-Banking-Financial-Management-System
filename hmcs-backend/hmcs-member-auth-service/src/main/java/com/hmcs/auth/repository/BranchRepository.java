@@ -9,4 +9,7 @@ import java.util.Optional;
 @Repository
 public interface BranchRepository extends JpaRepository<Branch, Integer> {
     Optional<Branch> findByBranchName(String branchName);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM auth_service.branches", nativeQuery = true)
+    java.util.List<Branch> findAllIgnoreTenant();
 }

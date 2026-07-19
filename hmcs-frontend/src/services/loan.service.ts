@@ -115,6 +115,11 @@ export const getGlobalLoans = async (): Promise<Loan[]> => {
   return response.data;
 };
 
+export const getBranchLoans = async (branchId: number): Promise<Loan[]> => {
+  const response = await axios.get(`${API_URL}?branchId=${branchId}`, { headers: authHeader() });
+  return response.data;
+};
+
 export const getLoanById = async (id: string): Promise<Loan> => {
   const response = await axios.get(API_URL + '/' + id, { headers: authHeader() });
   return response.data;
@@ -252,6 +257,31 @@ export const repayInstallment = async (
     { amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate },
     { headers: authHeader() }
   );
+  return response.data;
+};
+
+export const recordFieldCollection = async (
+  loanId: string,
+  amount: number,
+  username: string,
+  branchId: number,
+  date?: string
+): Promise<any> => {
+  const response = await axios.post(
+    `${API_URL}/field-collection/collect`,
+    { loanId, amount, username, branchId, date },
+    { headers: authHeader() }
+  );
+  return response.data;
+};
+
+export const getPendingFieldCollections = async (branchId: number): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/field-collection/pending/${branchId}`, { headers: authHeader() });
+  return response.data;
+};
+
+export const getFieldCollectionHistory = async (username: string): Promise<any[]> => {
+  const response = await axios.get(`${API_URL}/field-collection/history/${username}`, { headers: authHeader() });
   return response.data;
 };
 

@@ -343,7 +343,7 @@ export const printPawnTicket = (ticket: any) => {
 
     <div class="title-row">
       <div class="title">උකස් පත්‍රිකාව (PAWN TICKET)</div>
-      <div class="ticket-no">TKT No: PW-${ticket.ticketNumber}</div>
+      <div class="ticket-no">TKT No: ${ticket.ticketNumber}</div>
     </div>
 
     <div class="meta-row">
@@ -369,7 +369,7 @@ export const printPawnTicket = (ticket: any) => {
     <div class="section-title">3. Loan Details (ණය තොරතුරු)</div>
     <table>
       <tr><th class="amount-highlight">Advance Amount (අත්තිකාරම් මුදල)</th><td class="td-number amount-highlight">Rs. ${Number(ticket.advanceAmount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
-      <tr><th>Interest Rate (වාර්ෂික පොලිය)</th><td class="td-number">${ticket.interestRate}% p.a.</td></tr>
+      <tr><th>Interest Rate (වාර්ෂික පොලිය)</th><td class="td-number">${ticket.interestRate}% වා.පො.</td></tr>
       <tr><th>Status (තත්ත්වය)</th><td>ACTIVE</td></tr>
     </table>
 

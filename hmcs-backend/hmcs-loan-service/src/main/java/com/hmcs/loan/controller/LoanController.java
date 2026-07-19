@@ -272,6 +272,33 @@ public class LoanController {
     }
 
     // ── Field Collection ─────────────────────────────────────────────────────
+    @PostMapping("/field-collection/collect")
+    public ResponseEntity<?> recordFieldCollection(@RequestBody Map<String, Object> body) {
+        try {
+            UUID loanId = UUID.fromString(body.get("loanId").toString());
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String username = body.getOrDefault("username", "system").toString();
+            Long branchId = body.containsKey("branchId") && body.get("branchId") != null ? Long.valueOf(body.get("branchId").toString()) : 1L;
+
+            com.hmcs.loan.entity.PendingFieldCollection pfc = loanService.recordFieldCollection(loanId, amount, username, branchId);
+            return ResponseEntity.ok(pfc);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/field-collection/pending/{branchId}")
+    public ResponseEntity<?> getPendingFieldCollections(@PathVariable Long branchId) {
+        List<com.hmcs.loan.entity.PendingFieldCollection> pending = loanService.getPendingFieldCollections(branchId);
+        return ResponseEntity.ok(pending);
+    }
+
+    @GetMapping("/field-collection/history/{username}")
+    public ResponseEntity<?> getFieldCollectionHistory(@PathVariable String username) {
+        List<com.hmcs.loan.entity.PendingFieldCollection> history = loanService.getFieldCollectionHistory(username);
+        return ResponseEntity.ok(history);
+    }
+
     @GetMapping("/field-collection/balance/{username}")
     public ResponseEntity<Map<String, BigDecimal>> getFieldCollectionBalance(@PathVariable String username) {
         BigDecimal balance = loanService.getFieldCollectionBalance(username);

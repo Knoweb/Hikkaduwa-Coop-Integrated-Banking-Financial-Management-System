@@ -265,7 +265,7 @@ export default function Accounts() {
                                   await AccountService.updateAccountStatus(acc.accountId!, acc.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
                                   fetchData();
                                 } catch (e) {
-                                  alert('Failed to update account status');
+                                  (window as any).showToast('Failed to update account status');
                                 }
                                 setConfirmDialog(d => ({ ...d, isOpen: false }));
                               }

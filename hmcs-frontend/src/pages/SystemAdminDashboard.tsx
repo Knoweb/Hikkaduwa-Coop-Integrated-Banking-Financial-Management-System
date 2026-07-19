@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users, UserMinus,
   Settings, ChevronRight, ChevronDown, ChevronUp, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
-  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote
+  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote, ClipboardList
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
@@ -809,7 +809,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
         await AuthService.deleteUser(userId);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete user');
+        (window as any).showToast('Failed to delete user');
       }
     }
   };
@@ -911,11 +911,10 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition">
                       {roles.length === 0 ? (
                         <option disabled>Loading roles...</option>
-                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'GENERAL_MANAGER', 'BANK_SERVICE_MANAGER'].includes(r)).map(r => {
+                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'GENERAL_MANAGER', 'BANK_SERVICE_MANAGER', 'LOAN_COMMITTEE'].includes(r)).map(r => {
                         let label = r.replace(/_/g, ' ');
                         if (r === 'BRANCH_MANAGER') label = 'BRANCH MANAGER (ශාඛා කළමනාකරු)';
                         if (r === 'SENIOR_OFFICER') label = 'SENIOR OFFICER (ලිපිකරු)';
-                        if (r === 'LOAN_COMMITTEE') label = 'LOAN COMMITTEE (ප්‍රධාන කාර්යාලය)';
                         return <option key={r} value={r}>{label}</option>;
                       })}
                     </select>
@@ -1203,8 +1202,8 @@ export default function SystemAdminDashboard() {
                   { key: 'loans', label: 'Loans', icon: Briefcase },
                   { key: 'pawning', label: 'Pawning', icon: Scale },
                   { isSection: true, label: 'Daily Operations' },
-                  { key: 'transactions', label: 'Cash Transactions', icon: Banknote },
-                  { key: 'gl', label: 'General Ledger', icon: FileText },
+                  { key: 'summary-ledger', label: 'Summary Ledger', icon: ClipboardList },
+                  { key: 'vault-cash', label: 'Cash Balances', icon: Banknote },
                   { key: 'staff', label: 'Branch Staff', icon: Users },
                   { key: 'config', label: 'Branch Config', icon: Settings }
                 ].map(item => (
