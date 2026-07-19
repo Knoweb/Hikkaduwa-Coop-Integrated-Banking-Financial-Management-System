@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 
 # Configuration
 API_BASE = "http://localhost:8080/api/v1"
-USERNAME = "mgr_rathgama"
+USERNAME = "gm_perera"
 PASSWORD = "password"
-BRANCH_ID = 3
+BRANCH_ID = 1
 
 MOCK_NAMES = [
     "අමරසිරි පීරිස්", "සමන් කුමාර", "කමල් පෙරේරා", "සුනිල් ශාන්ත", "නිහාල් රණසිංහ",
@@ -84,7 +84,7 @@ def main():
         member_id = create_member(token, name, nic)
         if member_id:
             account_id = open_savings_account(token, member_id)
-            print(f"[{i+1}/50] Created Member {name} (NIC: {nic}) with Savings Account {account_id}")
+            print(f"[{i+1}/50] Created Member (NIC: {nic}) with Savings Account {account_id}")
         time.sleep(0.1)
 
 if __name__ == "__main__":

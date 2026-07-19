@@ -5,7 +5,7 @@ DECLARE
     v_balance NUMERIC;
     v_date TIMESTAMP;
     v_amt NUMERIC;
-    v_admin_user UUID := '58057539-e029-49de-b81d-e7e956dd37da'; -- mgr_rathgama user_id (for processed_by)
+    v_admin_user UUID := '59c75e11-b5f5-4ded-b587-d50f47aaee4a'; -- mgr_rathgama user_id (for processed_by)
     
     l_rec RECORD;
     v_emi_amount NUMERIC;
@@ -16,7 +16,7 @@ DECLARE
     v_outstanding NUMERIC;
 BEGIN
     -- 1. Simulate Savings Transactions for Rathgama
-    FOR rec IN (SELECT account_id, opened_date FROM account_service.savings_accounts WHERE branch_id = 3 AND status='ACTIVE') LOOP
+    FOR rec IN (SELECT account_id, opened_date FROM account_service.savings_accounts WHERE branch_id = 1 AND status='ACTIVE') LOOP
         v_balance := 0;
         v_date := rec.opened_date::timestamp + INTERVAL '1 day';
         
@@ -26,7 +26,7 @@ BEGIN
         INSERT INTO account_service.transactions (
             transaction_id, account_id, transaction_type, amount, balance_after, processed_by, transaction_timestamp, reference, branch_id, tenant_id
         ) VALUES (
-            gen_random_uuid(), rec.account_id, 'DEPOSIT', v_amt, v_balance, v_admin_user, v_date, 'මුල් තැන්පතුව (INITIAL DEPOSIT)', 3, 1
+            gen_random_uuid(), rec.account_id, 'DEPOSIT', v_amt, v_balance, v_admin_user, v_date, 'මුල් තැන්පතුව (INITIAL DEPOSIT)', 1, 1
         );
         
         -- Withdrawal 1 month later
@@ -36,7 +36,7 @@ BEGIN
         INSERT INTO account_service.transactions (
             transaction_id, account_id, transaction_type, amount, balance_after, processed_by, transaction_timestamp, reference, branch_id, tenant_id
         ) VALUES (
-            gen_random_uuid(), rec.account_id, 'WITHDRAWAL', v_amt, v_balance, v_admin_user, v_date, 'මුදල් ආපසු ගැනීම (WITHDRAWAL)', 3, 1
+            gen_random_uuid(), rec.account_id, 'WITHDRAWAL', v_amt, v_balance, v_admin_user, v_date, 'මුදල් ආපසු ගැනීම (WITHDRAWAL)', 1, 1
         );
         
         -- Deposit 2 months later
@@ -46,7 +46,7 @@ BEGIN
         INSERT INTO account_service.transactions (
             transaction_id, account_id, transaction_type, amount, balance_after, processed_by, transaction_timestamp, reference, branch_id, tenant_id
         ) VALUES (
-            gen_random_uuid(), rec.account_id, 'DEPOSIT', v_amt, v_balance, v_admin_user, v_date, 'තැන්පතුව (DEPOSIT)', 3, 1
+            gen_random_uuid(), rec.account_id, 'DEPOSIT', v_amt, v_balance, v_admin_user, v_date, 'තැන්පතුව (DEPOSIT)', 1, 1
         );
         
         -- Update the actual account balance to match
@@ -55,9 +55,9 @@ BEGIN
 
     -- 2. Simulate Loan Repayments & Schedules
     -- First, delete the dummy EMI schedules
-    DELETE FROM loan_service.emi_schedules WHERE loan_id IN (SELECT loan_id FROM loan_service.loans WHERE branch_id = 3);
+    DELETE FROM loan_service.emi_schedules WHERE loan_id IN (SELECT loan_id FROM loan_service.loans WHERE branch_id = 1);
     
-    FOR l_rec IN (SELECT loan_id, approved_amount, term_months, created_at FROM loan_service.loans WHERE branch_id = 3 AND status='ACTIVE') LOOP
+    FOR l_rec IN (SELECT loan_id, COALESCE(approved_amount, 0) as approved_amount, COALESCE(term_months, 1) as term_months, COALESCE(created_at, CURRENT_DATE) as created_at FROM loan_service.loans WHERE branch_id = 1 AND status='ACTIVE') LOOP
         v_outstanding := l_rec.approved_amount;
         v_principal_portion := l_rec.approved_amount / l_rec.term_months;
         v_interest_portion := l_rec.approved_amount * 0.01; -- 1% flat monthly approx
@@ -76,7 +76,7 @@ BEGIN
                 INSERT INTO loan_service.loan_repayments (
                     id, loan_id, payment_date, principal_portion, interest_portion, penalty_paid, total_paid, payment_method, processed_by, payment_branch_id, tenant_id
                 ) VALUES (
-                    gen_random_uuid(), l_rec.loan_id, v_due_date, v_principal_portion, v_interest_portion, 0, v_emi_amount, 'Manual Payment - Office', v_admin_user, 3, 1
+                    gen_random_uuid(), l_rec.loan_id, v_due_date, v_principal_portion, v_interest_portion, 0, v_emi_amount, 'Manual Payment - Office', v_admin_user, 1, 1
                 );
             ELSE
                 v_status := 'PENDING';

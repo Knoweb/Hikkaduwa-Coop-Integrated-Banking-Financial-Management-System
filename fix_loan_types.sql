@@ -14,7 +14,7 @@ DECLARE
     
     s_rec RECORD;
 BEGIN
-    FOR rec IN (SELECT loan_id, term_months FROM loan_service.loans WHERE branch_id = 3 AND tenant_id = 1) LOOP
+    FOR rec IN (SELECT loan_id, term_months FROM loan_service.loans WHERE branch_id = 1 AND tenant_id = 1) LOOP
         -- Select a random loan type name
         v_selected_name := v_types[floor(random() * 3 + 1)::int];
         

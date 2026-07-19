@@ -16,7 +16,7 @@ BEGIN
     END IF;
 
     -- Create 10 FDs for Random Members in Rathgama (Branch 3)
-    FOR rec IN (SELECT member_id, created_at FROM member_service.members WHERE registered_branch_id = 3 ORDER BY random() LIMIT 10) LOOP
+    FOR rec IN (SELECT member_id, created_at FROM member_service.members WHERE registered_branch_id = 1 ORDER BY random() LIMIT 10) LOOP
         v_fd_id := gen_random_uuid();
         v_amount := floor(random() * 900000 + 100000); -- 1 Lakh to 10 Lakhs
         v_created_at := CURRENT_DATE - (floor(random() * 300 + 30)::int || ' days')::interval; -- Opened 1-11 months ago
@@ -28,8 +28,8 @@ BEGIN
         ) VALUES (
             v_fd_id, rec.member_id, v_type_id, v_amount, 15.0, v_term,
             (v_created_at + (v_term || ' months')::interval)::date, 'ACTIVE', 
-            'FD300' || floor(random()*9999)::text, 'RENEW_PRINCIPAL_AND_INTEREST', 
-            3, v_created_at::date, v_created_at, 1, (v_amount * 0.15 * ((CURRENT_DATE - v_created_at::date)/365.0))
+            'FD100' || floor(random()*9999)::text, 'RENEW_PRINCIPAL_AND_INTEREST', 
+            1, v_created_at::date, v_created_at, 1, (v_amount * 0.15 * ((CURRENT_DATE - v_created_at::date)/365.0))
         );
     END LOOP;
 END $$;
