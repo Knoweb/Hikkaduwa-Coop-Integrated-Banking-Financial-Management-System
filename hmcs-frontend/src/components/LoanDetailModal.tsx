@@ -1266,6 +1266,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                   ref={noticePrintRef}
                   noticeType={noticeType}
                   loan={loan}
+                  memberName={memberName}
                   member={loan.applicationData || { fullName: memberName }}
                   guarantors={(loan as any).guarantors || []}
                   overdueAmount={(loan as any).overdueAmount || loan.requestedAmount}
