@@ -73,6 +73,8 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
 
   const [formData, setFormData] = useState({
     memberId: '',
+    fdNumber: '',
+    openedDate: new Date().toLocaleDateString('en-CA'),
     fullName: '',
     nameWithInitials: '',
     idNumber: '',
@@ -250,8 +252,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           <div>
             <p className="text-xs text-emerald-200/80 mb-1 font-semibold">විවිධ සේවා සමුපකාර සමිතිය</p>
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              ස්ථාවර තැන්පතු ගිණුම් පෝරමය
-              <span className="bg-amber-500 text-amber-950 text-xs px-3 py-1 rounded-full font-bold">ස්ථාවර තැන්පතු</span>
+              ස්ථාවර තැන්පතු ගිණුම් පෝරමය<span className="bg-amber-500 text-amber-950 text-xs px-3 py-1 rounded-full font-bold">ස්ථාවර තැන්පතු</span>
             </h2>
             <p className="text-xs text-emerald-200/70 mt-1">නව ස්ථාවර තැන්පතු ගිණුමක් ආරම්භ කිරීම</p>
           </div>
@@ -271,8 +272,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           {step === 1 && (
             <div className="animate-in fade-in duration-300">
               <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
-                1. සාමාජික විස්තර (Member Details)
-              </h3>
+                1. සාමාජික විස්තර (Member Details)</h3>
               
               <div className="mb-6">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම ආරම්භ කළ දිනය (OPENED DATE) *</label>
@@ -414,8 +414,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
           {step === 2 && (
             <div className="animate-in fade-in duration-300">
               <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
-                2. තැන්පතු තොරතුරු (Deposit Details)
-              </h3>
+                2. තැන්පතු තොරතුරු (Deposit Details)</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -522,8 +521,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
               </div>
 
               <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">
-                3. කාර්යාලීය ප්‍රයෝජනය සඳහා පමණි (Office Use Only)
-              </h3>
+                3. කාර්යාලීය ප්‍රයෝජනය සඳහා පමණි (Office Use Only)</h3>
               
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -596,24 +594,19 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
 
           <div className="mt-8 flex justify-between items-center pt-6 border-t border-slate-200">
             <button type="button" onClick={onClose} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
-              අවලංගු කරන්න (Cancel)
-            </button>
+              අවලංගු කරන්න (Cancel)</button>
             
             <div className="flex gap-3">
               {step > 1 && (
                 <button type="button" onClick={prevStep} className="px-6 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition">
-                  පෙර (Back)
-                </button>
+                  පෙර (Back)</button>
               )}
               {step < 3 ? (
                 <button type="button" onClick={nextStep} className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-[#01443b] hover:bg-[#002f29] transition shadow-md">
-                  ඊළඟ (Next)
-                </button>
+                  ඊළඟ (Next)</button>
               ) : (
                 <button type="submit" disabled={isSubmitting || !isOfficerApproved} className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-[#01443b] hover:bg-[#002f29] transition shadow-md flex items-center gap-2 disabled:opacity-50">
-                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                  තැන්පතුව ආරම්භ කරන්න (Open FD)
-                </button>
+                  {isSubmitting && <Loader2 size={16} className="animate-spin" />} තැන්පතුව ආරම්භ කරන්න (Open FD)</button>
               )}
             </div>
           </div>
@@ -645,8 +638,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                 }} 
                 className={`px-5 py-2 text-white text-sm font-semibold rounded-lg transition shadow-sm ${alertConfig.isSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-900 hover:bg-gray-800'}`}
               >
-                හරි (OK)
-              </button>
+                හරි (OK)</button>
             </div>
           </div>
         </div>

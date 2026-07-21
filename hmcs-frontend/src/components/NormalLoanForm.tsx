@@ -5,6 +5,8 @@ import { User, Shield, Landmark, ClipboardCheck, ChevronRight, ChevronLeft, Save
 import { applyForLoan } from '../services/loan.service';
 import { searchMembers, getAccounts } from '../services/account.service';
 import * as AuthService from '../services/auth.service';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface NormalLoanFormProps {
   loanTypeId: string;
@@ -12,6 +14,7 @@ interface NormalLoanFormProps {
 }
 
 export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormProps) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +38,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({ open: false, message: '', severity: 'info' });
   
   const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+  
     setSnackbar({ open: true, message, severity });
   };
 
@@ -99,6 +103,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   });
 
   const handleInputChange = (e: any, section: string | null = null, subSection: string | null = null) => {
+  
     const { name, value } = e.target;
     if (subSection) {
       setFormData((prev: any) => ({
@@ -116,6 +121,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   };
 
   const handleGuarantorChange = (gKey: string, name: string, value: string, section: string | null = null) => {
+  
     setFormData((prev: any) => {
       const updatedGuarantor = { ...prev[gKey] };
       if (section) {
@@ -128,6 +134,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   };
 
   const validateStep = (step: number) => {
+  
     if (step === 1) {
       if (!formData.appliedDate || !formData.applicantName || !formData.nic || !formData.phone || !formData.memberNo) {
         showMessage('කරුණාකර සියලුම අත්‍යවශ්‍ය මූලික තොරතුරු සහ අයදුම් කළ දිනය පුරවන්න. (Please fill all essential basic details including Applied Date)', 'warning');
@@ -158,6 +165,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   };
 
   const nextStep = () => {
+  
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, 4));
     }
@@ -250,6 +258,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  
     if (e.key === 'Enter') {
       e.preventDefault();
     }
@@ -302,8 +311,8 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
       
       {/* Form Header */}
       <div className="bg-gradient-to-r border-b border-emerald-600 bg-emerald-700 p-6 text-white text-center shrink-0">
-        <p className="text-sm font-semibold tracking-wider uppercase opacity-90">සී/ස විවිධ සේවා සමුපකාර සමිතිය | ග්රාමීය බැංකුව</p>
-        <h1 className="text-2xl sm:text-3xl font-bold mt-1">ණය යෝජනා ඉල්ලුම් පත්රය</h1>
+        <p className="text-sm font-semibold tracking-wider uppercase opacity-90">{t(`සී/ස විවිධ සේවා සමුපකාර සමිතිය | ග්රාමීය බැංකුව`)}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mt-1">{t(`ණය යෝජනා ඉල්ලුම් පත්රය`)}</h1>
       </div>
 
       {/* Stepper Progress Bar */}
@@ -345,7 +354,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
             <div className="space-y-6">
               <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 shadow-sm relative grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-yellow-900 mb-2">අයදුම්පත් අංකය (Application No)</label>
+                  <label className="block text-sm font-bold text-yellow-900 mb-2">{t(`අයදුම්පත් අංකය (Application No)`)}</label>
                   <input 
                     type="text" 
                     disabled
@@ -354,7 +363,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-bold text-yellow-900 mb-2">{t(`ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date)`)}<span className="text-red-500 font-bold">*</span></label>
                   <input 
                     type="date" 
                     required
@@ -365,16 +374,16 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   {formData.appliedDate && formData.appliedDate !== new Date().toLocaleDateString('en-CA') && (
                     <div className="mt-2 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs font-semibold border border-amber-200 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                       <AlertTriangle size={14} className="text-amber-500 flex-shrink-0"/>
-                      <span>ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.</span>
+                      <span>{t(`ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.`)}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><User size={22}/> 01. ඉල්ලුම්කරුගේ මූලික තොරතුරු</h2>
+              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><User size={22}/> {t(`01. ඉල්ලුම්කරුගේ මූලික තොරතුරු`)}</h2>
               
               <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100 flex flex-col items-start shadow-sm relative">
-                <label className="block text-sm font-bold text-emerald-900 mb-2">සාමාජික අංකය, ජා.හැ.ප අංකය හෝ නම (Member No, NIC or Name) ලබා දී සොයන්න</label>
+                <label className="block text-sm font-bold text-emerald-900 mb-2">{t(`සාමාජික අංකය, ජා.හැ.ප අංකය හෝ නම (Member No, NIC or Name) ලබා දී සොයන්න`)}</label>
                 <div className="w-full relative">
                   <input 
                     type="text" 
@@ -405,69 +414,68 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   )}
                   {showDropdown && searchQuery.length > 0 && !isSearching && searchResults.length === 0 && (
                     <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl p-4 text-center text-slate-500">
-                      සාමාජිකයෙකු සොයාගත නොහැකි විය. (Member not found)
-                    </div>
+                      {t(`සාමාජිකයෙකු සොයාගත නොහැකි විය. (Member not found)`)}</div>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium mb-1">01. ඉල්ලුම්කරුගේ සම්පූර්ණ නම / නම් <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-medium mb-1">{t(`01. ඉල්ලුම්කරුගේ සම්පූර්ණ නම / නම්`)}<span className="text-red-500 font-bold">*</span></label>
                   <input type="text" name="applicantName" value={formData.applicantName} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">02. ලිපිනය</label>
+                  <label className="block text-sm font-medium mb-1">{t(`02. ලිපිනය`)}</label>
                   <input type="text" name="addressLine1" value={formData.addressLine1} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">03. උපන් දිනය</label>
+                  <label className="block text-sm font-medium mb-1">{t(`03. උපන් දිනය`)}</label>
                   <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">04. ස්ත්රී / පුරුෂ භාවය</label>
+                  <label className="block text-sm font-medium mb-1">{t(`04. ස්ත්රී / පුරුෂ භාවය`)}</label>
                   <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500">
-                    <option value="">තෝරන්න</option>
-                    <option value="පුරුෂ">පුරුෂ</option>
-                    <option value="ස්ත්රී">ස්ත්රී</option>
+                    <option value="">{t(`තෝරන්න`)}</option>
+                    <option value="පුරුෂ">{t(`පුරුෂ`)}</option>
+                    <option value="ස්ත්රී">{t(`ස්ත්රී`)}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">05. විවාහක / අවිවාහක බව</label>
+                  <label className="block text-sm font-medium mb-1">{t(`05. විවාහක / අවිවාහක බව`)}</label>
                   <select name="civilStatus" value={formData.civilStatus} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500">
-                    <option value="">තෝරන්න</option>
-                    <option value="විවාහක">විවාහක</option>
-                    <option value="අවිවාහක">අවිවාහක</option>
+                    <option value="">{t(`තෝරන්න`)}</option>
+                    <option value="විවාහක">{t(`විවාහක`)}</option>
+                    <option value="අවිවාහක">{t(`අවිවාහක`)}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">06. ජාතික හැඳුනුම්පත් අංකය (NIC) <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-medium mb-1">{t(`06. ජාතික හැඳුනුම්පත් අංකය (NIC)`)}<span className="text-red-500 font-bold">*</span></label>
                   <input type="text" name="nic" value={formData.nic} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">07. දුරකථන අංකය <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-medium mb-1">{t(`07. දුරකථන අංකය`)}<span className="text-red-500 font-bold">*</span></label>
                   <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">08. සාමාජික අංකය <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-medium mb-1">{t(`08. සාමාජික අංකය`)}<span className="text-red-500 font-bold">*</span></label>
                   <input type="text" name="memberNo" value={formData.memberNo} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">09. සමිති බල ප්රදේශයේ පදිංචි කාලය (වසර)</label>
-                  <input type="number" name="residencePeriod" value={formData.residencePeriod} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
+                  <label className="block text-sm font-medium mb-1">{t(`09. සමිති බල ප්රදේශයේ පදිංචි කාලය (වසර)`)}</label>
+                  <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="residencePeriod" value={formData.residencePeriod} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">10. වෙනත් සමූපකාර සමිතියක සාමාජිකයෙක්ද?</label>
+                  <label className="block text-sm font-medium mb-1">{t(`10. වෙනත් සමූපකාර සමිතියක සාමාජිකයෙක්ද?`)}</label>
                   <select name="isMemberOfOtherCoop" value={formData.isMemberOfOtherCoop} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500">
-                    <option value="">තෝරන්න</option>
-                    <option value="ඔව්">ඔව්</option>
-                    <option value="නැත">නැත</option>
+                    <option value="">{t(`තෝරන්න`)}</option>
+                    <option value="ඔව්">{t(`ඔව්`)}</option>
+                    <option value="නැත">{t(`නැත`)}</option>
                   </select>
                 </div>
                 {formData.isMemberOfOtherCoop === 'ඔව්' && (
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium mb-1">එසේ නම් එහි නම සහ ලිපිනය</label>
+                    <label className="block text-sm font-medium mb-1">{t(`එසේ නම් එහි නම සහ ලිපිනය`)}</label>
                     <textarea name="otherCoopDetails" value={formData.otherCoopDetails} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" rows={2}></textarea>
                   </div>
                 )}
@@ -478,35 +486,34 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
           {/* STEP 2: ණය මුදල සහ ආර්ථික තොරතුරු */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><Landmark size={22}/> 02. ණය මුදල සහ ආර්ථික තොරතුරු</h2>
+              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><Landmark size={22}/> {t(`02. ණය මුදල සහ ආර්ථික තොරතුරු`)}</h2>
               
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
-                <h3 className="text-sm font-bold text-slate-700">11. වෙනත් ණය වෙනුවෙන් ඇපවීම් (ඇත්නම් ණයකරුගේ නම)</h3>
+                <h3 className="text-sm font-bold text-slate-700">{t(`11. වෙනත් ණය වෙනුවෙන් ඇපවීම් (ඇත්නම් ණයකරුගේ නම)`)}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <input type="text" name="guarantorOfOtherLoan1" placeholder="ණයකරු 01 නම" value={formData.guarantorOfOtherLoan1} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white focus:ring-2 focus:ring-emerald-500 text-sm" />
-                  <input type="text" name="guarantorOfOtherLoan2" placeholder="ණයකරු 02 නම" value={formData.guarantorOfOtherLoan2} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white focus:ring-2 focus:ring-emerald-500 text-sm" />
+                  <input type="text" name="guarantorOfOtherLoan1" placeholder={t(`ණයකරු 01 නම`)} value={formData.guarantorOfOtherLoan1} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white focus:ring-2 focus:ring-emerald-500 text-sm" />
+                  <input type="text" name="guarantorOfOtherLoan2" placeholder={t(`ණයකරු 02 නම`)} value={formData.guarantorOfOtherLoan2} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white focus:ring-2 focus:ring-emerald-500 text-sm" />
                 </div>
               </div>
 
               <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-200 shadow-sm relative overflow-hidden my-6">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200 rounded-full blur-3xl -mr-10 -mt-10 opacity-40 pointer-events-none"></div>
                 <h3 className="text-sm font-bold text-emerald-800 mb-5 pb-3 border-b border-emerald-200 flex items-center gap-2">
-                  <Landmark size={18}/> 12. ණය මුදල සහ ගෙවීමේ කාලය
-                </h3>
+                  <Landmark size={18}/> {t(`12. ණය මුදල සහ ගෙවීමේ කාලය`)}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left: Amount Details */}
                   <div className="space-y-4 bg-white p-5 rounded-xl border border-emerald-100 shadow-sm">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">(අ) අවශ්‍ය ණය මුදලින් (රු.) <span className="text-red-500 font-bold">*</span></label>
-                      <input type="number" min="0" name="requiredLoanCash" value={formData.requiredLoanCash} onChange={handleInputChange} placeholder="e.g. 50000" className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800" />
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t(`(අ) අවශ්‍ය ණය මුදලින් (රු.)`)}<span className="text-red-500 font-bold">*</span></label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} min="0" name="requiredLoanCash" value={formData.requiredLoanCash} onChange={handleInputChange} placeholder="e.g. 50000" className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800" />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">(ආ) අවශ්‍ය ණය ද්‍රව්‍ය වලින් (රු.)</label>
-                      <input type="number" min="0" name="requiredLoanGoods" value={formData.requiredLoanGoods} onChange={handleInputChange} placeholder="e.g. 0" className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800" />
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t(`(ආ) අවශ්‍ය ණය ද්‍රව්‍ය වලින් (රු.)`)}</label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} min="0" name="requiredLoanGoods" value={formData.requiredLoanGoods} onChange={handleInputChange} placeholder="e.g. 0" className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800" />
                     </div>
                     <div className="pt-3 border-t border-slate-100">
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">එකතුව (Total Loan Amount)</label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t(`එකතුව (Total Loan Amount)`)}</label>
                       <div className="w-full rounded-xl border border-emerald-300 p-3 bg-emerald-600 text-white font-bold text-xl text-right shadow-inner">
                         Rs. {(Number(formData.requiredLoanCash || 0) + Number(formData.requiredLoanGoods || 0)).toLocaleString()}
                       </div>
@@ -516,9 +523,9 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   {/* Right: Duration and Purpose */}
                   <div className="space-y-5 bg-white p-5 rounded-xl border border-emerald-100 shadow-sm">
                     <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
-                      <label className="block text-sm font-bold text-emerald-900 mb-2">14. ණය ආපසු ගෙවීමේ කාලය <span className="text-red-500 font-bold">*</span> <span className="text-xs font-medium text-emerald-700 block mt-0.5">(මාසික වාරික සංඛ්‍යාව)</span></label>
+                      <label className="block text-sm font-bold text-emerald-900 mb-2">{t(`14. ණය ආපසු ගෙවීමේ කාලය`)}<span className="text-red-500 font-bold">*</span> <span className="text-xs font-medium text-emerald-700 block mt-0.5">{t(`(මාසික වාරික සංඛ්‍යාව)`)}</span></label>
                       <div className="flex items-center gap-3">
-                        <input type="number" min="1" max="120" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '.') e.preventDefault(); }} name="repaymentPeriodMonths" value={formData.repaymentPeriodMonths} onChange={handleInputChange} className="flex-1 rounded-xl border-emerald-400 p-3.5 text-2xl font-bold text-emerald-900 border-2 focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-600 text-center shadow-inner" placeholder="0" />
+                        <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} min="1" max="120" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '.') e.preventDefault(); }} name="repaymentPeriodMonths" value={formData.repaymentPeriodMonths} onChange={handleInputChange} className="flex-1 rounded-xl border-emerald-400 p-3.5 text-2xl font-bold text-emerald-900 border-2 focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-600 text-center shadow-inner" placeholder="0" />
                         <span className="text-sm font-bold text-emerald-800 bg-emerald-200/50 px-5 py-4 rounded-xl border border-emerald-300 shadow-sm whitespace-nowrap">
                           {(() => {
                             const m = parseInt(formData.repaymentPeriodMonths || '0');
@@ -534,46 +541,46 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">13. ණය අවශ්‍ය කාරණය <span className="text-red-500 font-bold">*</span></label>
-                      <input type="text" name="loanPurpose" value={formData.loanPurpose} onChange={handleInputChange} placeholder="උදා: ව්‍යාපාරයක් ආරම්භ කිරීමට" className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 bg-slate-50" />
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t(`13. ණය අවශ්‍ය කාරණය`)}<span className="text-red-500 font-bold">*</span></label>
+                      <input type="text" name="loanPurpose" value={formData.loanPurpose} onChange={handleInputChange} placeholder={t(`උදා: ව්‍යාපාරයක් ආරම්භ කිරීමට`)} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500 bg-slate-50" />
                     </div>
                     
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">15. වාරික ගෙවීමේ ක්‍රමය</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t(`15. වාරික ගෙවීමේ ක්‍රමය`)}</label>
                       <select name="repaymentMethod" value={formData.repaymentMethod} onChange={handleInputChange} className="w-full rounded-lg border-emerald-300 p-2.5 border-2 focus:ring-2 focus:ring-emerald-500 bg-emerald-50 font-semibold text-emerald-900 text-sm">
-                        <option value="FIELD_COLLECTION">ක්ෂේත්‍ර නිලධාරී හරහා නිවසට පැමිණ</option>
-                        <option value="BRANCH_TELLER">ශාඛාවට පැමිණ (Branch Visit)</option>
+                        <option value="FIELD_COLLECTION">{t(`ක්ෂේත්‍ර නිලධාරී හරහා නිවසට පැමිණ`)}</option>
+                        <option value="BRANCH_TELLER">{t(`ශාඛාවට පැමිණ (Branch Visit)`)}</option>
                       </select>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <h3 className="text-lg font-semibold text-slate-700 border-b pb-1 mt-6">ණයකරුගේ ආර්ථික තොරතුරු</h3>
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-1 mt-6">{t(`ණයකරුගේ ආර්ථික තොරතුරු`)}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">01. ප්රධාන රැකියාව</label>
+                  <label className="block text-sm font-medium mb-1">{t(`01. ප්රධාන රැකියාව`)}</label>
                   <input type="text" name="primaryJob" value={formData.primaryJob} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">02. රැකියාව කරන ආයතනයේ නම හා ලිපිනය</label>
+                  <label className="block text-sm font-medium mb-1">{t(`02. රැකියාව කරන ආයතනයේ නම හා ලිපිනය`)}</label>
                   <input type="text" name="employerDetails" value={formData.employerDetails} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">03. බිරිඳ/ස්වාමිපුරුෂයා රැකියාවක් කරන්නේ නම් තනතුර</label>
+                  <label className="block text-sm font-medium mb-1">{t(`03. බිරිඳ/ස්වාමිපුරුෂයා රැකියාවක් කරන්නේ නම් තනතුර`)}</label>
                   <input type="text" name="spouseJobTitle" value={formData.spouseJobTitle} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">ආයතනයේ නම හා ලිපිනය (බිරිඳ/ස්වාමිපුරුෂයා)</label>
+                  <label className="block text-sm font-medium mb-1">{t(`ආයතනයේ නම හා ලිපිනය (බිරිඳ/ස්වාමිපුරුෂයා)`)}</label>
                   <input type="text" name="spouseEmployerDetails" value={formData.spouseEmployerDetails} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">ගෘහ මූලිකයාගේ නම</label>
+                  <label className="block text-sm font-medium mb-1">{t(`ගෘහ මූලිකයාගේ නම`)}</label>
                   <input type="text" name="headOfHouseholdName" value={formData.headOfHouseholdName} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">යැපෙන්නන්ගේ සංඛ්යාව</label>
-                  <input type="number" name="dependentsCount" value={formData.dependentsCount} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
+                  <label className="block text-sm font-medium mb-1">{t(`යැපෙන්නන්ගේ සංඛ්යාව`)}</label>
+                  <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="dependentsCount" value={formData.dependentsCount} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
               </div>
             </div>
@@ -582,18 +589,18 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
           {/* STEP 3: වත්කම්, වියදම් සහ පවුලේ විස්තර */}
           {currentStep === 3 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><ClipboardCheck size={22}/> 03. වත්කම්, මූල්ය සහ වියදම් විස්තර</h2>
+              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><ClipboardCheck size={22}/> {t(`03. වත්කම්, මූල්ය සහ වියදම් විස්තර`)}</h2>
               
               {/* 05. ස්ථිර වත්කම් */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-slate-700">05. ස්ථිර වත්කම් (ණය ඉල්ලුම්කරු සතු ප්රමාණය හා වටිනාකම)</h3>
+                <h3 className="font-semibold text-slate-700">{t(`05. ස්ථිර වත්කම් (ණය ඉල්ලුම්කරු සතු ප්රමාණය හා වටිනාකම)`)}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border">
                   {['landGoda', 'landMada', 'vehicles', 'animals', 'other'].map((assetKey, idx) => {
                     const labels = ['ගොඩ ඉඩම්', 'මඩ ඉඩම්', 'රථ වාහන', 'සතුන්', 'වෙනත් වත්කම්'];
                     return (
                       <div key={assetKey} className="flex flex-col gap-1">
                         <label className="text-xs font-medium text-slate-600">{labels[idx]}</label>
-                        <input type="text" name={assetKey} placeholder="ප්රමාණය සහ ඇස්තමේන්තුගත වටිනාකම" value={(formData.assets as any)[assetKey]} onChange={(e) => handleInputChange(e, 'assets')} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
+                        <input type="text" name={assetKey} placeholder={t(`ප්රමාණය සහ ඇස්තමේන්තුගත වටිනාකම`)} value={(formData.assets as any)[assetKey]} onChange={(e) => handleInputChange(e, 'assets')} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
                       </div>
                     );
                   })}
@@ -602,15 +609,15 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
               {/* බැංකු ගිණුම් විස්තර */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-slate-700">මූල්ය වත්කම් (බැංකු සහ ආයතන ගිණුම් විස්තර)</h3>
+                <h3 className="font-semibold text-slate-700">{t(`මූල්ය වත්කම් (බැංකු සහ ආයතන ගිණුම් විස්තර)`)}</h3>
                 <div className="overflow-x-auto border border-slate-300 rounded-xl">
                   <table className="w-full text-left border-collapse bg-white text-sm">
                     <thead>
                       <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-300">
-                        <th className="p-3 border-r border-slate-300">ගිණුම් වර්ගය</th>
-                        <th className="p-3 border-r border-slate-300">ආයතනය</th>
-                        <th className="p-3 border-r border-slate-300">ගිණුම් අංකය</th>
-                        <th className="p-3">ශේෂය (රු.)</th>
+                        <th className="p-3 border-r border-slate-300">{t(`ගිණුම් වර්ගය`)}</th>
+                        <th className="p-3 border-r border-slate-300">{t(`ආයතනය`)}</th>
+                        <th className="p-3 border-r border-slate-300">{t(`ගිණුම් අංකය`)}</th>
+                        <th className="p-3">{t(`ශේෂය (රු.)`)}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-300">
@@ -624,7 +631,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                           <td className="p-3 font-medium bg-slate-50 border-r border-slate-300">{acc.label}</td>
                           <td className="p-2 border-r border-slate-300"><input type="text" name="branch" value={(formData.bankAccounts as any)[acc.key]?.branch || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
                           <td className="p-2 border-r border-slate-300"><input type="text" name="accNo" value={(formData.bankAccounts as any)[acc.key]?.accNo || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
-                          <td className="p-2"><input type="number" name="balance" value={(formData.bankAccounts as any)[acc.key]?.balance || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
+                          <td className="p-2"><input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="balance" value={(formData.bankAccounts as any)[acc.key]?.balance || ''} onChange={(e) => handleInputChange(e, 'bankAccounts', acc.key)} className="w-full border border-slate-400 rounded p-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white text-sm" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -635,39 +642,39 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
               {/* වාර්ෂික ආදායම හා වියදම */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border">
                 <div>
-                  <label className="block text-sm font-medium mb-1">වාර්ෂික ප්රධාන රැකියා ආදායම (රු.)</label>
-                  <input type="number" name="annualIncomePrimary" value={formData.annualIncomePrimary} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
+                  <label className="block text-sm font-medium mb-1">{t(`වාර්ෂික ප්රධාන රැකියා ආදායම (රු.)`)}</label>
+                  <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="annualIncomePrimary" value={formData.annualIncomePrimary} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">වෙනත් වාර්ෂික ආදායම් මාර්ග (රු.)</label>
-                  <input type="number" name="annualIncomeOther" value={formData.annualIncomeOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
+                  <label className="block text-sm font-medium mb-1">{t(`වෙනත් වාර්ෂික ආදායම් මාර්ග (රු.)`)}</label>
+                  <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="annualIncomeOther" value={formData.annualIncomeOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">මුළු වාර්ෂික වියදම් එකතුව (රු.)</label>
-                  <input type="number" name="annualExpense" value={formData.annualExpense} disabled className="w-full rounded-lg border-slate-300 p-2.5 border bg-slate-100 font-bold cursor-not-allowed" />
+                  <label className="block text-sm font-medium mb-1">{t(`මුළු වාර්ෂික වියදම් එකතුව (රු.)`)}</label>
+                  <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="annualExpense" value={formData.annualExpense} disabled className="w-full rounded-lg border-slate-300 p-2.5 border bg-slate-100 font-bold cursor-not-allowed" />
                 </div>
               </div>
 
               {/* ගෙවීමට ඇති ණය */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-slate-700">07. දැනට ගෙවීමට ඇති ණය සහ පොළී විස්තර</h3>
+                <h3 className="font-semibold text-slate-700">{t(`07. දැනට ගෙවීමට ඇති ණය සහ පොළී විස්තර`)}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium mb-1">1. මෙම සමිතියට ගෙවීමට ඇති හිඟ මුදල (රු.)</label>
-                    <input type="number" name="existingLoansCoop" value={formData.existingLoansCoop} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border" />
+                    <label className="block text-xs font-medium mb-1">{t(`1. මෙම සමිතියට ගෙවීමට ඇති හිඟ මුදල (රු.)`)}</label>
+                    <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="existingLoansCoop" value={formData.existingLoansCoop} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">2. වෙනත් මූල්ය ආයතනවලට ඇති ණය (රු.)</label>
-                    <input type="number" name="existingLoansOther" value={formData.existingLoansOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border" />
+                    <label className="block text-xs font-medium mb-1">{t(`2. වෙනත් මූල්ය ආයතනවලට ඇති ණය (රු.)`)}</label>
+                    <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="existingLoansOther" value={formData.existingLoansOther} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border" />
                   </div>
                 </div>
               </div>
 
               {/* Supporting Documents */}
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold text-slate-700 flex items-center gap-2">08. අතිරේක ලියකියවිලි (Supporting Documents)</h3>
+                <h3 className="font-semibold text-slate-700 flex items-center gap-2">{t(`08. අතිරේක ලියකියවිලි (Supporting Documents)`)}</h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="block text-sm font-medium mb-2 text-slate-600">ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න</label>
+                  <label className="block text-sm font-medium mb-2 text-slate-600">{t(`ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න`)}</label>
                   <input type="file" multiple className="w-full rounded-lg border-slate-300 p-2 bg-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
                 </div>
               </div>
@@ -677,7 +684,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
           {/* STEP 4: ඇපකරුවන්ගේ විස්තර */}
           {currentStep === 4 && (
             <div className="space-y-8">
-              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><Shield size={22}/> 04. ඇපකරුවන්ගේ ප්රකාශ සහ විස්තර</h2>
+              <h2 className="text-xl font-bold text-emerald-800 border-b pb-2 flex items-center gap-2"><Shield size={22}/> {t(`04. ඇපකරුවන්ගේ ප්රකාශ සහ විස්තර`)}</h2>
               
               {/* Guarantor 1 & 2 Loop Container */}
               {['guarantor1', 'guarantor2'].map((gKey, index) => (
@@ -689,56 +696,56 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <label className="block text-xs font-medium mb-1">සම්පූර්ණ නම <span className="text-red-500 font-bold">*</span></label>
+                      <label className="block text-xs font-medium mb-1">{t(`සම්පූර්ණ නම`)}<span className="text-red-500 font-bold">*</span></label>
                       <input type="text" value={(formData as any)[gKey].name} onChange={(e) => handleGuarantorChange(gKey, 'name', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">ලිපිනය</label>
+                      <label className="block text-xs font-medium mb-1">{t(`ලිපිනය`)}</label>
                       <input type="text" value={(formData as any)[gKey].address} onChange={(e) => handleGuarantorChange(gKey, 'address', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">ජාතික හැඳුනුම්පත් අංකය <span className="text-red-500 font-bold">*</span></label>
+                      <label className="block text-xs font-medium mb-1">{t(`ජාතික හැඳුනුම්පත් අංකය`)}<span className="text-red-500 font-bold">*</span></label>
                       <input type="text" value={(formData as any)[gKey].nic} onChange={(e) => handleGuarantorChange(gKey, 'nic', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">උපන් දිනය</label>
+                      <label className="block text-xs font-medium mb-1">{t(`උපන් දිනය`)}</label>
                       <input type="date" value={(formData as any)[gKey].dob} onChange={(e) => handleGuarantorChange(gKey, 'dob', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">සාමාජික අංකය</label>
+                      <label className="block text-xs font-medium mb-1">{t(`සාමාජික අංකය`)}</label>
                       <input type="text" value={(formData as any)[gKey].memberNo} onChange={(e) => handleGuarantorChange(gKey, 'memberNo', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">රැකියාව</label>
+                      <label className="block text-xs font-medium mb-1">{t(`රැකියාව`)}</label>
                       <input type="text" value={(formData as any)[gKey].job} onChange={(e) => handleGuarantorChange(gKey, 'job', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium mb-1">දුරකථන අංකය</label>
+                      <label className="block text-xs font-medium mb-1">{t(`දුරකථන අංකය`)}</label>
                       <input type="tel" value={(formData as any)[gKey].phone} onChange={(e) => handleGuarantorChange(gKey, 'phone', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white sm:w-1/2" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
                     <div>
-                      <label className="font-medium text-slate-600">ඉඩම්/ගොඩනැගිලි වටිනාකම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.assets?.land || ''} onChange={(e) => handleGuarantorChange(gKey, 'land', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
+                      <label className="font-medium text-slate-600">{t(`ඉඩම්/ගොඩනැගිලි වටිනාකම`)}</label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder={t(`රු.`)} value={(formData as any)[gKey]?.assets?.land || ''} onChange={(e) => handleGuarantorChange(gKey, 'land', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
-                      <label className="font-medium text-slate-600">රථ වාහන වටිනාකම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.assets?.vehicles || ''} onChange={(e) => handleGuarantorChange(gKey, 'vehicles', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
+                      <label className="font-medium text-slate-600">{t(`රථ වාහන වටිනාකම`)}</label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder={t(`රු.`)} value={(formData as any)[gKey]?.assets?.vehicles || ''} onChange={(e) => handleGuarantorChange(gKey, 'vehicles', e.target.value, 'assets')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
-                      <label className="font-medium text-slate-600">ඉතිරි කිරීම් ශේෂය</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.bank?.savings || ''} onChange={(e) => handleGuarantorChange(gKey, 'savings', e.target.value, 'bank')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
+                      <label className="font-medium text-slate-600">{t(`ඉතිරි කිරීම් ශේෂය`)}</label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder={t(`රු.`)} value={(formData as any)[gKey]?.bank?.savings || ''} onChange={(e) => handleGuarantorChange(gKey, 'savings', e.target.value, 'bank')} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                     <div>
-                      <label className="font-medium text-slate-600">වාර්ෂික මුළු ආදායම</label>
-                      <input type="number" placeholder="රු." value={(formData as any)[gKey]?.incomePrimary || ''} onChange={(e) => handleGuarantorChange(gKey, 'incomePrimary', e.target.value)} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
+                      <label className="font-medium text-slate-600">{t(`වාර්ෂික මුළු ආදායම`)}</label>
+                      <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder={t(`රු.`)} value={(formData as any)[gKey]?.incomePrimary || ''} onChange={(e) => handleGuarantorChange(gKey, 'incomePrimary', e.target.value)} className="w-full border border-slate-400 rounded p-1.5 mt-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white" />
                     </div>
                   </div>
 
                   <div className="pt-3 border-t text-sm mt-3">
-                    <label className="block font-medium text-slate-600 mb-2">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
+                    <label className="block font-medium text-slate-600 mb-2">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
                     <input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -758,9 +765,9 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
               {/* නීතිමය කොන්දේසි ප්රකාශය */}
               <div className="p-4 bg-amber-50 border border-amber-200 text-slate-700 text-xs rounded-xl space-y-2 leading-relaxed">
-                <p className="font-bold text-amber-900">🔔 ඇපකරුවන් සහ ණයකරුගේ පොදු ප්රකාශය :</p>
-                <p>• ඉහත සඳහන් කරුණු අප දන්නා තරමින් නිවැරදි හා සත්ය බවත්, ණයකරු මෙම මුදල පැහැර හැරියහොත් පොළියද ඇතුළුව සම්පූර්ණ මුදල ගෙවීමට තනි තනිව සහ සාමූහිකව අප බැඳී සිටින බව ප්රකාශ කරමු.</p>
-                <p>• වාරික මුදලක් නිසි පරිදි නොගෙවා හැරියහොත් සමිතියේ ඇති අපගේ ඕනෑම ගිණුම් ශේෂයක් හිලව් කර ගැනීමට අපගේ විරුද්ධත්වයක් නොමැත.</p>
+                <p className="font-bold text-amber-900">{t(`🔔 ඇපකරුවන් සහ ණයකරුගේ පොදු ප්රකාශය :`)}</p>
+                <p>{t(`• ඉහත සඳහන් කරුණු අප දන්නා තරමින් නිවැරදි හා සත්ය බවත්, ණයකරු මෙම මුදල පැහැර හැරියහොත් පොළියද ඇතුළුව සම්පූර්ණ මුදල ගෙවීමට තනි තනිව සහ සාමූහිකව අප බැඳී සිටින බව ප්රකාශ කරමු.`)}</p>
+                <p>{t(`• වාරික මුදලක් නිසි පරිදි නොගෙවා හැරියහොත් සමිතියේ ඇති අපගේ ඕනෑම ගිණුම් ශේෂයක් හිලව් කර ගැනීමට අපගේ විරුද්ධත්වයක් නොමැත.`)}</p>
               </div>
             </div>
           )}
@@ -768,16 +775,15 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
           {/* Navigation Footer */}
           <div className="flex justify-between items-center py-6 mt-4 border-t border-slate-200">
             <button type="button" onClick={prevStep} disabled={currentStep === 1} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-300 font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-sm">
-              <ChevronLeft size={16}/> පෙර පියවර (Back)
-            </button>
+              <ChevronLeft size={16}/> {t(`පෙර පියවර (Back)`)}</button>
             
             {currentStep < 4 ? (
               <button type="button" onClick={nextStep} className="flex items-center gap-1 px-5 py-2.5 rounded-lg bg-emerald-600 font-medium text-white hover:bg-emerald-700 transition-colors shadow-sm text-sm ml-auto">
-                මීළඟ පියවර (Next) <ChevronRight size={16}/>
+                {t(`මීළඟ පියවර (Next)`)}<ChevronRight size={16}/>
               </button>
             ) : (
               <button type="button" onClick={handleSubmit} disabled={loading} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-700 font-bold text-white hover:bg-emerald-800 transition-all shadow-md ml-auto text-sm disabled:opacity-70">
-                {loading ? 'Processing...' : <><Save size={18}/> ශාඛා කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)</>}
+                {loading ? 'Processing...' : <><Save size={18}/> {t(`ශාඛා කළමනාකරුගේ අනුමැතිය සඳහා ඉදිරිපත් කරන්න (Submit for Approval)`)}</>}
               </button>
             )}
           </div>

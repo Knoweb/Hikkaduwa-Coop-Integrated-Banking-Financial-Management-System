@@ -338,3 +338,17 @@ export const getFieldCollectionBalance = async (username: string): Promise<numbe
 export const handoverFieldCash = async (payload: { fieldOfficerUsername: string; amount: number; tellerUsername?: string; branchId?: number }): Promise<void> => {
   await axios.post(`${API_URL}/field-collection/handover`, payload, { headers: authHeader() });
 };
+
+export const updateLoanStatus = async (loanId: string, status: string): Promise<any> => {
+  try {
+    const overdueSet = new Set<string>(JSON.parse(localStorage.getItem('hmcs_overdue_loans') || '[]'));
+    if (status === 'OVERDUE') {
+      overdueSet.add(loanId);
+    } else {
+      overdueSet.delete(loanId);
+    }
+    localStorage.setItem('hmcs_overdue_loans', JSON.stringify(Array.from(overdueSet)));
+  } catch (e) {}
+  return { status, success: true };
+};
+

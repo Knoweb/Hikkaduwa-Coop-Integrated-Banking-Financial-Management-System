@@ -50,6 +50,15 @@ public class FixedDepositController {
         this.interestService = interestService;
     }
 
+    private void populateLinkedSavingsAccountNumbers(List<FixedDeposit> fds) {
+        for (FixedDeposit fd : fds) {
+            if (fd.getLinkedSavingsAccountId() != null) {
+                accountRepository.findById(fd.getLinkedSavingsAccountId())
+                    .ifPresent(acc -> fd.setLinkedSavingsAccountNumber(acc.getAccountNumber()));
+            }
+        }
+    }
+
     @GetMapping
     public ResponseEntity<List<FixedDeposit>> getAllFDs(
             @RequestParam(required = false, defaultValue = "false") boolean branchOnly,
@@ -64,12 +73,25 @@ public class FixedDepositController {
         } else {
             fds = fdRepository.findAll();
         }
+        populateLinkedSavingsAccountNumbers(fds);
         return ResponseEntity.ok(fds);
     }
 
     @GetMapping("/member/{memberId}")
     public ResponseEntity<List<FixedDeposit>> getMemberFDs(@PathVariable UUID memberId) {
-        return ResponseEntity.ok(fdRepository.findByMemberId(memberId));
+        List<FixedDeposit> fds = fdRepository.findByMemberId(memberId);
+        populateLinkedSavingsAccountNumbers(fds);
+        return ResponseEntity.ok(fds);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FixedDeposit> getFixedDepositById(@PathVariable UUID id) {
+        return fdRepository.findById(id)
+                .map(fd -> {
+                    populateLinkedSavingsAccountNumbers(List.of(fd));
+                    return ResponseEntity.ok(fd);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     public static class OpenFdRequest {
@@ -488,5 +510,66 @@ public class FixedDepositController {
 
         fdRepository.delete(fd);
         return ResponseEntity.ok(Map.of("message", "Fixed deposit deleted successfully"));
+    }
+
+    @GetMapping("/admin/fix-fd-interest")
+    public ResponseEntity<?> fixFdInterest() {
+        List<FixedDeposit> activeFDs = fdRepository.findByStatus("ACTIVE");
+        int count = 0;
+        for (FixedDeposit fd : activeFDs) {
+            if (fd.getPrincipalAmount() == null || fd.getInterestRate() == null) continue;
+            
+            LocalDate openedDate = fd.getOpenedDate();
+            LocalDate today = LocalDate.now();
+            LocalDate lastPayout = fd.getLastInterestPayoutDate() != null ? fd.getLastInterestPayoutDate() : openedDate;
+            
+            long diffDays = ChronoUnit.DAYS.between(lastPayout, today);
+            if (diffDays <= 0) continue;
+            
+            BigDecimal principal = fd.getPrincipalAmount();
+            BigDecimal rate = fd.getInterestRate().divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
+            BigDecimal dailyInterest = principal.multiply(rate).divide(new BigDecimal("365"), 10, RoundingMode.HALF_UP);
+            
+            BigDecimal totalMissed = dailyInterest.multiply(new BigDecimal(diffDays));
+            
+            fd.setAccumulatedInterest(totalMissed);
+            
+            if ("MONTHLY".equals(fd.getInterestPayoutMethod())) {
+                LocalDate nextPayout = lastPayout.plusMonths(1);
+                if (!today.isBefore(nextPayout)) {
+                    if (fd.getLinkedSavingsAccountId() != null) {
+                        Account savingsAcc = accountRepository.findById(fd.getLinkedSavingsAccountId()).orElse(null);
+                        if (savingsAcc != null && "ACTIVE".equals(savingsAcc.getStatus())) {
+                            BigDecimal netAmount = totalMissed;
+                            if (Boolean.FALSE.equals(fd.getHasSubmittedTaxForm())) {
+                                netAmount = totalMissed.multiply(new BigDecimal("0.90"));
+                            }
+                            netAmount = netAmount.setScale(2, RoundingMode.HALF_UP);
+                            
+                            savingsAcc.setBalance(savingsAcc.getBalance().add(netAmount));
+                            accountRepository.save(savingsAcc);
+                            
+                            Transaction t = new Transaction();
+                            t.setAccount(savingsAcc);
+                            t.setAmount(netAmount);
+                            t.setBalanceAfter(savingsAcc.getBalance());
+                            t.setTransactionType("FD_MONTHLY_INTEREST");
+                            t.setReference(fd.getFdNumber() + " MONTHLY CATCHUP");
+                            t.setTenantId(fd.getTenantId());
+                            t.setBranchId(fd.getBranchId());
+                            t.setProcessedBy(UUID.fromString("00000000-0000-0000-0000-000000000000"));
+                            t.setTransactionTimestamp(java.time.LocalDateTime.now());
+                            transactionRepository.save(t);
+                            
+                            fd.setAccumulatedInterest(BigDecimal.ZERO);
+                            fd.setLastInterestPayoutDate(today);
+                            count++;
+                        }
+                    }
+                }
+            }
+            fdRepository.save(fd);
+        }
+        return ResponseEntity.ok(Map.of("message", "Fixed FDs: " + count));
     }
 }

@@ -6,6 +6,8 @@ import { searchMembers } from '../services/account.service';
 import * as AuthService from '../services/auth.service';
 import { AlertTriangle } from 'lucide-react';
 import { numberToSinhala } from '../utils/numberToSinhala';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface DisasterLoanFormProps {
   loanTypeId: string;
@@ -13,6 +15,7 @@ interface DisasterLoanFormProps {
 }
 
 export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     applicationNumber: '',
     name: '',
@@ -59,6 +62,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
     setFormData(prev => ({ ...prev, applicationNumber: newAppNumber }));
   }, []);
   const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+  
     setSnackbar({ open: true, message, severity });
   };
 
@@ -103,6 +107,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   }, [formData.requestedAmount]);
 
   const selectMember = (member: any) => {
+  
 
 
     setSearchQuery(member.membershipNumber || member.nic || '');
@@ -118,6 +123,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  
     const { name, value } = e.target;
     setFormData(prevState => ({
       ...prevState,
@@ -126,6 +132,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  
     if (e.key === 'Enter') {
       e.preventDefault();
     }
@@ -205,7 +212,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
       
       {/* Header */}
       <div className="bg-[#025a4e] text-white p-5 border-b-4 border-teal-500 rounded-t-2xl shrink-0">
-        <h1 className="text-xl font-bold tracking-wide text-center">සේවක ආපදා ණය ඉල්ලුම්පත</h1>
+        <h1 className="text-xl font-bold tracking-wide text-center">{t(`සේවක ආපදා ණය ඉල්ලුම්පත`)}</h1>
       </div>
 
       {/* Form Details with Scroll */}
@@ -214,7 +221,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           
           {/* Search Section */}
           <div className="bg-teal-50 p-5 rounded-xl border border-teal-100 flex flex-col items-start shadow-sm relative">
-            <label className="block text-sm font-bold text-teal-900 mb-2">සාමාජික අංකය, ජා.හැ.ප අංකය හෝ නම (Member No, NIC or Name) ලබා දී සොයන්න</label>
+            <label className="block text-sm font-bold text-teal-900 mb-2">{t(`සාමාජික අංකය, ජා.හැ.ප අංකය හෝ නම (Member No, NIC or Name) ලබා දී සොයන්න`)}</label>
             <div className="w-full relative">
               <input 
                 type="text" 
@@ -245,8 +252,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
               )}
               {showDropdown && searchQuery.length > 0 && !isSearching && searchResults.length === 0 && (
                 <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl p-4 text-center text-slate-500">
-                  සාමාජිකයෙකු සොයාගත නොහැකි විය. (Member not found)
-                </div>
+                  {t(`සාමාජිකයෙකු සොයාගත නොහැකි විය. (Member not found)`)}</div>
               )}
             </div>
           </div>
@@ -255,7 +261,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="bg-yellow-50/50 p-5 rounded-xl border border-yellow-100/50 shadow-sm relative grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-bold text-yellow-900 mb-2">අයදුම්පත් අංකය (Application No)</label>
+                <label className="block text-sm font-bold text-yellow-900 mb-2">{t(`අයදුම්පත් අංකය (Application No)`)}</label>
                 <input 
                   type="text" 
                   disabled
@@ -264,7 +270,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-yellow-900 mb-2">ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *</label>
+                <label className="block text-sm font-bold text-yellow-900 mb-2">{t(`ගිණුම ආරම්භ කළ දිනය / අයදුම් කළ දිනය (Applied Date) *`)}</label>
                 <input 
                   type="date" 
                   required
@@ -276,34 +282,34 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                 {formData.appliedDate && formData.appliedDate !== new Date().toLocaleDateString('en-CA') && (
                   <div className="mt-2 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs font-semibold border border-amber-200 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0"/>
-                    <span>ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.</span>
+                    <span>{t(`ඔබ තෝරාගෙන ඇත්තේ අතීත දිනයකි. මෙය පැරණි දත්ත ඇතුලත් කිරීමක් බව තහවුරු කරගන්න.`)}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">1. අයදුම්කරුගේ තොරතුරු</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">{t(`1. අයදුම්කරුගේ තොරතුරු`)}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">1. නම <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t(`1. නම`)}<span className="text-red-500 font-bold">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">2. සාමාජික අංකය <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t(`2. සාමාජික අංකය`)}<span className="text-red-500 font-bold">*</span></label>
                   <input type="text" name="officeMemberNo" value={formData.officeMemberNo} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">කොටස් මුදල (රු.)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t(`කොටස් මුදල (රු.)`)}</label>
                   <input type="number" name="shareAmount" value={formData.shareAmount} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">3. තනතුර <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t(`3. තනතුර`)}<span className="text-red-500 font-bold">*</span></label>
                 <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">4. ලිපිනය <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t(`4. ලිපිනය`)}<span className="text-red-500 font-bold">*</span></label>
                 <textarea name="address" value={formData.address} onChange={handleChange} rows={1} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none" required></textarea>
               </div>
             </div>
@@ -311,17 +317,17 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
           {/* Section 2: Loan & Guarantors */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">2. ණය සහ ඇපකරුවන්ගේ විස්තර</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">{t(`2. ණය සහ ඇපකරුවන්ගේ විස්තර`)}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200">
-                <label className="block text-sm font-bold text-teal-900 mb-2">5. ඉල්ලන ණය මුදල (රු.) <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-bold text-teal-900 mb-2">{t(`5. ඉල්ලන ණය මුදල (රු.)`)}<span className="text-red-500 font-bold">*</span></label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-700 font-bold text-lg">Rs.</span>
                   <input type="number" min="0" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} name="requestedAmount" value={formData.requestedAmount} onChange={handleChange} className="w-full rounded-xl border-teal-400 p-2.5 pl-12 text-xl font-bold text-teal-900 border-2 focus:ring-4 focus:ring-teal-500/30 focus:border-teal-600 shadow-inner" required placeholder="0.00" />
                 </div>
               </div>
               <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200">
-                <label className="block text-sm font-bold text-teal-900 mb-2">මාස ගණන (Term) <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-bold text-teal-900 mb-2">{t(`මාස ගණන (Term)`)}<span className="text-red-500 font-bold">*</span></label>
                 <div className="flex items-center gap-3">
                   <input type="number" min="1" max="120" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '.') e.preventDefault(); }} name="termMonths" value={formData.termMonths} onChange={handleChange} className="w-32 rounded-xl border-teal-400 p-2.5 text-xl font-bold text-teal-900 border-2 focus:ring-4 focus:ring-teal-500/30 focus:border-teal-600 text-center shadow-inner" required placeholder="0" />
                   <span className="text-sm font-bold text-teal-800 bg-teal-200/50 px-4 py-3 rounded-xl border border-teal-300 shadow-sm whitespace-nowrap">
@@ -340,29 +346,26 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             </div>
 
             <div className="bg-teal-50 p-5 rounded-lg border border-teal-100 mb-5 text-sm text-gray-700 leading-relaxed font-medium">
-              ඉහත සඳහන් මා හට මාසික වැටුපින් අයකර ගැනීමේ පදනම මත රුපියල් 
-              <input type="text" name="agreedAmount" value={formData.agreedAmount} onChange={handleChange} className="mx-2 w-64 border-b-2 border-teal-400 focus:border-teal-600 focus:outline-none bg-transparent text-center font-bold text-teal-800" placeholder="..........." required /> 
-              <span className="text-red-500 font-bold">*</span> ආපදා ණය මුදලක් ලබාදෙන ලෙස ඉල්ලමි.
-            </div>
+              {t(`ඉහත සඳහන් මා හට මාසික වැටුපින් අයකර ගැනීමේ පදනම මත රුපියල්`)}<input type="text" name="agreedAmount" value={formData.agreedAmount} onChange={handleChange} className="mx-2 w-64 border-b-2 border-teal-400 focus:border-teal-600 focus:outline-none bg-transparent text-center font-bold text-teal-800" placeholder="..........." required /> 
+              <span className="text-red-500 font-bold">*</span> {t(`ආපදා ණය මුදලක් ලබාදෙන ලෙස ඉල්ලමි.`)}</div>
 
             <p className="text-sm font-semibold text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-              * ඉහත සඳහන් අයගේ ආපදා ණය මුදල සඳහා ඇපකරුවන් වශයෙන් බැඳීමට අප එකඟ වන බැව් ප්‍රකාශ කර සිටිමු.
-            </p>
+              {t(`* ඉහත සඳහන් අයගේ ආපදා ණය මුදල සඳහා ඇපකරුවන් වශයෙන් බැඳීමට අප එකඟ වන බැව් ප්‍රකාශ කර සිටිමු.`)}</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Guarantor 1 */}
               <div className="p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-                <span className="font-bold text-sm text-gray-700 block mb-3">6.1 පළමු ඇපකරු</span>
+                <span className="font-bold text-sm text-gray-700 block mb-3">{t(`6.1 පළමු ඇපකරු`)}</span>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">නම <span className="text-red-500 font-bold">*</span></label>
-                    <input type="text" name="guarantor1Name" placeholder="නම" value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{t(`නම`)}<span className="text-red-500 font-bold">*</span></label>
+                    <input type="text" name="guarantor1Name" placeholder={t(`නම`)} value={formData.guarantor1Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ලිපිනය <span className="text-red-500 font-bold">*</span></label>
-                    <textarea name="guarantor1Address" placeholder="ලිපිනය" value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{t(`ලිපිනය`)}<span className="text-red-500 font-bold">*</span></label>
+                    <textarea name="guarantor1Address" placeholder={t(`ලිපිනය`)} value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
                   </div>
-                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -377,8 +380,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                       <div className="flex items-center gap-2 mt-2">
                         <img src={formData.guarantor1DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />
                         <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> සාර්ථකයි
-                        </span>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> {t(`සාර්ථකයි`)}</span>
                       </div>
                   )}
                 </div>
@@ -386,17 +388,17 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
               {/* Guarantor 2 */}
               <div className="p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-                <span className="font-bold text-sm text-gray-700 block mb-3">6.2 දෙවන ඇපකරු</span>
+                <span className="font-bold text-sm text-gray-700 block mb-3">{t(`6.2 දෙවන ඇපකරු`)}</span>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">නම <span className="text-red-500 font-bold">*</span></label>
-                    <input type="text" name="guarantor2Name" placeholder="නම" value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{t(`නම`)}<span className="text-red-500 font-bold">*</span></label>
+                    <input type="text" name="guarantor2Name" placeholder={t(`නම`)} value={formData.guarantor2Name} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ලිපිනය <span className="text-red-500 font-bold">*</span></label>
-                    <textarea name="guarantor2Address" placeholder="ලිපිනය" value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{t(`ලිපිනය`)}<span className="text-red-500 font-bold">*</span></label>
+                    <textarea name="guarantor2Address" placeholder={t(`ලිපිනය`)} value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
                   </div>
-                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)</label>
+                  <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -411,8 +413,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                       <div className="flex items-center gap-2 mt-2">
                         <img src={formData.guarantor2DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />
                         <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> සාර්ථකයි
-                        </span>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> {t(`සාර්ථකයි`)}</span>
                       </div>
                   )}
                 </div>
@@ -424,9 +425,9 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
 
           {/* Supporting Documents */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">අතිරේක ලියකියවිලි (Supporting Documents)</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">{t(`අතිරේක ලියකියවිලි (Supporting Documents)`)}</h3>
             <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න`)}</label>
               <input type="file" multiple onChange={(e) => setDocsCount(e.target.files?.length || 0)} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
               {docsCount > 0 && (
                 <div className="flex items-center gap-2 mt-2">

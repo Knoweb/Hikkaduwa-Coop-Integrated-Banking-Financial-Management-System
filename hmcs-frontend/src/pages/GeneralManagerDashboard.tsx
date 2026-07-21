@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, AlertCircle, CheckCircle2, XCircle, FileText, BarChart3, Landmark } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GeneralManagerDashboard() {
+  const { t } = useLanguage();
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

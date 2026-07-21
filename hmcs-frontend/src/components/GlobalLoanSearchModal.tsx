@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, Loader2, MapPin } from 'lucide-react';
 import * as LoanService from '../services/loan.service';
 import { getBranchName } from '../pages/BranchDashboard';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface Props {
   onClose: () => void;
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBranchId }: Props) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [loans, setLoans] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -48,9 +51,8 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Search size={20} />
-              ඕනෑම ශාඛාවකින් වාරික ගෙවීම (Cross-Branch Repayment)
-            </h2>
-            <p className="text-blue-100 text-xs mt-1">ගනුදෙනුකරුගේ නම, ජා.හැ.අ, සාමාජික අංකය හෝ ගිණුම් අංකය මගින් සොයන්න</p>
+              {t(`ඕනෑම ශාඛාවකින් වාරික ගෙවීම (Cross-Branch Repayment)`)}</h2>
+            <p className="text-blue-100 text-xs mt-1">{t(`ගනුදෙනුකරුගේ නම, ජා.හැ.අ, සාමාජික අංකය හෝ ගිණුම් අංකය මගින් සොයන්න`)}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition">
             <X size={20} />
@@ -64,7 +66,7 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
             <input
               type="text"
               autoFocus
-              placeholder="නම, NIC, සාමාජික අංකය හෝ ගිණුම් අංකය ඇතුලත් කරන්න..."
+              placeholder={t(`නම, NIC, සාමාජික අංකය හෝ ගිණුම් අංකය ඇතුලත් කරන්න...`)}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-medium"
@@ -77,17 +79,17 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 text-slate-400">
               <Loader2 size={32} className="animate-spin mb-3 text-blue-500" />
-              <p className="text-sm font-medium">දත්ත ලබා ගනිමින් පවතී...</p>
+              <p className="text-sm font-medium">{t(`දත්ත ලබා ගනිමින් පවතී...`)}</p>
             </div>
           ) : !search.trim() ? (
             <div className="flex flex-col items-center justify-center h-48 text-slate-400">
               <Search size={48} className="mb-3 opacity-20" />
-              <p className="text-sm font-medium">කරුණාකර ගනුදෙනුකරුගේ නම, ජා.හැ.අ, සාමාජික අංකය හෝ ගිණුම් අංකය ඇතුලත් කරන්න.</p>
+              <p className="text-sm font-medium">{t(`කරුණාකර ගනුදෙනුකරුගේ නම, ජා.හැ.අ, සාමාජික අංකය හෝ ගිණුම් අංකය ඇතුලත් කරන්න.`)}</p>
             </div>
           ) : filteredLoans.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-slate-400">
               <Search size={48} className="mb-3 opacity-20" />
-              <p className="text-sm font-medium">කිසිදු ණය ගිණුමක් හමු නොවීය.</p>
+              <p className="text-sm font-medium">{t(`කිසිදු ණය ගිණුමක් හමු නොවීය.`)}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -122,8 +124,7 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
                       onClick={() => onSelectLoan(loan)}
                       className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all"
                     >
-                      ගෙවීම් කරන්න (Pay)
-                    </button>
+                      {t(`ගෙවීම් කරන්න (Pay)`)}</button>
                   </div>
                 );
               })}

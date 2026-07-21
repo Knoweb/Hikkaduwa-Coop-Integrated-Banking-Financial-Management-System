@@ -1,7 +1,9 @@
 import React from 'react';
 import { X, Activity, ArrowUpRight, TrendingUp, Clock, CalendarDays, Wallet } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: { fd: any, memberName: string, onClose: () => void, onRelease: (isMatured: boolean, releaseAmount: number, penaltyAmount: number, principalAmount: number) => void }) {
+  const { t } = useLanguage();
   
   const start = new Date(fd.openedDate || fd.createdAt || fd.startDate || new Date());
   const today = new Date();
@@ -99,7 +101,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               <Activity size={24} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-black leading-tight tracking-wide">ස්ථාවර තැන්පතු තත්වය (FD Status)</h2>
+              <h2 className="text-lg font-black leading-tight tracking-wide">{t(`ස්ථාවර තැන්පතු තත්වය (FD Status)`)}</h2>
               <p className="text-xs font-semibold text-indigo-100 mt-0.5">ගිණුම් අංකය: {fd.fdNumber}</p>
             </div>
           </div>
@@ -116,11 +118,11 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               {memberName.charAt(0)}
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">තැන්පත්කරු</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t(`තැන්පත්කරු`)}</p>
               <p className="font-bold text-slate-800 text-sm">{memberName}</p>
             </div>
             <div className="ml-auto text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">තැන්පතු මුදල (PRINCIPAL)</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t(`තැන්පතු මුදල (PRINCIPAL)`)}</p>
               <p className="font-black text-indigo-700 text-lg">Rs. {Number(fd.principalAmount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
           </div>
@@ -131,8 +133,8 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                 <Wallet size={16} />
               </div>
               <div>
-                <p className="font-bold text-slate-700 text-sm">ගිණුම නිදහස් කිරීම (Close FD)</p>
-                <p className="text-[10px] font-semibold text-slate-500 mt-0.5">සම්පූර්ණ මුදල සම්බන්ධිත ගිණුමට බැර කෙරේ.</p>
+                <p className="font-bold text-slate-700 text-sm">{t(`ගිණුම නිදහස් කිරීම (Close FD)`)}</p>
+                <p className="text-[10px] font-semibold text-slate-500 mt-0.5">{t(`සම්පූර්ණ මුදල සම්බන්ධිත ගිණුමට බැර කෙරේ.`)}</p>
               </div>
             </div>
             <button 
@@ -143,8 +145,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               }}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm whitespace-nowrap shrink-0"
             >
-              <ArrowUpRight size={14} /> නිදහස් කරන්න
-            </button>
+              <ArrowUpRight size={14} /> {t(`නිදහස් කරන්න`)}</button>
           </div>
 
           {/* Progress Bar Section */}
@@ -152,7 +153,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
             <div className="flex justify-between items-end mb-2">
               <div className="flex items-center gap-2">
                 <Clock size={16} className="text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">කාලය ගතවීම</span>
+                <span className="text-xs font-bold text-slate-600">{t(`කාලය ගතවීම`)}</span>
               </div>
               <span className="text-xs font-black text-slate-800">{progressPercent}%</span>
             </div>
@@ -165,8 +166,8 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               </div>
             </div>
             <div className="flex justify-between items-center mt-2">
-              <span className="text-[10px] font-bold text-slate-400">ගත වූ කාලය: <span className="text-blue-600">{diffDays} දින</span></span>
-              <span className="text-[10px] font-bold text-slate-400">කල් පිරීමට: <span className={isMatured ? 'text-rose-500' : 'text-amber-600'}>{daysToMaturityText}</span></span>
+              <span className="text-[10px] font-bold text-slate-400">{t(`ගත වූ කාලය:`)}<span className="text-blue-600">{diffDays} දින</span></span>
+              <span className="text-[10px] font-bold text-slate-400">{t(`කල් පිරීමට:`)}<span className={isMatured ? 'text-rose-500' : 'text-amber-600'}>{daysToMaturityText}</span></span>
             </div>
           </div>
 
@@ -175,7 +176,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               <div className="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-emerald-700">
                   <TrendingUp size={18} />
-                  <span className="text-sm font-bold uppercase tracking-wider">පොළී විස්තර (Interest)</span>
+                  <span className="text-sm font-bold uppercase tracking-wider">{t(`පොළී විස්තර (Interest)`)}</span>
                 </div>
                 <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${hasTaxForm ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                   {hasTaxForm ? 'No WHT' : '10% WHT'}
@@ -194,7 +195,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                     
                     {paidHistory.length > 0 && (
                       <div className="mt-4">
-                        <p className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">ගෙවීම් ඉතිහාසය</p>
+                        <p className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">{t(`ගෙවීම් ඉතිහාසය`)}</p>
                         <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
                           {paidHistory.map((h, idx) => (
                             <div key={idx} className="flex justify-between items-center bg-slate-50 p-2 px-3 rounded-lg border border-slate-100">
@@ -209,8 +210,7 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                 ) : (
                   <div className="mb-5">
                     <p className="text-xs font-bold text-slate-500 uppercase mb-1.5 tracking-wide">
-                      දැනට එකතු වී ඇති පොළිය (Accrued)
-                      <span className="block text-[11px] text-slate-400 normal-case mt-0.5 font-medium">({formattedLastDate} සිට අද දක්වා)</span>
+                      {t(`දැනට එකතු වී ඇති පොළිය (Accrued)`)}<span className="block text-[11px] text-slate-400 normal-case mt-0.5 font-medium">({formattedLastDate} සිට අද දක්වා)</span>
                     </p>
                     <p className="font-mono text-3xl font-black text-emerald-600">
                       Rs. {accInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -220,11 +220,11 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
                 
                 <div className="mt-auto pt-4 border-t border-slate-100 space-y-3">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-500">මාසිකව හැදෙන පොළිය</span>
+                    <span className="font-bold text-slate-500">{t(`මාසිකව හැදෙන පොළිය`)}</span>
                     <span className="font-mono font-black text-slate-700">Rs. {estMonthlyInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-500">වාර්ෂික පොලී අනුපාතය</span>
+                    <span className="font-bold text-slate-500">{t(`වාර්ෂික පොලී අනුපාතය`)}</span>
                     <span className="font-mono font-black text-slate-700">{intRate.toFixed(2)}% ({payoutMethodText})</span>
                   </div>
                 </div>
@@ -235,19 +235,19 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
               <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 flex flex-col justify-center shadow-sm">
                 <div className="flex items-center gap-2 mb-2 text-indigo-600">
                   <Wallet size={16} />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">කල් පිරෙන විට මුළු මුදල</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">{t(`කල් පිරෙන විට මුළු මුදල`)}</span>
                 </div>
                 <div className="font-mono text-xl font-black text-indigo-700">
                   Rs. {totalMaturityValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-indigo-200/50">
-                  <span className="text-[10px] text-indigo-600/80 font-bold">ඉදිරියට ලැබීමට ඇති පොළිය:</span>
+                  <span className="text-[10px] text-indigo-600/80 font-bold">{t(`ඉදිරියට ලැබීමට ඇති පොළිය:`)}</span>
                   <span className="font-mono text-[11px] font-black text-indigo-600">Rs. {remainingInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
               </div>
 
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">කල් පිරුණු පසු ක්‍රියාමාර්ගය</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t(`කල් පිරුණු පසු ක්‍රියාමාර්ගය`)}</p>
                 <p className="text-xs font-bold text-slate-700">{matInstructionText}</p>
               </div>
             </div>

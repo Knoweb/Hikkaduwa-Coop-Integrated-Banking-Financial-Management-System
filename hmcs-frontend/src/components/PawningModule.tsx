@@ -7,8 +7,11 @@ import PawnTicketViewModal from './PawnTicketViewModal';
 import PawnPaymentModal from './PawnPaymentModal';
 import PawningDisburseModal from './PawningDisburseModal';
 import { Snackbar, Alert } from '@mui/material';
+import { useLanguage } from '../context/LanguageContext';
+
 
 export default function PawningModule({ branchId }: { branchId: number }) {
+  const { t } = useLanguage();
   if ((window as any).__isAdminView) return <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center"><h3 className="text-xl font-bold text-red-600 mb-2">Access Denied</h3><p className="text-slate-600 mb-6">System Administrators are in Read-Only mode and cannot perform transactions or open accounts.</p><button onClick={() => {}} className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold hover:bg-slate-700">Close</button></div></div>;
   const [tickets, setTickets] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -51,6 +54,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   };
 
   const enrichTicketWithMember = (ticket: any) => {
+  
     const member = members.find(m => m.memberId === ticket.memberId) || {};
     return { ...ticket, memberDetails: member };
   };
@@ -114,8 +118,8 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             <Gem size={20} className="text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-black tracking-tight">උකස් ගිණුම් (Pawning Accounts)</h3>
-            <p className="text-amber-100 text-[11px] font-medium mt-0.5">උකස් කළමනාකරණය (Pawning Management)</p>
+            <h3 className="text-lg font-black tracking-tight">{t(`උකස් ගිණුම් (Pawning Accounts)`)}</h3>
+            <p className="text-amber-100 text-[11px] font-medium mt-0.5">{t(`උකස් කළමනාකරණය (Pawning Management)`)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -123,14 +127,12 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             onClick={() => setShowPaymentSearchModal(true)}
             className="flex items-center gap-2 bg-amber-900 hover:bg-amber-950 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap border border-amber-800/50"
           >
-            <Banknote size={14} /> වාරික ගෙවීම
-          </button>
+            <Banknote size={14} /> {t(`වාරික ගෙවීම`)}</button>
           <button 
             onClick={() => setShowIssueModal(true)}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
           >
-            <Plus size={14} /> නව උකස් පත්‍රිකාවක් නිකුත් කිරීම
-          </button>
+            <Plus size={14} /> {t(`නව උකස් පත්‍රිකාවක් නිකුත් කිරීම`)}</button>
         </div>
       </div>
 
@@ -139,45 +141,45 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           onClick={() => setFilter('ALL')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'ALL' ? 'bg-amber-50 border-amber-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ගිණුම්</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`මුළු ගිණුම්`)}</p>
           <p className={`text-2xl font-black ${filter === 'ALL' ? 'text-amber-700' : 'text-slate-800'}`}>{tickets.length}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">සියලු ගිණුම්</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු ගිණුම්`)}</p>
         </div>
         
         <div 
           onClick={() => setFilter('ACTIVE')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'ACTIVE' ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-white border-slate-100 hover:border-emerald-200 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ක්‍රියාකාරී උකස්</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ක්‍රියාකාරී උකස්`)}</p>
           <p className={`text-2xl font-black ${filter === 'ACTIVE' ? 'text-emerald-700' : 'text-emerald-600'}`}>{activeCount}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">සක්‍රිය ගිණුම්</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`සක්‍රිය ගිණුම්`)}</p>
         </div>
 
         <div 
           onClick={() => setFilter('NEARING')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'NEARING' ? 'bg-amber-50 border-amber-500 shadow-sm' : 'bg-white border-slate-100 hover:border-amber-200 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">කල් පිරීමට ආසන්න</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`කල් පිරීමට ආසන්න`)}</p>
           <p className={`text-2xl font-black ${filter === 'NEARING' ? 'text-amber-700' : 'text-amber-500'}`}>{nearingCount}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">දින 30 ඇතුළත</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`දින 30 ඇතුළත`)}</p>
         </div>
 
         <div 
           onClick={() => setFilter('INACTIVE')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'INACTIVE' ? 'bg-red-50 border-red-500 shadow-sm' : 'bg-white border-slate-100 hover:border-red-200 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">අක්‍රිය උකස්</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`අක්‍රිය උකස්`)}</p>
           <p className={`text-2xl font-black ${filter === 'INACTIVE' ? 'text-red-700' : 'text-red-500'}`}>{inactiveCount}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">කල් ඉකුත් වූ</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`කල් ඉකුත් වූ`)}</p>
         </div>
 
         <div 
           onClick={() => setFilter('REDEEMED')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'REDEEMED' ? 'bg-slate-100 border-slate-400 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">නිදහස් කළ</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`නිදහස් කළ`)}</p>
           <p className={`text-2xl font-black ${filter === 'REDEEMED' ? 'text-slate-700' : 'text-blue-600'}`}>{redeemedCount}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">බේරාගත් උකස්</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`බේරාගත් උකස්`)}</p>
         </div>
       </div>
 
@@ -188,7 +190,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="ටිකට් අංකය, සාමාජික අංකය, ජා.හැ.ප හෝ නම සොයන්න..."
+              placeholder={t(`ටිකට් අංකය, සාමාජික අංකය, ජා.හැ.ප හෝ නම සොයන්න...`)}
               className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
             />
           </div>
@@ -197,58 +199,58 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           <table className="w-full text-sm border-collapse min-w-[800px]">
             <thead className="bg-slate-100 border-b-2 border-slate-200">
               <tr>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ටිකට්<br/>අංකය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">සාමාජික<br/>නම</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">නිකුත් කළ<br/>දිනය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">භාණ්ඩ<br/>විස්තරය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">උකස්<br/>අත්තිකාරම</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">කල් ඉකුත් වන<br/>දිනය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
-                <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ක්‍රියාව</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`ටිකට්`)}<br/>{t(`අංකය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`සාමාජික`)}<br/>{t(`නම`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`නිකුත් කළ`)}<br/>{t(`දිනය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`භාණ්ඩ`)}<br/>{t(`විස්තරය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`උකස්`)}<br/>{t(`අත්තිකාරම`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`කල් ඉකුත් වන`)}<br/>{t(`දිනය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`තත්ත්වය`)}</th>
+                <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`ක්‍රියාව`)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {filteredTickets.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400 font-medium">උකස් ගිණුම් නොමැත. (No pawning tickets found)</td></tr>
-              ) : filteredTickets.map(t => (
-                <tr key={t.ticketId} className="hover:bg-slate-50 transition group">
-                  <td className="px-3 py-3 border-r border-slate-100 font-bold text-amber-700 whitespace-nowrap text-xs">{t.ticketNumber}</td>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400 font-medium">{t(`උකස් ගිණුම් නොමැත. (No pawning tickets found)`)}</td></tr>
+              ) : filteredTickets.map(ticket => (
+                <tr key={ticket.ticketId} className="hover:bg-slate-50 transition group">
+                  <td className="px-3 py-3 border-r border-slate-100 font-bold text-amber-700 whitespace-nowrap text-xs">{ticket.ticketNumber}</td>
                   <td className="px-3 py-3 border-r border-slate-100 font-semibold text-slate-800 text-xs">
                     <div className="flex items-center gap-2 whitespace-nowrap">
-                      {getMemberInitials(t)}
+                      {getMemberInitials(ticket)}
                     </div>
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 text-xs text-slate-600 font-medium whitespace-nowrap text-center">
-                    {new Date(t.issueDate).toLocaleDateString()}
+                    {new Date(ticket.issueDate).toLocaleDateString()}
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 whitespace-nowrap text-xs text-center">
-                    <span className="text-slate-800 font-bold">{t.articleDescription}</span>
+                    <span className="text-slate-800 font-bold">{ticket.articleDescription}</span>
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 text-right font-bold whitespace-nowrap text-xs">
-                    {(t.status === 'PENDING' || t.status === 'APPROVED') 
+                    {(ticket.status === 'PENDING' || ticket.status === 'APPROVED') 
                       ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Pending</span>
-                      : <span className="text-slate-800">Rs. {Number(t.advanceAmount).toLocaleString()}</span>
+                      : <span className="text-slate-800">Rs. {Number(ticket.advanceAmount).toLocaleString()}</span>
                     }
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 text-xs text-slate-600 font-medium whitespace-nowrap text-center">
-                    {new Date(t.expiryDate).toLocaleDateString()}
+                    {new Date(ticket.expiryDate).toLocaleDateString()}
                   </td>
                   <td className="px-3 py-3 border-r border-slate-100 text-center">
                     {(() => {
-                      const displayStatus = t.displayStatus;
+                      const displayStatus = ticket.displayStatus;
                       return (
                         <span className={`text-[11px] px-3 py-1.5 rounded-full font-bold tracking-wider whitespace-nowrap ${
                           displayStatus === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          t.status === 'APPROVED' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                          t.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                          ticket.status === 'APPROVED' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                           displayStatus === 'REDEEMED' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
                           displayStatus === 'NEARING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                           'bg-red-50 text-red-700 border border-red-200'
                         }`}>
-                          {t.status === 'PENDING' ? 'අනුමැතියට යවා ඇත' :
-                           t.status === 'APPROVED' ? 'අනුමත කර ඇත' :
+                          {ticket.status === 'PENDING' ? 'අනුමැතියට යවා ඇත' :
+                           ticket.status === 'APPROVED' ? 'අනුමත කර ඇත' :
                            displayStatus === 'ACTIVE' ? 'ක්‍රියාකාරී' :
-                           displayStatus === 'INACTIVE' || t.status === 'OVERDUE' ? 'අක්‍රියයි' :
+                           displayStatus === 'INACTIVE' || ticket.status === 'OVERDUE' ? 'අක්‍රියයි' :
                            displayStatus === 'NEARING' ? 'කල් පිරීමට ආසන්නයි' :
                            displayStatus === 'REDEEMED' ? 'නිදහස් කළ' : displayStatus}
                         </span>
@@ -258,18 +260,16 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                   <td className="px-3 py-3 text-center whitespace-nowrap">
                     <div className="flex justify-center gap-2">
                       <button 
-                        onClick={() => setSelectedTicket(enrichTicketWithMember(t))}
+                        onClick={() => setSelectedTicket(enrichTicketWithMember(ticket))}
                         className="px-2.5 py-1.5 rounded-lg text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center border border-emerald-200/50 shadow-sm whitespace-nowrap gap-1 text-[11px] font-bold"
                       >
-                        <Eye size={12} /> බලන්න
-                      </button>
-                      {t.status === 'APPROVED' && (
+                        <Eye size={12} /> {t(`බලන්න`)}</button>
+                      {ticket.status === 'APPROVED' && (
                         <button 
-                          onClick={() => setDisburseTicket(enrichTicketWithMember(t))}
+                          onClick={() => setDisburseTicket(enrichTicketWithMember(ticket))}
                           className="px-2.5 py-1.5 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center shadow-sm whitespace-nowrap gap-1 text-[11px] font-bold"
                         >
-                          මුදල් නිකුත් කරන්න
-                        </button>
+                          {t(`මුදල් නිකුත් කරන්න`)}</button>
                       )}
                     </div>
                   </td>
@@ -317,8 +317,8 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-amber-50">
               <div>
-                <h3 className="text-lg font-bold text-amber-900">වාරික ගෙවීම (Installment Payment)</h3>
-                <p className="text-xs font-medium text-amber-700 mt-0.5">උකස් පත්‍රිකා අංකය ඇතුළත් කරන්න</p>
+                <h3 className="text-lg font-bold text-amber-900">{t(`වාරික ගෙවීම (Installment Payment)`)}</h3>
+                <p className="text-xs font-medium text-amber-700 mt-0.5">{t(`උකස් පත්‍රිකා අංකය ඇතුළත් කරන්න`)}</p>
               </div>
               <button 
                 onClick={() => {
@@ -363,7 +363,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                 </div>
               )}
               <div className="relative">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">උකස් පත්‍රිකා අංකය (Pawn Ticket Number) *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">{t(`උකස් පත්‍රිකා අංකය (Pawn Ticket Number) *`)}</label>
                 <input 
                   type="text"
                   required
@@ -414,14 +414,12 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                   }}
                   className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition"
                 >
-                  අවලංගු කරන්න
-                </button>
+                  {t(`අවලංගු කරන්න`)}</button>
                 <button 
                   type="submit"
                   className="flex-1 px-4 py-3 rounded-xl bg-amber-700 text-white font-bold hover:bg-amber-800 transition"
                 >
-                  පිරික්සන්න (Proceed)
-                </button>
+                  {t(`පිරික්සන්න (Proceed)`)}</button>
               </div>
             </form>
           </div>

@@ -85,4 +85,7 @@ public class FixedDeposit {
 
     @Column(name = "branch_id")
     private Integer branchId;
+
+    @Transient
+    private String linkedSavingsAccountNumber;
 }

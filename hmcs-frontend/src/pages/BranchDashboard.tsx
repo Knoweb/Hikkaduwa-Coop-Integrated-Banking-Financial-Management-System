@@ -35,6 +35,7 @@ import PawningModule from '../components/PawningModule';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export const getBranchName = (branchId: number) => {
+  const { t } = useLanguage();
   const branchMap: Record<number, string> = {
     1: 'Hikkaduwa Branch',
     2: 'Dodanduwa Branch',
@@ -165,6 +166,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: any) {
 
 // ── Loan Outstanding Cell ──────────────────────────────────────────────────────
 function LoanOutstandingCell({ loan }: { loan: any }) {
+  const { t } = useLanguage();
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -197,7 +199,7 @@ function LoanOutstandingCell({ loan }: { loan: any }) {
         Rs. {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
       </span>
       {outstanding === 0 && (
-        <span className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">පියවා ඇත</span>
+        <span className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">{t(`පියවා ඇත`)}</span>
       )}
     </div>
   );
@@ -205,6 +207,7 @@ function LoanOutstandingCell({ loan }: { loan: any }) {
 
 // ── Queue Row ──────────────────────────────────────────────────────────────────
 function QueueRow({ name, amount, status, date, onAction, actionLabel, actionColor }: any) {
+  const { t } = useLanguage();
   const statusColors: Record<string, string> = {
     PENDING:  'bg-amber-100 text-amber-700',
     APPROVED: 'bg-green-100 text-green-700',
@@ -226,7 +229,8 @@ function QueueRow({ name, amount, status, date, onAction, actionLabel, actionCol
 
 // ── Role Views ─────────────────────────────────────────────────────────────────
 // ── Loan Review Modal ─────────────────────────────────────────────────────────
-function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; onClose: () => void; onAction: () => void }) {
+function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; onClose: () => void; onAction: (action?: any) => void }) {
+  const { t } = useLanguage();
   const user = AuthService.getCurrentUser();
   const canApprove = loan.status === 'PENDING' && (
     (user?.role?.includes('BRANCH_MANAGER') && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL') ||
@@ -347,6 +351,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   };
 
   const handlePrintAgreement = () => {
+  const { t } = useLanguage();
     printLoanAgreement(loan, ad);
   };
 
@@ -365,8 +370,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           <div>
             <div className="flex items-center gap-3 mb-1">
               <p className="text-xs text-blue-200 font-medium uppercase tracking-wider">
-                ණය ඉල්ලීම් සමාලෝචනය | Loan Application Review
-              </p>
+                {t(`ණය ඉල්ලීම් සමාලෝචනය | Loan Application Review`)}</p>
               {(loan as any).applicationNumber && (
                 <span className="bg-white/20 text-white text-xs font-mono font-bold px-2.5 py-0.5 rounded shadow-sm border border-white/10 tracking-widest">
                   #{(loan as any).applicationNumber}
@@ -390,47 +394,47 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Applicant Info */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <h3 className="col-span-full text-sm font-bold text-blue-800 mb-2 pb-2 border-b border-slate-200">① අයදුම්කරුගේ තොරතුරු</h3>
-            <Field label="සම්පූර්ණ නම" value={ad.applicantName || ad.name} />
-            <Field label="ජා.හැ.ප. අංකය" value={ad.nic} />
-            <Field label="සාමාජික අංකය" value={ad.memberNo || ad.officeMemberNo} />
-            <Field label="ලිපිනය" value={ad.addressLine1 || ad.address} />
-            <Field label="ජංගම දූරකථනය" value={ad.phone} />
-            <Field label="ඉල්ලූ ණය මුදල" value={`Rs. ${loan.requestedAmount?.toLocaleString()}`} />
-            <Field label="ණය අරමුණ" value={ad.loanPurpose} />
-            <Field label="ණය ගෙවීමේ කාලය" value={`${loan.termMonths} months`} />
-            <Field label="ණය ප්‍රමාණය (ද්‍රව්‍ය)" value={ad.requiredLoanGoods} />
+            <h3 className="col-span-full text-sm font-bold text-blue-800 mb-2 pb-2 border-b border-slate-200">{t(`① අයදුම්කරුගේ තොරතුරු`)}</h3>
+            <Field label={t(`සම්පූර්ණ නම`)} value={ad.applicantName || ad.name} />
+            <Field label={t(`ජා.හැ.ප. අංකය`)} value={ad.nic} />
+            <Field label={t(`සාමාජික අංකය`)} value={ad.memberNo || ad.officeMemberNo} />
+            <Field label={t(`ලිපිනය`)} value={ad.addressLine1 || ad.address} />
+            <Field label={t(`ජංගම දූරකථනය`)} value={ad.phone} />
+            <Field label={t(`ඉල්ලූ ණය මුදල`)} value={`Rs. ${loan.requestedAmount?.toLocaleString()}`} />
+            <Field label={t(`ණය අරමුණ`)} value={ad.loanPurpose} />
+            <Field label={t(`ණය ගෙවීමේ කාලය`)} value={`${loan.termMonths} months`} />
+            <Field label={t(`ණය ප්‍රමාණය (ද්‍රව්‍ය)`)} value={ad.requiredLoanGoods} />
           </div>
 
           {/* Assets */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <h3 className="col-span-full text-sm font-bold text-blue-800 mb-2 pb-2 border-b border-slate-200">② වත්කම් විස්තර</h3>
-            <Field label="ගොඩ ඉඩම" value={ad.assets?.landGoda ? `Rs. ${ad.assets.landGoda}` : undefined} />
-            <Field label="මඩ ඉඩම" value={ad.assets?.landMada ? `Rs. ${ad.assets.landMada}` : undefined} />
-            <Field label="වාහන" value={ad.assets?.vehicles ? `Rs. ${ad.assets.vehicles}` : undefined} />
-            <Field label="සතුන්" value={ad.assets?.animals ? `Rs. ${ad.assets.animals}` : undefined} />
-            <Field label="වාර්ෂික ප්‍රාථමික ආදායම" value={ad.annualIncomePrimary ? `Rs. ${ad.annualIncomePrimary}` : undefined} />
-            <Field label="වාර්ෂික වියදම" value={ad.annualExpense ? `Rs. ${ad.annualExpense}` : undefined} />
+            <h3 className="col-span-full text-sm font-bold text-blue-800 mb-2 pb-2 border-b border-slate-200">{t(`② වත්කම් විස්තර`)}</h3>
+            <Field label={t(`ගොඩ ඉඩම`)} value={ad.assets?.landGoda ? `Rs. ${ad.assets.landGoda}` : undefined} />
+            <Field label={t(`මඩ ඉඩම`)} value={ad.assets?.landMada ? `Rs. ${ad.assets.landMada}` : undefined} />
+            <Field label={t(`වාහන`)} value={ad.assets?.vehicles ? `Rs. ${ad.assets.vehicles}` : undefined} />
+            <Field label={t(`සතුන්`)} value={ad.assets?.animals ? `Rs. ${ad.assets.animals}` : undefined} />
+            <Field label={t(`වාර්ෂික ප්‍රාථමික ආදායම`)} value={ad.annualIncomePrimary ? `Rs. ${ad.annualIncomePrimary}` : undefined} />
+            <Field label={t(`වාර්ෂික වියදම`)} value={ad.annualExpense ? `Rs. ${ad.annualExpense}` : undefined} />
           </div>
 
           {/* Guarantors */}
           {(ad.guarantor1 || ad.guarantor1Name) && (
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-blue-800 mb-3 pb-2 border-b border-slate-200">③ ඇපකරුවන්ගේ විස්තර</h3>
+              <h3 className="text-sm font-bold text-blue-800 mb-3 pb-2 border-b border-slate-200">{t(`③ ඇපකරුවන්ගේ විස්තර`)}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[ad.guarantor1 || { name: ad.guarantor1Name, address: ad.guarantor1Address }, ad.guarantor2 || { name: ad.guarantor2Name, address: ad.guarantor2Address }].map((g: any, i) => g?.name && (
                   <div key={i} className="bg-white rounded-lg p-3 border border-slate-200">
                     <p className="text-xs font-bold text-blue-700 mb-2">{i === 0 ? 'පළමු' : 'දෙවන'} ඇපකරු</p>
-                    <Field label="නම" value={g.name} />
-                    <Field label="ලිපිනය" value={g.address} />
+                    <Field label={t(`නම`)} value={g.name} />
+                    <Field label={t(`ලිපිනය`)} value={g.address} />
                     <Field label="NIC" value={g.nic} />
                     {g.digitalSignatureUrl ? (
                       <div className="mb-2">
-                        <span className="text-xs text-slate-500 block">ඩිජිටල් අත්සන</span>
+                        <span className="text-xs text-slate-500 block">{t(`ඩිජිටල් අත්සන`)}</span>
                         <img src={g.digitalSignatureUrl} alt="Signature" className="h-12 w-auto mt-1 border border-slate-200 rounded object-contain bg-white" />
                       </div>
                     ) : (
-                      <Field label="ඩිජිටල් අත්සන" value="—" />
+                      <Field label={t(`ඩිජිටල් අත්සන`)} value="—" />
                     )}
                   </div>
                 ))}
@@ -441,7 +445,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           {/* Supporting Docs */}
           {ad.supportingDocuments?.length > 0 && (
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-blue-800 mb-2">④ ඇමිණුම් ලියකියවිලි</h3>
+              <h3 className="text-sm font-bold text-blue-800 mb-2">{t(`④ ඇමිණුම් ලියකියවිලි`)}</h3>
               {ad.supportingDocuments.map((d: string, i: number) => (
                 <a key={i} href={d} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm block">{d}</a>
               ))}
@@ -453,17 +457,17 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           {/* Field Officer Evaluation */}
           {loan.evaluatorId && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-800 mb-2">🔍 ක්ෂේත්‍ර නිලධාරී වාර්තාව (Field Officer Evaluation)</h3>
+              <h3 className="text-sm font-bold text-emerald-800 mb-2">{t(`🔍 ක්ෂේත්‍ර නිලධාරී වාර්තාව (Field Officer Evaluation)`)}</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-emerald-600 font-semibold mb-1">තත්ත්වය (Status)</p>
+                  <p className="text-xs text-emerald-600 font-semibold mb-1">{t(`තත්ත්වය (Status)`)}</p>
                   <span className={`px-2 py-1 rounded font-bold text-xs ${loan.evaluationStatus === 'RECOMMENDED' ? 'bg-emerald-200 text-emerald-800' : loan.evaluationStatus === 'NOT_RECOMMENDED' ? 'bg-red-200 text-red-800' : 'bg-amber-200 text-amber-800'}`}>
                     {loan.evaluationStatus}
                   </span>
                 </div>
                 {loan.evaluationNotes && (
                   <div className="col-span-2 mt-2">
-                    <p className="text-xs text-emerald-600 font-semibold mb-1">සටහන් (Notes)</p>
+                    <p className="text-xs text-emerald-600 font-semibold mb-1">{t(`සටහන් (Notes)`)}</p>
                     {(() => {
                       try {
                         const parsed = JSON.parse(loan.evaluationNotes);
@@ -492,11 +496,11 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           {/* Decision */}
           {canApprove && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-amber-800 mb-2">⑤ අදහස් / Comments</h3>
+              <h3 className="text-sm font-bold text-amber-800 mb-2">{t(`⑤ අදහස් / Comments`)}</h3>
               <textarea
                 value={comments}
                 onChange={e => setComments(e.target.value)}
-                placeholder="ඔබගේ අදහස් හෝ ප්‍රතික්ෂේප කිරීමේ හේතුව ලියන්න..."
+                placeholder={t(`ඔබගේ අදහස් හෝ ප්‍රතික්ෂේප කිරීමේ හේතුව ලියන්න...`)}
                 rows={3}
                 className="w-full border border-amber-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
               />
@@ -506,10 +510,10 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           {/* Field Officer Assignment */}
           {user?.role?.includes('BRANCH_MANAGER') && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL' && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
-              <h4 className="text-sm font-bold text-blue-800 mb-2">ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)</h4>
+              <h4 className="text-sm font-bold text-blue-800 mb-2">{t(`ක්ෂේත්‍ර නිලධාරීවරයෙකුට පවරන්න (Assign to Field Officer)`)}</h4>
               <div className="flex gap-2">
                 <select value={selectedFo} onChange={e => setSelectedFo(e.target.value)} className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                  <option value="">-- නිලධාරියා තෝරන්න --</option>
+                  <option value="">{t(`-- නිලධාරියා තෝරන්න --`)}</option>
                   {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
                 </select>
                 <button type="button" onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
@@ -534,7 +538,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                   {ad.disbursementMethod === 'CASH' ? '💵' : '🏦'}
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ගෙවූ ක්‍රමය (Disbursement Method)</p>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ගෙවූ ක්‍රමය (Disbursement Method)`)}</p>
                   <p className="text-sm font-bold text-slate-800">
                     {ad.disbursementMethod === 'CASH' ? 'අතින් මුදල් (Cash)' : 'ඉතුරුම් ගිණුමට (Savings Transfer)'}
                     {ad.disbursementMethod === 'SAVINGS_TRANSFER' && ad.disbursementSavingsAccount && (
@@ -551,22 +555,20 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           {/* Disbursement Method Panel - shown for APPROVED loans */}
           {(loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED') && (
             <div className="px-5 pt-4 pb-2 bg-blue-50/60 border-b border-blue-100">
-              <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">💳 ණය ගෙවීමේ ක්‍රමය (Disbursement Method)</p>
+              <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">{t(`💳 ණය ගෙවීමේ ක්‍රමය (Disbursement Method)`)}</p>
               <div className="flex rounded-xl overflow-hidden border border-blue-200 mb-3">
                 <button
                   onClick={() => setPaymentMethod('CASH')}
                   className={`flex-1 py-2 text-sm font-bold transition ${paymentMethod === 'CASH' ? 'bg-blue-700 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'}`}>
-                  💵 අතින් මුදල් (Cash)
-                </button>
+                  {t(`💵 අතින් මුදල් (Cash)`)}</button>
                 <button
                   onClick={() => setPaymentMethod('SAVINGS_TRANSFER')}
                   className={`flex-1 py-2 text-sm font-bold transition ${paymentMethod === 'SAVINGS_TRANSFER' ? 'bg-blue-700 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'}`}>
-                  🏦 ඉතුරුම් ගිණුමට (Savings Transfer)
-                </button>
+                  {t(`🏦 ඉතුරුම් ගිණුමට (Savings Transfer)`)}</button>
               </div>
               {paymentMethod === 'SAVINGS_TRANSFER' && (
                 <div className="mb-3">
-                  <label className="block text-xs font-semibold text-blue-700 mb-1">බැර කළ යුතු ඉතුරුම් ගිණුම (Savings Account)</label>
+                  <label className="block text-xs font-semibold text-blue-700 mb-1">{t(`බැර කළ යුතු ඉතුරුම් ගිණුම (Savings Account)`)}</label>
                   {fetchingAccounts ? (
                     <p className="text-xs text-slate-500 animate-pulse">Fetching accounts...</p>
                   ) : memberAccounts.length > 0 ? (
@@ -582,12 +584,16 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                       ))}
                     </select>
                   ) : (
-                    <p className="text-xs text-red-600 font-medium">⚠ මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. (No active savings accounts found.)</p>
+                    <p className="text-xs text-red-600 font-medium">{t(`⚠ මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. (No active savings accounts found.)`)}</p>
                   )}
                 </div>
               )}
+              <div className="mb-3 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center justify-between">
+                <span className="text-sm font-bold text-emerald-800">{t(`මුදා හරින මුදල (Amount to Disburse):`)}</span>
+                <span className="text-lg font-black text-emerald-700">Rs. {Number(loan.approvedAmount || loan.requestedAmount || 0).toLocaleString()}</span>
+              </div>
               <div className="mb-2">
-                <label className="block text-xs font-semibold text-blue-700 mb-1">ණය ගිණුම් අංකය (Loan Account Number) <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-blue-700 mb-1">{t(`ණය ගිණුම් අංකය (Loan Account Number)`)}<span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={loanAccountNumber}
@@ -601,8 +607,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
 
           <div className="p-5 flex justify-between items-center gap-3">
             <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-medium text-sm hover:bg-slate-50 transition">
-              වසන්න (Close)
-            </button>
+              {t(`වසන්න (Close)`)}</button>
             {canApprove && (
               <div className="flex gap-3">
                 <button onClick={() => handle('reject')} disabled={loading}
@@ -623,8 +628,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
               <div className="flex gap-3">
                 <button onClick={handlePrintAgreement}
                   className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition">
-                  🖨 ගිවිසුම මුද්‍රණය (Print Agreement)
-                </button>
+                  {t(`🖨 ගිවිසුම මුද්‍රණය (Print Agreement)`)}</button>
                 <button onClick={handleDisburse} disabled={loading || (paymentMethod === 'SAVINGS_TRANSFER' && memberAccounts.length === 0) || !loanAccountNumber.trim()}
                   className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
                   {loading ? '⏳ Processing...' : '💰 ණය මුදා හරින්න (Disburse)'}
@@ -635,8 +639,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
               <div className="flex gap-3">
                 <button onClick={() => printDisbursementReceipt(loan, ad, user?.username || 'system')}
                   className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition">
-                  🖨 රිසිට් පත මුද්‍රණය (Print Receipt)
-                </button>
+                  {t(`🖨 රිසිට් පත මුද්‍රණය (Print Receipt)`)}</button>
               </div>
             )}
           </div>
@@ -666,6 +669,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
 }
 
 function BranchManagerView({ activeTab }: { activeTab: string }) {
+  const { t } = useLanguage();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loanQueue, setLoanQueue] = useState<LoanService.Loan[]>([]);
@@ -723,7 +727,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
       </div>
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> ණය ඉල්ලීම් පෝලිම (Loan Queue)</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> {t(`ණය ඉල්ලීම් පෝලිම (Loan Queue)`)}</h3>
           {managerPendingLoans.length === 0 ? <p className="text-sm text-slate-400 text-center py-6">No pending loan applications.</p> : managerPendingLoans.slice(0,5).map((l, i) => (
             <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
               <div>
@@ -888,8 +892,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
               onClick={() => setViewMode('history')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              පෙර වාර්තා (History)
-            </button>
+              {t(`පෙර වාර්තා (History)`)}</button>
           </div>
         )}
 
@@ -908,8 +911,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
               onClick={() => setViewMode('history')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              නිකුත් කළ ණය (Disbursed)
-            </button>
+              {t(`නිකුත් කළ ණය (Disbursed)`)}</button>
           </div>
         )}
 
@@ -927,20 +929,19 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
           </div>
           {displayedLoans.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
-              වාර්තා කිසිවක් හමු නොවීය.
-            </div>
+              {t(`වාර්තා කිසිවක් හමු නොවීය.`)}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">අයදුම්කරු</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">ණය වර්ගය</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">ඉල්ලූ මුදල</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">කාලය</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t(`අයදුම්කරු`)}</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t(`ණය වර්ගය`)}</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">{t(`ඉල්ලූ මුදල`)}</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`කාලය`)}</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{(viewMode === 'history' || isCommitteeApprovedTab) ? 'අනුමත කළ දිනය/වේලාව' : 'ඉල්ලුම් කළ දිනය'}</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">අදියර (STAGE)</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">තත්ත්වය</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">ක්‍රියාව</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`අදියර (STAGE)`)}</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`තත්ත්වය`)}</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`ක්‍රියාව`)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -987,7 +988,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
                     </td>
                     <td className="px-5 py-3 text-center">
                       <button onClick={() => setSelectedLoan(l)} className="text-xs px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center gap-1 mx-auto">
-                        <Eye size={12}/> {isCommitteeApprovedTab && viewMode === 'pending' ? 'මුදාහරින්න' : 'බලන්න'}
+                        <Eye size={12}/> {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? 'මුදාහරින්න' : 'බලන්න'}
                       </button>
                     </td>
                   </tr>
@@ -1019,6 +1020,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
 }
 
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
+  const { t } = useLanguage();
   if (activeTab === 'pawning_approvals') {
     return <PawningApprovalsView />;
   }
@@ -1028,6 +1030,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const loadData = () => {
+  const { t } = useLanguage();
     LoanService.getLoans().then(setLoans).catch(() => {});
   };
 
@@ -1047,7 +1050,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
             <Clock size={22} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">අනුමැතිය ලබාදිය යුතු</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{t(`අනුමැතිය ලබාදිය යුතු`)}</p>
             <p className="text-2xl font-bold text-slate-800">{pendingLoans.length}</p>
           </div>
         </div>
@@ -1057,7 +1060,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
             <CheckCircle size={22} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">අනුමත කළ ණය</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{t(`අනුමත කළ ණය`)}</p>
             <p className="text-2xl font-bold text-slate-800">{approvedLoans.length}</p>
           </div>
         </div>
@@ -1067,7 +1070,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
             <AlertTriangle size={22} className="text-red-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">ප්‍රතික්ෂේප කළ ණය</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{t(`ප්‍රතික්ෂේප කළ ණය`)}</p>
             <p className="text-2xl font-bold text-slate-800">{rejectedLoans.length}</p>
           </div>
         </div>
@@ -1075,14 +1078,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
 
       {activeListTab === 'pending' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> ණය අයදුම්පත් — ඔබගේ අනුමැතිය ලබා දෙන්න</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> {t(`ණය අයදුම්පත් — ඔබගේ අනුමැතිය ලබා දෙන්න`)}</h3>
           {pendingLoans.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින ණය අයදුම්පත් නොමැත.</p>
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින ණය අයදුම්පත් නොමැත.`)}</p>
           ) : pendingLoans.map(l => (
             <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
                   <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
                     {(() => {
                       const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
@@ -1095,9 +1098,9 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                     })()}
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    {l.applicationNumber && (
+                    {(l as any).applicationNumber && (
                       <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {l.applicationNumber}
+                        <FileText size={14} /> {(l as any).applicationNumber}
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
@@ -1116,8 +1119,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                 </div>
                 <div className="flex shrink-0">
                   <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    <Eye size={16} /> පරීක්ෂා කර අනුමත කරන්න
-                  </button>
+                    <Eye size={16} /> {t(`පරීක්ෂා කර අනුමත කරන්න`)}</button>
                 </div>
               </div>
             </div>
@@ -1127,14 +1129,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
 
       {activeListTab === 'approved' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අනුමත කළ ණය අයදුම්පත්</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> {t(`අනුමත කළ ණය අයදුම්පත්`)}</h3>
           {approvedLoans.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">දැනට අනුමත කළ ණය අයදුම්පත් නොමැත.</p>
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`දැනට අනුමත කළ ණය අයදුම්පත් නොමැත.`)}</p>
           ) : approvedLoans.map(l => (
             <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-emerald-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
                   <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors">
                     {(() => {
                       const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
@@ -1147,9 +1149,9 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                     })()}
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    {l.applicationNumber && (
+                    {(l as any).applicationNumber && (
                       <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {l.applicationNumber}
+                        <FileText size={14} /> {(l as any).applicationNumber}
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
@@ -1168,8 +1170,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                 </div>
                 <div className="flex shrink-0">
                   <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
-                    <CheckCircle size={16} /> අනුමත කර ඇත
-                  </span>
+                    <CheckCircle size={16} /> {t(`අනුමත කර ඇත`)}</span>
                 </div>
               </div>
             </div>
@@ -1179,14 +1180,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
 
       {activeListTab === 'rejected' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-red-600" /> ප්‍රතික්ෂේප කළ ණය අයදුම්පත්</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-red-600" /> {t(`ප්‍රතික්ෂේප කළ ණය අයදුම්පත්`)}</h3>
           {rejectedLoans.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">ප්‍රතික්ෂේප කළ ණය අයදුම්පත් නොමැත.</p>
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`ප්‍රතික්ෂේප කළ ණය අයදුම්පත් නොමැත.`)}</p>
           ) : rejectedLoans.map(l => (
             <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-red-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ණය ඉල්ලුම්කරු</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
                   <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-red-700 transition-colors">
                     {(() => {
                       const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
@@ -1199,9 +1200,9 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                     })()}
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    {l.applicationNumber && (
+                    {(l as any).applicationNumber && (
                       <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {l.applicationNumber}
+                        <FileText size={14} /> {(l as any).applicationNumber}
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
@@ -1220,8 +1221,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                 </div>
                 <div className="flex shrink-0">
                   <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
-                    <XCircle size={16} /> ප්‍රතික්ෂේප කර ඇත
-                  </span>
+                    <XCircle size={16} /> {t(`ප්‍රතික්ෂේප කර ඇත`)}</span>
                 </div>
               </div>
             </div>
@@ -1233,6 +1233,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
 }
 
 function TellerView() {
+  const { t } = useLanguage();
   const [amount, setAmount] = useState('');
   const [accNo, setAccNo] = useState('');
   const [txType, setTxType] = useState<'deposit' | 'withdraw'>('deposit');
@@ -1241,6 +1242,7 @@ function TellerView() {
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [activityDate, setActivityDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   const fetchActivities = () => {
     setLoadingActivity(true);
@@ -1348,8 +1350,7 @@ function TellerView() {
                 icon = <ArrowDownLeft size={16} />; colorClass = "bg-orange-100 text-orange-700"; label = "උකස් වාරික ගෙවීම (Pawn Repayment)";
               }
 
-              return (
-                <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition" onClick={() => setAccNo(act.reference)}>
+              return (<div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition" onClick={() => setAccNo(act.reference)}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
                     {icon}
                   </div>
@@ -1374,6 +1375,7 @@ function TellerView() {
 }
 
 function ValuerView() {
+  const { t } = useLanguage();
   const [form, setForm] = useState({ nic: '', grossWeight: '', netWeight: '', purity: '', advanceAmount: '' });
   const interestRate = 13;
   const assessedValue = form.netWeight ? (parseFloat(form.netWeight) * 12000).toFixed(2) : '0.00';
@@ -1427,6 +1429,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
 
   const getMemberName = (memberId: string, accNo?: string) => {
+  const { t } = useLanguage();
     const m = members.find(mem => mem.memberId === memberId);
     if (m) {
       if (language === 'si' && m.fullNameSinhala) {
@@ -1444,7 +1447,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [loanSearch, setLoanSearch] = useState('');
-  const [loanFilter, setLoanFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'COMPLETED'>('ACTIVE');
+  const [loanFilter, setLoanFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'COMPLETED'>('ACTIVE');
   const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
@@ -1706,7 +1709,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       setShowRegModal(false);
       setForm(initialFormState);
       fetchData();
-      showMessage((form as any).memberId ? 'සාමාජික තොරතුරු සාර්ථකව යාවත්කාලීන කරන ලදී! (Successfully updated!)' : 'නව සාමාජිකයා සාර්ථකව ලියාපදිංචි කරන ලදී! (Successfully registered!)', 'success');
+      (window as any).showToast?.((form as any).memberId ? 'සාමාජික තොරතුරු සාර්ථකව යාවත්කාලීන කරන ලදී! (Successfully updated!)' : 'නව සාමාජිකයා සාර්ථකව ලියාපදිංචි කරන ලදී! (Successfully registered!)', 'success');
     } catch (err: any) {
       const data = err.response?.data;
       const msg = data?.message || data?.error || (typeof data === 'string' ? data : 'Registration failed. Check details.');
@@ -1721,7 +1724,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       setShowAccModal(false);
       setAccCustomerType(null);
       fetchData();
-      showMessage('නව ගිණුම සාර්ථකව ආරම්භ කරන ලදී! (Account opened successfully!)', 'success');
+      (window as any).showToast?.('නව ගිණුම සාර්ථකව ආරම්භ කරන ලදී! (Account opened successfully!)', 'success');
     } catch (err: any) {
       setAccError(err.response?.data || 'Failed to open account');
     } finally { setLoading(false); }
@@ -1749,10 +1752,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
 
       if (act.type === 'LOAN_DISBURSEMENT' || act.type === 'LOAN_REPAYMENT') {
         const loansList = await LoanService.getLoans();
-        const loan = loansList.find(l => l.loanNumber === act.reference);
+        const loan = loansList.find((l: any) => l.loanNumber === act.reference || l.loanId === act.reference);
         if (loan) {
           details.transactionId = act.id;
-          details.accountNumber = loan.loanNumber;
+          details.accountNumber = (loan as any).loanNumber || loan.loanId;
           details.amount = act.amount;
           details.balanceAfter = act.balanceAfter;
           details.memberId = loan.memberId;
@@ -1862,6 +1865,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     thirtyDaysLater.setDate(today.getDate() + 30);
 
     const getMemberName = (memberId: string) => {
+  const { t } = useLanguage();
       const m = members.find(mem => mem.memberId === memberId);
       return m ? (m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
     };
@@ -1914,8 +1918,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               <Lock size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">ස්ථාවර තැන්පතු (Fixed Deposits)</h3>
-              <p className="text-emerald-200 text-[11px] font-medium mt-0.5">කාලීන තැන්පතු කළමනාකරණය</p>
+              <h3 className="text-lg font-black tracking-tight">{t(`ස්ථාවර තැන්පතු (Fixed Deposits)`)}</h3>
+              <p className="text-emerald-200 text-[11px] font-medium mt-0.5">{t(`කාලීන තැන්පතු කළමනාකරණය`)}</p>
             </div>
           </div>
           {!readOnly && (
@@ -1923,30 +1927,29 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               onClick={() => setShowOpenFdForm(true)}
               className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
             >
-              <Lock size={14} /> නව ගිණුමක් අරඹන්න
-            </button>
+              <Lock size={14} /> {t(`නව ගිණුමක් අරඹන්න`)}</button>
           )}
         </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ගිණුම්</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`මුළු ගිණුම්`)}</p>
             <p className="text-2xl font-black text-slate-800">{fixedDeposits.length}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">සියලු ගිණුම්</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු ගිණුම්`)}</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">තැන්පතු මුදල</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`තැන්පතු මුදල`)}</p>
             <p className="text-xl font-black text-[#025a4e]">Rs. {totalPrincipal.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">සියලු තැන්පතු එකතුව</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු තැන්පතු එකතුව`)}</p>
           </div>
           <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 shadow-sm">
-            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-0.5">කල් පිරීමට නියමිත</p>
+            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-0.5">{t(`කල් පිරීමට නියමිත`)}</p>
             <p className="text-2xl font-black text-amber-600">{maturingSoonCount}</p>
-            <p className="text-[10px] text-amber-400 mt-0.5">දින 30 ඇතුලත</p>
+            <p className="text-[10px] text-amber-400 mt-0.5">{t(`දින 30 ඇතුලත`)}</p>
           </div>
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-sm">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">කල් පිරුණු</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`කල් පිරුණු`)}</p>
             <p className="text-2xl font-black text-slate-600">{maturedCount}</p>
           </div>
         </div>
@@ -1961,7 +1964,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               <input
                 value={fdSearch}
                 onChange={e => setFdSearch(e.target.value)}
-                placeholder="ගිණුම් අංකය හො නම සොයන්න..."
+                placeholder={t(`ගිණුම් අංකය හො නම සොයන්න...`)}
                 className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all"
               />
             </div>
@@ -1970,35 +1973,35 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <div className="flex flex-wrap items-center gap-3">
               {/* Category dropdown */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">වර්ගය:</label>
+                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{t(`වර්ගය:`)}</label>
                 <select
                   value={fdCategoryFilter}
                   onChange={e => setFdCategoryFilter(e.target.value as any)}
                   className="px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all cursor-pointer"
                 >
-                  <option value="ALL">සියල්ල</option>
-                  <option value="NORMAL">සාමාන්‍ය ස්ථාවර තැන්පතු</option>
-                  <option value="SENIOR">ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු</option>
-                  <option value="CHILD">ළමා ස්ථාවර තැන්පතු</option>
+                  <option value="ALL">{t(`සියල්ල`)}</option>
+                  <option value="NORMAL">{t(`සාමාන්‍ය ස්ථාවර තැන්පතු`)}</option>
+                  <option value="SENIOR">{t(`ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු`)}</option>
+                  <option value="CHILD">{t(`ළමා ස්ථාවර තැන්පතු`)}</option>
                 </select>
               </div>
 
               {/* Status dropdown */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">වර්තමාන තත්වය:</label>
+                <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{t(`වර්තමාන තත්වය:`)}</label>
                 <select
                   value={fdStatusFilter}
                   onChange={e => setFdStatusFilter(e.target.value as any)}
                   className="px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all cursor-pointer"
                 >
-                  <option value="ALL">සියල්ල</option>
-                  <option value="ACTIVE">ක්‍රියාත්මක</option>
-                  <option value="MATURING_SOON">කල් පිරීමට නියමිත</option>
-                  <option value="MATURED">කල් පිරුණු</option>
+                  <option value="ALL">{t(`සියල්ල`)}</option>
+                  <option value="ACTIVE">{t(`ක්‍රියාත්මක`)}</option>
+                  <option value="MATURING_SOON">{t(`කල් පිරීමට නියමිත`)}</option>
+                  <option value="MATURED">{t(`කල් පිරුණු`)}</option>
                 </select>
               </div>
 
-              <p className="ml-auto text-xs text-slate-400">පෙන්වන්නේ <span className="font-bold text-slate-700">{filteredFDs.length}</span> / {fixedDeposits.length} ගිණුම්</p>
+              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredFDs.length}</span> / {fixedDeposits.length} ගිණුම්</p>
             </div>
           </div>
 
@@ -2006,14 +2009,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
           <table className="w-full text-sm border-collapse min-w-[800px]">
             <thead className="bg-slate-100 border-b-2 border-slate-200">
               <tr>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">ගිණුම්<br/>අංකය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">තැන්පත්කරු</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">වර්ගය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තැන්පතු මුදල (Rs.)</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">කාලය /<br/>පොළිය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">කල් පිරීමේ දිනය</th>
-                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
-                <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">ක්‍රියාකාරකම්</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`ගිණුම්`)}<br/>{t(`අංකය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`තැන්පත්කරු`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`වර්ගය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`තැන්පතු මුදල (Rs.)`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`කාලය /`)}<br/>{t(`පොළිය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`කල් පිරීමේ දිනය`)}</th>
+                <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`තත්ත්වය`)}</th>
+                <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`ක්‍රියාකාරකම්`)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
@@ -2073,11 +2076,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">බලන්න</button>
+                        <button onClick={() => setViewingFd(fd)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">{t(`බලන්න`)}</button>
                         {!readOnly && (
                           <>
 
-                            <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>තත්වය</span></button>
+                            <button onClick={() => setMonitoringFd(fd)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"><Activity size={13} className="text-slate-500" /><span>{t(`තත්වය`)}</span></button>
                             <button 
                               onClick={() => { 
                                 setConfirmDialog({ 
@@ -2219,9 +2222,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       return typeStr.includes('සේවක') || typeStr.includes('කෙටි');
     };
 
+    const overdueSavedIds = new Set<string>(JSON.parse(localStorage.getItem('hmcs_overdue_loans') || '[]'));
+
     const filteredLoans = loans.filter(l => {
-      if (loanFilter === 'ACTIVE' && !(l.status === 'ACTIVE' || l.status === 'DISBURSED')) return false;
+      const isSavedOverdue = overdueSavedIds.has(l.loanId);
+      if (isSavedOverdue) l.status = 'OVERDUE';
+      if (loanFilter === 'ACTIVE' && !(l.status === 'ACTIVE' || l.status === 'DISBURSED') && !isSavedOverdue) return false;
       if (loanFilter === 'PENDING' && l.status !== 'PENDING' && !(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED')) return false;
+      if (loanFilter === 'OVERDUE' && !(l.status === 'OVERDUE' || l.isOverdue || isSavedOverdue || (l.overdueAmount && Number(l.overdueAmount) > 0))) return false;
       if (loanFilter === 'COMPLETED' && l.status !== 'COMPLETED') return false;
       const term = loanSearch.toLowerCase();
       const member = members.find(m => m.memberId === l.memberId);
@@ -2241,8 +2249,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               <FileText size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">ණය ගිණුම් (Loan Accounts)</h3>
-              <p className="text-indigo-200 text-[11px] font-medium mt-0.5">ණය කළමනාකරණය (Loan Management)</p>
+              <h3 className="text-lg font-black tracking-tight">{t(`ණය ගිණුම් (Loan Accounts)`)}</h3>
+              <p className="text-indigo-200 text-[11px] font-medium mt-0.5">{t(`ණය කළමනාකරණය (Loan Management)`)}</p>
             </div>
           </div>
           {!readOnly && (
@@ -2251,14 +2259,12 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 onClick={() => setShowGlobalSearch(true)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
               >
-                <Search size={14} /> වාරික ගෙවීම
-              </button>
+                <Search size={14} /> {t(`වාරික ගෙවීම`)}</button>
               <button
                 onClick={() => setShowLoanModal(true)}
                 className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#01291f] px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
               >
-                <FileText size={14} /> නව ණයක් ඉල්ලුම් කරන්න
-              </button>
+                <FileText size={14} /> {t(`නව ණයක් ඉල්ලුම් කරන්න`)}</button>
             </div>
           )}
         </div>
@@ -2266,24 +2272,24 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ගිණුම්</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`මුළු ගිණුම්`)}</p>
             <p className="text-2xl font-black text-slate-800">{totalLoansCount}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">සියලු ණය ගිණුම්</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු ණය ගිණුම්`)}</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">මුළු ණය මුදල</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`මුළු ණය මුදල`)}</p>
             <p className="text-xl font-black text-indigo-700">Rs. {totalLoanAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">ඉල්ලුම් කළ ණය එකතුව</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{t(`ඉල්ලුම් කළ ණය එකතුව`)}</p>
           </div>
           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 shadow-sm">
-            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">කමිටුව අනුමත කළ</p>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">{t(`කමිටුව අනුමත කළ`)}</p>
             <p className="text-2xl font-black text-emerald-700">{committeeApprovedCount}</p>
-            <p className="text-[10px] text-emerald-500 mt-0.5">අනුමත වූ ණය</p>
+            <p className="text-[10px] text-emerald-500 mt-0.5">{t(`අනුමත වූ ණය`)}</p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 shadow-sm">
-            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">සක්‍රීය ණය</p>
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">{t(`සක්‍රීය ණය`)}</p>
             <p className="text-2xl font-black text-blue-600">{activeLoansCount}</p>
-            <p className="text-[10px] text-blue-400 mt-0.5">දැනට ගෙවන ණය</p>
+            <p className="text-[10px] text-blue-400 mt-0.5">{t(`දැනට ගෙවන ණය`)}</p>
           </div>
         </div>
 
@@ -2294,7 +2300,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             {/* Search - full width row */}
             <div className="relative w-full">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder="ඉල්ලුම්පත් / ගිණුම් අංකය, සාමාජිකයා හෝ වර්ගය සොයන්න..."
+              <input value={loanSearch} onChange={e => setLoanSearch(e.target.value)} placeholder={t(`ඉල්ලුම්පත් / ගිණුම් අංකය, සාමාජිකයා හෝ වර්ගය සොයන්න...`)}
                 className="w-full pl-9 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
             </div>
 
@@ -2305,14 +2311,12 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                     loanFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  සියලුම ණය
-                </button>
+                  {t(`සියලුම ණය`)}</button>
                 <button onClick={() => setLoanFilter('ACTIVE')}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                     loanFilter === 'ACTIVE' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  සක්‍රීය ණය
-                </button>
+                  {t(`සක්‍රීය ණය`)}</button>
                                 <button onClick={() => setLoanFilter('PENDING')}
                   className={`relative px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     loanFilter === 'PENDING' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
@@ -2325,14 +2329,25 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     </span>
                   )}
                 </button>
+                <button onClick={() => setLoanFilter('OVERDUE')}
+                  className={`relative px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    loanFilter === 'OVERDUE' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  {t(`කල්පසු වූ ණය`)}
+                  {loans.some(l => l.status === 'OVERDUE' || l.isOverdue || (l.overdueAmount && Number(l.overdueAmount) > 0)) && (
+                    <span className="flex h-2 w-2 relative -mt-3 -ml-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                  )}
+                </button>
                 <button onClick={() => setLoanFilter('COMPLETED')}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                     loanFilter === 'COMPLETED' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  අවසන් කළ ණය
-                </button>
+                  {t(`අවසන් කළ ණය`)}</button>
               </div>
-              <p className="ml-auto text-xs text-slate-400">පෙන්වන්නේ <span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
+              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
             </div>
           </div>
 
@@ -2340,20 +2355,20 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <table className="w-full text-sm border-collapse min-w-[800px]">
               <thead className="bg-slate-100 border-b-2 border-slate-200">
                 <tr>
-                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">ගිණුම්<br/>අංකය</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">සාමාජිකයා</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">ණය වර්ගය</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">මුදල (Rs.)</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-rose-600 uppercase tracking-widest whitespace-nowrap">ගෙවීමට ඇති මුදල</th>
-                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">තත්ත්වය</th>
-                  <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">ක්‍රියා</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`ගිණුම්`)}<br/>{t(`අංකය`)}</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`සාමාජිකයා`)}</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`ණය වර්ගය`)}</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`මුදල (Rs.)`)}</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-right text-[11px] font-bold text-rose-600 uppercase tracking-widest whitespace-nowrap">{t(`ගෙවීමට ඇති මුදල`)}</th>
+                  <th className="px-3 py-3 border-r border-slate-200 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">{t(`තත්ත්වය`)}</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-bold text-slate-600 uppercase tracking-widest">{t(`ක්‍රියා`)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
                 {filteredLoans.length === 0 ? (
                   <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400">
                     <FileText size={28} className="mx-auto mb-2 opacity-30" />
-                    <p className="font-semibold">ණය ගිණුම් කිසිවක් හමු නොවීය</p>
+                    <p className="font-semibold">{t(`ණය ගිණුම් කිසිවක් හමු නොවීය`)}</p>
                   </td></tr>
                 ) : filteredLoans.map(l => {
                   const member = members.find(m => m.memberId === l.memberId);
@@ -2398,10 +2413,15 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => setViewLoan(l)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm" title={t('View Loan')}>
-                          බලන්න
+                          {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? 'මුදා හරින්න' : 'බලන්න'}
                         </button>
+                        {l.status === 'OVERDUE' && (
+                          <button onClick={() => setViewLoan(l)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm flex items-center gap-1" title="දැනුම්දීමේ ලිපිය">
+                            <FileText size={13} className="text-amber-600" /> ලිපිය
+                          </button>
+                        )}
                         {!readOnly && (
-                          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'ණය ගිණුම මකන්නද?', message: 'මෙම ණය ගිණුම මකා දැමීමට අවශ්‍ය බව විශ්වාසද? මෙය ආපසු හැරවිය නොහැක.', variant: 'danger', onConfirm: () => { LoanService.deleteLoan(l.loanId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); LoanService.getLoans().then(setLoans); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); setConfirmDialog(d => ({ ...d, isOpen: false })); } }); }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm" title="මකා දමන්න">
+                          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'ණය ගිණුම මකන්නද?', message: 'මෙම ණය ගිණුම මකා දැමීමට අවශ්‍ය බව විශ්වාසද? මෙය ආපසු හැරවිය නොහැක.', variant: 'danger', onConfirm: () => { LoanService.deleteLoan(l.loanId).then(() => { setAlertConfig({message: 'සාර්ථකව මකා දමන ලදී', isSuccess: true}); LoanService.getLoans().then(setLoans); }).catch(err => setAlertConfig({message: 'මකා දැමීම අසාර්ථකයි'})); setConfirmDialog(d => ({ ...d, isOpen: false })); } }); }} className="px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center border border-red-200 shadow-sm" title={t(`මකා දමන්න`)}>
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -2504,8 +2524,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   icon = <ArrowDownLeft size={16} />; colorClass = "bg-orange-100 text-orange-700"; label = "උකස් වාරික ගෙවීම (Pawn Repayment)";
                 }
 
-                return (
-                  <div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer" onClick={() => handleViewActivity(act)}>
+                return (<div key={act.id || idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer" onClick={() => handleViewActivity(act)}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
                       {loadingActivity ? <Loader2 size={16} className="animate-spin" /> : icon}
                     </div>
@@ -2656,7 +2675,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <div className="absolute top-0 right-0 p-2 opacity-10"><PiggyBank size={40} /></div>
             <div className="bg-blue-50 text-blue-600 p-2 rounded-lg border border-blue-100"><PiggyBank size={18} /></div>
             <div>
-              <p className="text-xs font-bold text-slate-500 tracking-wide">මුළු ගිණුම්</p>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">{t(`මුළු ගිණුම්`)}</p>
               <h4 className="text-2xl font-black text-slate-800 leading-tight">{totalSavings}</h4>
             </div>
           </div>
@@ -2664,7 +2683,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-600"><CheckCircle size={40} /></div>
             <div className="bg-emerald-50 text-emerald-600 p-2 rounded-lg border border-emerald-100"><CheckCircle size={18} /></div>
             <div>
-              <p className="text-xs font-bold text-slate-500 tracking-wide">සක්‍රිය ගිණුම්</p>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">{t(`සක්‍රිය ගිණුම්`)}</p>
               <h4 className="text-2xl font-black text-slate-800 leading-tight">{activeSavings}</h4>
             </div>
           </div>
@@ -2672,7 +2691,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <div className="absolute top-0 right-0 p-2 opacity-10 text-rose-600"><XCircle size={40} /></div>
             <div className="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100"><XCircle size={18} /></div>
             <div>
-              <p className="text-xs font-bold text-slate-500 tracking-wide">අක්‍රිය ගිණුම්</p>
+              <p className="text-xs font-bold text-slate-500 tracking-wide">{t(`අක්‍රිය ගිණුම්`)}</p>
               <h4 className="text-2xl font-black text-slate-800 leading-tight">{inactiveSavings}</h4>
             </div>
           </div>
@@ -2728,15 +2747,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 onClick={() => setSavingsTab('SOCIETY')} 
                 className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                සමාජීය
-              </button>
+                {t(`සමාජීය`)}</button>
               
               <button 
                 onClick={() => setSavingsTab('NON_SOCIETY')} 
                 className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'NON_SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                සමාජීය නොවන
-              </button>
+                {t(`සමාජීය නොවන`)}</button>
             </div>
 
             {/* Search Bar */}
@@ -2981,8 +2998,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                               }}
                             >
                               <p className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2 group-hover:scale-105 transition-transform">
-                                <Calculator size={18} /> උපයා ඇති පොලිය
-                              </p>
+                                <Calculator size={18} /> {t(`උපයා ඇති පොලිය`)}</p>
                               <span className="text-[10px] text-blue-400 mt-1 font-semibold uppercase">
                                 Click to View Details
                               </span>
@@ -3115,10 +3131,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     return (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <Calculator size={48} className="text-slate-300 mb-4" />
-                        <h4 className="text-lg font-medium text-slate-700 mb-2">පොලී වාර්තා නොමැත (No interest records yet)</h4>
+                        <h4 className="text-lg font-medium text-slate-700 mb-2">{t(`පොලී වාර්තා නොමැත (No interest records yet)`)}</h4>
                         <p className="text-slate-500 max-w-sm">
-                          මෙම ගිණුම සඳහා දෛනික පොලී වාර්තා තවමත් සකසා නොමැත. දෛනික පොලිය ගණනය වන්නේ සෑම දිනකම මධ්‍යම රාත්‍රියේදී (End of Day) ය. අද දින ආරම්භ කළ ගිණුම් වල පොලී විස්තර හෙට දින සිට මෙතැනින් බලාගත හැක.
-                        </p>
+                          {t(`මෙම ගිණුම සඳහා දෛනික පොලී වාර්තා තවමත් සකසා නොමැත. දෛනික පොලිය ගණනය වන්නේ සෑම දිනකම මධ්‍යම රාත්‍රියේදී (End of Day) ය. අද දින ආරම්භ කළ ගිණුම් වල පොලී විස්තර හෙට දින සිට මෙතැනින් බලාගත හැක.`)}</p>
                       </div>
                     );
                   }
@@ -3735,14 +3750,12 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
                 className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition"
               >
-                අවලංගු කරන්න
-              </button>
+                {t(`අවලංගු කරන්න`)}</button>
               <button 
                 onClick={confirmModal.onConfirm} 
                 className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition"
               >
-                තහවුරු කරන්න
-              </button>
+                {t(`තහවුරු කරන්න`)}</button>
             </div>
           </div>
         </div>
@@ -3762,6 +3775,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
 }
 
 function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }) {
+  const { t } = useLanguage();
   const [allCollections, setAllCollections] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [handoversSummary, setHandoversSummary] = useState<any[]>([]);
@@ -3772,6 +3786,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   const user = AuthService.getCurrentUser();
 
   const fetchHandovers = () => {
+  const { t } = useLanguage();
     setLoading(true);
     LoanService.getPendingFieldCollections(user?.branchId || 1)
       .then(data => {
@@ -3806,6 +3821,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
       if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
       
       const getTime = (dateVal: any) => {
+  const { t } = useLanguage();
         if (!dateVal) return 0;
         if (typeof dateVal === 'string') return new Date(dateVal).getTime();
         if (Array.isArray(dateVal)) return new Date(dateVal[0], dateVal[1] - 1, dateVal[2], dateVal[3] || 0, dateVal[4] || 0, dateVal[5] || 0).getTime();
@@ -3847,6 +3863,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   };
 
   const handleAcceptClick = (officer: string) => {
+  const { t } = useLanguage();
     const summary = handoversSummary.find(s => s.officer === officer);
     if (summary) {
       setConfirmState({ isOpen: true, officer: summary.officer, total: summary.total });
@@ -3859,10 +3876,9 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
       <div className="flex items-center justify-between mb-6">
         <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-          <Briefcase size={18} className="text-blue-600" /> පවරා ඇති ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම් (Field Officer Handovers)
-        </h3>
+          <Briefcase size={18} className="text-blue-600" /> {t(`පවරා ඇති ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම් (Field Officer Handovers)`)}</h3>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">දිනය (Date):</span>
+          <span className="text-sm font-medium text-slate-600">{t(`දිනය (Date):`)}</span>
           <input 
             type="date" 
             value={filterDate}
@@ -3872,18 +3888,18 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
         </div>
       </div>
       {collections.length === 0 ? (
-        <p className="text-slate-500 text-sm">මේ මොහොතේ ක්ෂේත්‍ර නිලධාරීන්ගෙන් භාරගැනීමට මුදල් නොමැත. (No pending handovers from field officers at this moment.)</p>
+        <p className="text-slate-500 text-sm">{t(`මේ මොහොතේ ක්ෂේත්‍ර නිලධාරීන්ගෙන් භාරගැනීමට මුදල් නොමැත. (No pending handovers from field officers at this moment.)`)}</p>
       ) : (
         <div className="border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <table className="w-full text-left text-sm border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[12px] font-semibold uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4 border border-slate-200">සාමාජිකයා (Member)</th>
-                <th className="px-6 py-4 border border-slate-200">ලිපිනය (Address)</th>
-                <th className="px-6 py-4 border border-slate-200">ණය අංකය (Loan No)</th>
-                <th className="px-6 py-4 border border-slate-200">දිනය (Date)</th>
-                <th className="px-6 py-4 text-right border border-slate-200">මුදල (Amount)</th>
-                <th className="px-6 py-4 text-center border border-slate-200">ක්‍රියාව (Action)</th>
+                <th className="px-6 py-4 border border-slate-200">{t(`සාමාජිකයා (Member)`)}</th>
+                <th className="px-6 py-4 border border-slate-200">{t(`ලිපිනය (Address)`)}</th>
+                <th className="px-6 py-4 border border-slate-200">{t(`ණය අංකය (Loan No)`)}</th>
+                <th className="px-6 py-4 border border-slate-200">{t(`දිනය (Date)`)}</th>
+                <th className="px-6 py-4 text-right border border-slate-200">{t(`මුදල (Amount)`)}</th>
+                <th className="px-6 py-4 text-center border border-slate-200">{t(`ක්‍රියාව (Action)`)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -3931,8 +3947,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
                     <td className="px-6 py-4 text-center border border-slate-200">
                       {item.status === 'HANDED_OVER' || acceptedOfficers.includes(officerName) ? (
                         <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[11px]">
-                          <CheckCircle size={14} /> භාරගන්නා ලදී
-                        </span>
+                          <CheckCircle size={14} /> {t(`භාරගන්නා ලදී`)}</span>
                       ) : (
                         isFirstForOfficer && officerSummary ? (
                           <button 
@@ -3940,8 +3955,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
                             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition inline-flex items-center gap-2 text-[11px]"
                             title={`Accept all cash from ${officerName} (Rs. ${officerSummary.total.toLocaleString()})`}
                           >
-                            <CheckCircle size={14} /> භාරගන්න
-                          </button>
+                            <CheckCircle size={14} /> {t(`භාරගන්න`)}</button>
                         ) : (
                           <span className="text-slate-300 text-[11px]"></span>
                         )
@@ -3959,7 +3973,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
       {confirmState?.isOpen && (
         <ConfirmDialog
           isOpen={true}
-          title="මුදල් භාරගැනීම තහවුරු කරන්න"
+          title={t(`මුදල් භාරගැනීම තහවුරු කරන්න`)}
           message={`ඔබට විශ්වාසද ${confirmState.officer} වෙතින් Rs. ${confirmState.total.toLocaleString()} ක මුදලක් භාරගැනීමට අවශ්‍ය බව?`}
           confirmText="ඔව්, භාරගන්න"
           cancelText="අවලංගු කරන්න"
@@ -3973,6 +3987,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
 }
 
 function BankServiceManagerView() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
@@ -3993,6 +4008,7 @@ function BankServiceManagerView() {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 function FieldOfficerView({ activeTab }: { activeTab: string }) {
+  const { t } = useLanguage();
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
@@ -4010,6 +4026,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [searchError, setSearchError] = useState('');
 
   const fetchLoans = () => {
+  const { t } = useLanguage();
     setLoading(true);
     LoanService.getLoans().then(setLoans).catch(() => {}).finally(() => setLoading(false));
   };
@@ -4095,6 +4112,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const collectionList = loans.filter(l => l.status === 'ACTIVE' && l.evaluatorId === currentUserId && (l.repaymentMethod === 'FIELD_COLLECTION' || l.applicationData?.repaymentMethod === 'FIELD_COLLECTION'));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { t } = useLanguage();
     if (e.target.files) {
       Array.from(e.target.files).forEach(file => {
         const reader = new FileReader();
@@ -4171,15 +4189,15 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={FileText}      label="පොරොත්තු පරීක්ෂණ" value={assignedLoans.length} color="text-amber-600" />
-          <StatCard icon={Users}         label="අද දින ගමන්"      value="0"             color="text-blue-600" />
-          <StatCard icon={Banknote}      label="එකතු කළ මුළු මුදල"     value="Rs. 0"     color="text-green-600" />
-          <StatCard icon={AlertTriangle} label="ප්‍රමාද වූ ණය"       value="0"              color="text-red-600" />
+          <StatCard icon={FileText}      label={t(`පොරොත්තු පරීක්ෂණ`)} value={assignedLoans.length} color="text-amber-600" />
+          <StatCard icon={Users}         label={t(`අද දින ගමන්`)}      value="0"             color="text-blue-600" />
+          <StatCard icon={Banknote}      label={t(`එකතු කළ මුළු මුදල`)}     value="Rs. 0"     color="text-green-600" />
+          <StatCard icon={AlertTriangle} label={t(`ප්‍රමාද වූ ණය`)}       value="0"              color="text-red-600" />
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><LayoutDashboard size={16} className="text-blue-600" /> ක්ෂේත්‍ර නිලධාරී සාරාංශය</h3>
-          <p className="text-sm text-slate-500 mb-4">අද දින සඳහා ඔබට පවරා ඇති ණය පරීක්ෂණ සහ මුදල් එකතු කිරීමේ කාර්යයන් පහතින් දැක්වේ.</p>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><LayoutDashboard size={16} className="text-blue-600" /> {t(`ක්ෂේත්‍ර නිලධාරී සාරාංශය`)}</h3>
+          <p className="text-sm text-slate-500 mb-4">{t(`අද දින සඳහා ඔබට පවරා ඇති ණය පරීක්ෂණ සහ මුදල් එකතු කිරීමේ කාර්යයන් පහතින් දැක්වේ.`)}</p>
         </div>
       </div>
     );
@@ -4205,8 +4223,8 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
               <FileText size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">ක්ෂේත්‍ර පරීක්ෂණ (Loan Evaluations)</h3>
-              <p className="text-amber-100 text-[11px] font-medium mt-0.5">පෙර විපරම සහ පසු විපරම</p>
+              <h3 className="text-lg font-black tracking-tight">{t(`ක්ෂේත්‍ර පරීක්ෂණ (Loan Evaluations)`)}</h3>
+              <p className="text-amber-100 text-[11px] font-medium mt-0.5">{t(`පෙර විපරම සහ පසු විපරම`)}</p>
             </div>
           </div>
         </div>
@@ -4225,14 +4243,13 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
             onClick={() => { setEvalTab('history'); setSelectedLoan(null); }}
             className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all ${evalTab === 'history' ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
           >
-            අවසන් කළ ණය පරීක්ෂණ (History)
-          </button>
+            {t(`අවසන් කළ ණය පරීක්ෂණ (History)`)}</button>
         </div>
 
         {evalTab === 'pending' ? (
           selectedLoan ? (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> වාර්තාව ඇතුලත් කිරීම</h3>
+              <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> {t(`වාර්තාව ඇතුලත් කිරීම`)}</h3>
               <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
                  <div className="flex justify-between items-start mb-4">
                    <div>
@@ -4243,28 +4260,28 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                  </div>
 
                  <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
-                   <h5 className="font-bold text-slate-800 text-sm">Customer Details (ගනුදෙනුකරුගේ විස්තර)</h5>
-                   <p className="text-sm text-slate-600"><strong>ලිපිනය (Address):</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
-                   <p className="text-sm text-slate-600"><strong>දුරකථන (Phone):</strong> {selectedLoan.applicationData?.phone}</p>
-                   <p className="text-sm text-slate-600"><strong>හැඳුනුම්පත (NIC):</strong> {selectedLoan.applicationData?.nic}</p>
-                   <p className="text-sm text-slate-600"><strong>ණය අරමුණ (Purpose):</strong> {selectedLoan.applicationData?.loanPurpose}</p>
+                   <h5 className="font-bold text-slate-800 text-sm">{t(`Customer Details (ගනුදෙනුකරුගේ විස්තර)`)}</h5>
+                   <p className="text-sm text-slate-600"><strong>{t(`ලිපිනය (Address):`)}</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
+                   <p className="text-sm text-slate-600"><strong>{t(`දුරකථන (Phone):`)}</strong> {selectedLoan.applicationData?.phone}</p>
+                   <p className="text-sm text-slate-600"><strong>{t(`හැඳුනුම්පත (NIC):`)}</strong> {selectedLoan.applicationData?.nic}</p>
+                   <p className="text-sm text-slate-600"><strong>{t(`ණය අරමුණ (Purpose):`)}</strong> {selectedLoan.applicationData?.loanPurpose}</p>
                  </div>
                  
                  <div className="space-y-4">
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1">නිර්දේශය (Recommendation)</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">{t(`නිර්දේශය (Recommendation)`)}</label>
                      <select value={evaluationStatus} onChange={e => setEvaluationStatus(e.target.value)} className="w-full border border-amber-300 rounded-lg p-2 bg-white">
-                       <option value="RECOMMENDED">අනුමත කිරීමට නිර්දේශ කරමි (Recommend)</option>
-                       <option value="NOT_RECOMMENDED">නිර්දේශ නොකරමි (Not Recommend)</option>
-                       <option value="NEEDS_MORE_INFO">වැඩිදුර තොරතුරු අවශ්‍යයි (Needs More Info)</option>
+                       <option value="RECOMMENDED">{t(`අනුමත කිරීමට නිර්දේශ කරමි (Recommend)`)}</option>
+                       <option value="NOT_RECOMMENDED">{t(`නිර්දේශ නොකරමි (Not Recommend)`)}</option>
+                       <option value="NEEDS_MORE_INFO">{t(`වැඩිදුර තොරතුරු අවශ්‍යයි (Needs More Info)`)}</option>
                      </select>
                    </div>
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1">ඇගයීම් සටහන් (Evaluation Notes)</label>
-                     <textarea value={evaluationNotes} onChange={e => setEvaluationNotes(e.target.value)} rows={4} className="w-full border border-amber-300 rounded-lg p-2 bg-white" placeholder="පරීක්ෂාවේදී නිරීක්ෂණය කළ කරුණු..."></textarea>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">{t(`ඇගයීම් සටහන් (Evaluation Notes)`)}</label>
+                     <textarea value={evaluationNotes} onChange={e => setEvaluationNotes(e.target.value)} rows={4} className="w-full border border-amber-300 rounded-lg p-2 bg-white" placeholder={t(`පරීක්ෂාවේදී නිරීක්ෂණය කළ කරුණු...`)}></textarea>
                    </div>
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1">ඡායාරූප / ලියකියවිලි (Documents/Photos)</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-1">{t(`ඡායාරූප / ලියකියවිලි (Documents/Photos)`)}</label>
                      <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
                      {evaluationDocs.length > 0 && (
                        <div className="flex gap-2 mt-2 flex-wrap">
@@ -4283,12 +4300,12 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                 <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> පවරා ඇති ණය පරීක්ෂණ (Pending)</h3>
+                 <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> {t(`පවරා ඇති ණය පරීක්ෂණ (Pending)`)}</h3>
                  <div className="space-y-3">
                    {loading ? (
                      <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
                    ) : assignedLoans.length === 0 ? (
-                     <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">පවරා ඇති ණය පරීක්ෂණ නොමැත.</p>
+                     <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">{t(`පවරා ඇති ණය පරීක්ෂණ නොමැත.`)}</p>
                    ) : (
                      assignedLoans.map((l: any) => {
                        const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
@@ -4301,7 +4318,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                                <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
                              </div>
                            </div>
-                           <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">වාර්තාව ඇතුලත් කරන්න</button>
+                           <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">{t(`වාර්තාව ඇතුලත් කරන්න`)}</button>
                          </div>
                        );
                      })
@@ -4312,12 +4329,12 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           )
         ) : (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-             <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> අවසන් කළ ණය පරීක්ෂණ (History)</h3>
+             <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> {t(`අවසන් කළ ණය පරීක්ෂණ (History)`)}</h3>
              <div className="space-y-3">
                {loading ? (
                  <p className="text-slate-500 text-sm text-center py-4">Loading...</p>
                ) : completedLoans.length === 0 ? (
-                 <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">අවසන් කළ ණය පරීක්ෂණ නොමැත.</p>
+                 <p className="text-slate-500 text-sm text-center py-4 border border-dashed rounded-xl border-slate-300">{t(`අවසන් කළ ණය පරීක්ෂණ නොමැත.`)}</p>
                ) : (
                  completedLoans.map((l: any) => {
                    const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
@@ -4330,7 +4347,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                            <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - {l.evaluationStatus}</p>
                          </div>
                        </div>
-                       <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">යවා ඇත</span>
+                       <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">{t(`යවා ඇත`)}</span>
                      </div>
                    );
                  })
@@ -4360,21 +4377,20 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
               <ClipboardList size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">දෛනික එකතු කිරීම් (Mobile Collection)</h3>
-              <p className="text-emerald-100 text-[11px] font-medium mt-0.5">ණය සහ ඉතුරුම් වාරික එකතු කිරීම</p>
+              <h3 className="text-lg font-black tracking-tight">{t(`දෛනික එකතු කිරීම් (Mobile Collection)`)}</h3>
+              <p className="text-emerald-100 text-[11px] font-medium mt-0.5">{t(`ණය සහ ඉතුරුම් වාරික එකතු කිරීම`)}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2"><MapPin size={16} className="text-emerald-600" /> මුදල් එකතු කිරීම් ඉතිහාසය (Collection History)</h3>
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2"><MapPin size={16} className="text-emerald-600" /> {t(`මුදල් එකතු කිරීම් ඉතිහාසය (Collection History)`)}</h3>
             <button 
               onClick={() => { setSearchAccNum(''); setSearchedLoan(null); setShowSearchModal(true); }}
               className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 flex items-center gap-2 shadow-sm transition-all"
             >
-              <Plus size={16} /> අලුත් එකතු කිරීමක් (Add Collection)
-            </button>
+              <Plus size={16} /> {t(`අලුත් එකතු කිරීමක් (Add Collection)`)}</button>
           </div>
 
           <div className="mb-4">
@@ -4382,7 +4398,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 type="text"
-                placeholder="දිනය, නම හෝ ගිණුම් අංකයෙන් සොයන්න (Search by date, name or account number)"
+                placeholder={t(`දිනය, නම හෝ ගිණුම් අංකයෙන් සොයන්න (Search by date, name or account number)`)}
                 value={collectionHistoryFilter}
                 onChange={e => setCollectionHistoryFilter(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
@@ -4393,8 +4409,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           <div className="space-y-3">
             {filteredCollections.length === 0 ? (
               <p className="text-slate-500 text-sm text-center py-8 border border-dashed rounded-xl border-slate-300 bg-slate-50">
-                ගැලපෙන කිසිදු මුදල් එකතු කිරීමක් හමු නොවිණි.
-              </p>
+                {t(`ගැලපෙන කිසිදු මුදල් එකතු කිරීමක් හමු නොවිණි.`)}</p>
             ) : (
               filteredCollections.map((c: any, i: number) => {
                 const matchedLoan = loans.find(l => l.loanId === c.loanId);
@@ -4409,10 +4424,10 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                       <Banknote size={20} />
                     </div>
                     <div>
-                      <p className="text-[15px] font-bold text-slate-800"><span className="text-slate-600 font-medium text-sm mr-2">සාමාජිකයාගේ නම:</span>{name}</p>
+                      <p className="text-[15px] font-bold text-slate-800"><span className="text-slate-600 font-medium text-sm mr-2">{t(`සාමාජිකයාගේ නම:`)}</span>{name}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[12px] font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-800 font-bold">
-                           <span className="text-slate-500 font-semibold font-sans mr-1">ණය අංකය:</span>{accNum}
+                           <span className="text-slate-500 font-semibold font-sans mr-1">{t(`ණය අංකය:`)}</span>{accNum}
                         </span>
                         {(matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo || matchedLoan?.applicationData?.nic) && (
                           <span className="text-[12px] font-bold bg-slate-50 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
@@ -4448,7 +4463,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
              <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Search className="text-emerald-600" size={20}/> ණය ගිණුම සොයන්න</h3>
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Search className="text-emerald-600" size={20}/> {t(`ණය ගිණුම සොයන්න`)}</h3>
                   <button onClick={() => setShowSearchModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
                 </div>
                 
@@ -4456,7 +4471,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                   <div className="flex-1 relative">
                     <input 
                       type="text" 
-                      placeholder="උදා: LN-12345 (Enter Loan Account Number)" 
+                      placeholder={t(`උදා: LN-12345 (Enter Loan Account Number)`)} 
                       value={searchAccNum} 
                       onChange={e => { setSearchAccNum(e.target.value); setSearchedLoan(null); setSearchError(''); }}
                       onKeyDown={e => e.key === 'Enter' && handleSearchLoan()}
@@ -4515,11 +4530,9 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                       <div className="flex flex-col items-end gap-3">
                         <div className="flex gap-2">
                           <button onClick={() => setSelectedLoanForDetails(searchedLoan)} className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 flex items-center gap-1 shadow-sm transition-colors">
-                            <Eye size={14} /> විස්තර
-                          </button>
+                            <Eye size={14} /> {t(`විස්තර`)}</button>
                           <button onClick={() => { setCollectionLoan(searchedLoan); setShowCollectModal(true); setCollectAmount(''); setCollectDate(new Date().toLocaleDateString('en-CA')); }} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-md transition-all hover:scale-105 active:scale-95">
-                            <Plus size={14} /> එකතු කරන්න
-                          </button>
+                            <Plus size={14} /> {t(`එකතු කරන්න`)}</button>
                         </div>
                       </div>
                     </div>
@@ -4533,13 +4546,13 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
         {showCollectModal && collectionLoan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                <h3 className="text-lg font-bold text-slate-800 mb-2">වාරිකය එකතු කිරීම</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{t(`වාරිකය එකතු කිරීම`)}</h3>
                 <div className="flex justify-between items-start mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <div className="flex-1">
                     <p className="text-sm font-bold text-slate-800">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName}</p>
                     <ul className="mt-2 space-y-1.5 list-disc list-inside text-xs text-slate-600 ml-1 marker:text-emerald-500">
                       <li>
-                        <span className="font-bold text-slate-800">ණය අංකය:</span> <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{collectionLoan.accountNumber}</span>
+                        <span className="font-bold text-slate-800">{t(`ණය අංකය:`)}</span> <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{collectionLoan.accountNumber}</span>
                       </li>
                       {(collectionLoan.applicationData?.membershipNumber || collectionLoan.applicationData?.memberNo || collectionLoan.applicationData?.nic) && (
                         <li>
@@ -4559,11 +4572,11 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">මුදල (Rs.)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t(`මුදල (Rs.)`)}</label>
                   <input type="number" value={collectAmount} onChange={e => setCollectAmount(e.target.value)} className="w-full border-2 border-emerald-500 rounded-xl p-3 text-lg font-bold text-emerald-800 focus:outline-none" autoFocus placeholder="1000" />
                 </div>
                 <div className="flex justify-end gap-3">
-                  <button onClick={() => setShowCollectModal(false)} className="px-4 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-sm">අවලංගු කරන්න</button>
+                  <button onClick={() => setShowCollectModal(false)} className="px-4 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-sm">{t(`අවලංගු කරන්න`)}</button>
                   <button onClick={handleCollect} disabled={submitting} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50 flex items-center gap-2">
                     {submitting ? 'එකතු කරමින්...' : 'එකතු කරන්න'}
                   </button>
@@ -4588,8 +4601,8 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
               <Banknote size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">මුදල් භාරදීම (Cash Handover)</h3>
-              <p className="text-blue-100 text-[11px] font-medium mt-0.5">අද දින එකතු කරන ලද මුදල් ශාඛාවට භාරදීම</p>
+              <h3 className="text-lg font-black tracking-tight">{t(`මුදල් භාරදීම (Cash Handover)`)}</h3>
+              <p className="text-blue-100 text-[11px] font-medium mt-0.5">{t(`අද දින එකතු කරන ලද මුදල් ශාඛාවට භාරදීම`)}</p>
             </div>
           </div>
         </div>
@@ -4597,7 +4610,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center">
            <Banknote size={48} className="text-blue-200 mx-auto mb-4" />
            <h2 className="text-4xl font-black text-slate-800 mb-2">Rs. {collectionBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2>
-           <p className="text-sm text-slate-500 mb-6">අද දින එකතු කළ මුළු මුදල (භාරදීමට නියමිත)</p>
+           <p className="text-sm text-slate-500 mb-6">{t(`අද දින එකතු කළ මුළු මුදල (භාරදීමට නියමිත)`)}</p>
            <button onClick={handleHandover} disabled={collectionBalance <= 0 || submitting} className={`px-6 py-3 font-bold rounded-xl shadow-md transition ${collectionBalance > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
              {submitting ? 'භාර දෙමින්...' : 'Teller වෙත මුදල් භාරදීම තහවුරු කරන්න'}
            </button>
@@ -4611,6 +4624,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
 
 // ── General Ledger View ──────────────────────────────────────────────────────
 function LedgerView({ branchId }: { branchId?: number }) {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<LedgerService.LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -4648,6 +4662,7 @@ function LedgerView({ branchId }: { branchId?: number }) {
     LedgerService.GL_ACCOUNT_LABELS[code] || code;
 
   const accountColor = (code: string) => {
+  const { t } = useLanguage();
     if (code === 'LOAN_RECEIVABLE')  return 'bg-blue-100 text-blue-800';
     if (code === 'CASH_IN_VAULT')    return 'bg-emerald-100 text-emerald-800';
     if (code === 'SAVINGS_DEPOSITS') return 'bg-purple-100 text-purple-800';
@@ -4711,7 +4726,7 @@ function LedgerView({ branchId }: { branchId?: number }) {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
           <BookOpen size={18} className="text-blue-600" />
-          <h3 className="font-bold text-slate-800">ණය ලෙජරය — General Ledger</h3>
+          <h3 className="font-bold text-slate-800">{t(`ණය ලෙජරය — General Ledger`)}</h3>
           <span className="ml-auto text-xs text-slate-400">{filtered.length} entries</span>
         </div>
 
@@ -4799,6 +4814,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
   }, []);
 
   const getDynamicBranchName = () => {
+  const { t } = useLanguage();
     const b = branches.find(x => x.branchId === branchId);
     return b ? b.branchName : `Branch ${branchId}`;
   };
@@ -5102,14 +5118,14 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
             <ClipboardList size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-800">ශාඛා සාරාංශ ලේඛනය (Branch Summary Ledger)</h4>
+            <h4 className="text-sm font-bold text-slate-800">{t(`ශාඛා සාරාංශ ලේඛනය (Branch Summary Ledger)`)}</h4>
             <p className="text-xs text-slate-500 font-medium">ශාඛාව (Branch): {t(getDynamicBranchName())}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600">මාසය තෝරන්න (Select Month):</span>
+            <span className="text-xs font-bold text-slate-600">{t(`මාසය තෝරන්න (Select Month):`)}</span>
             <select
               value={selectedMonth}
               onChange={e => setSelectedMonth(Number(e.target.value))}
@@ -5128,8 +5144,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
             className="flex items-center gap-2 bg-[#1E40AF] hover:bg-[#1E3A8A] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm hover:shadow transition-all cursor-pointer"
           >
             <Printer size={14} />
-            මුද්‍රණය කරන්න (Print)
-          </button>
+            {t(`මුද්‍රණය කරන්න (Print)`)}</button>
         </div>
       </div>
 
@@ -5149,9 +5164,9 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-blue-700 animate-pulse font-bold text-sm">දත්ත සාරාංශය සකස් කරමින්... (Generating ledger balances...)</div>
+          <div className="p-12 text-center text-blue-700 animate-pulse font-bold text-sm">{t(`දත්ත සාරාංශය සකස් කරමින්... (Generating ledger balances...)`)}</div>
         ) : !summaryData ? (
-          <div className="p-12 text-center text-blue-700 font-bold text-sm">දත්ත ලබා ගැනීමට අපොහොසත් විය.</div>
+          <div className="p-12 text-center text-blue-700 font-bold text-sm">{t(`දත්ත ලබා ගැනීමට අපොහොසත් විය.`)}</div>
         ) : (
           <div className="grid grid-cols-2 border-4 border-[#1E40AF] rounded-2xl overflow-hidden divide-x-4 divide-double divide-[#1E40AF] bg-[#FAF8F5]">
             
@@ -5160,23 +5175,23 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
               <table className="w-full text-xs text-left border-collapse">
                 <thead>
                   <tr className="border-b-2 border-[#1E40AF] text-[#1E40AF] font-bold bg-blue-50/30">
-                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">ලේඛනය (Category)</th>
-                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">ගි/ගණ</th>
-                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>ශේෂය (Balance)</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">{t(`ලේඛනය (Category)`)}</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">{t(`ගි/ගණ`)}</th>
+                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>{t(`ශේෂය (Balance)`)}</th>
                   </tr>
                 </thead>
                 <tbody className="font-semibold text-[#1D3D8C]">
                   
                   {/* 1. Main Headline */}
                   <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
-                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ඉතුරුම් තැන්පතු (Savings Deposits)</td>
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>{t(`ඉතුරුම් තැන්පතු (Savings Deposits)`)}</td>
                   </tr>
 
                   {/* 1.1 සාමාජික ගිණුම් (Member Accounts) */}
                   {summaryData.memberActive.length > 0 && (
                     <>
                       <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
-                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික ගිණුම් (Member Accounts)</td>
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>{t(`සාමාජික ගිණුම් (Member Accounts)`)}</td>
                       </tr>
                       {summaryData.memberActive.map((item, idx) => {
                         const sb = splitBalance(item.balance);
@@ -5190,7 +5205,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         );
                       })}
                       <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
-                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික ගිණුම්)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">{t(`එකතුව (සාමාජික ගිණුම්)`)}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
                           {summaryData.memberActive.reduce((s, i) => s + i.count, 0)}
                         </td>
@@ -5208,7 +5223,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   {summaryData.nonMemberActive.length > 0 && (
                     <>
                       <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
-                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික නොවන ගිණුම් (Non-Member Accounts)</td>
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>{t(`සාමාජික නොවන ගිණුම් (Non-Member Accounts)`)}</td>
                       </tr>
                       {summaryData.nonMemberActive.map((item, idx) => {
                         const sb = splitBalance(item.balance);
@@ -5222,7 +5237,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         );
                       })}
                       <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
-                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික නොවන ගිණුම්)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">{t(`එකතුව (සාමාජික නොවන ගිණුම්)`)}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
                           {summaryData.nonMemberActive.reduce((s, i) => s + i.count, 0)}
                         </td>
@@ -5240,7 +5255,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   {summaryData.memberInactive.length > 0 && (
                     <>
                       <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
-                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික අක්‍රීය ගිණුම් (Inactive Member Accounts)</td>
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>{t(`සාමාජික අක්‍රීය ගිණුම් (Inactive Member Accounts)`)}</td>
                       </tr>
                       {summaryData.memberInactive.map((item, idx) => {
                         const sb = splitBalance(item.balance);
@@ -5254,7 +5269,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         );
                       })}
                       <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
-                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික අක්‍රීය)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">{t(`එකතුව (සාමාජික අක්‍රීය)`)}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
                           {summaryData.memberInactive.reduce((s, i) => s + i.count, 0)}
                         </td>
@@ -5272,7 +5287,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   {summaryData.nonMemberInactive.length > 0 && (
                     <>
                       <tr className="bg-blue-50/5 text-slate-700 border-b border-[#1E40AF]/20 font-bold italic text-xs">
-                        <td className="px-4 py-0.5 pl-6" colSpan={4}>සාමාජික නොවන අක්‍රීය ගිණුම් (Inactive Non-Member Accounts)</td>
+                        <td className="px-4 py-0.5 pl-6" colSpan={4}>{t(`සාමාජික නොවන අක්‍රීය ගිණුම් (Inactive Non-Member Accounts)`)}</td>
                       </tr>
                       {summaryData.nonMemberInactive.map((item, idx) => {
                         const sb = splitBalance(item.balance);
@@ -5286,7 +5301,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         );
                       })}
                       <tr className="border-b border-blue-200 text-blue-900 bg-blue-50/80 font-extrabold shadow-[inset_0_0_10px_rgba(59,130,246,0.15)]">
-                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">එකතුව (සාමාජික නොවන අක්‍රීය)</td>
+                        <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-8 text-[11px] italic">{t(`එකතුව (සාමාජික නොවන අක්‍රීය)`)}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono text-[11px]">
                           {summaryData.nonMemberInactive.reduce((s, i) => s + i.count, 0)}
                         </td>
@@ -5302,7 +5317,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 
                   {/* 1.3 මුළු ඉතුරුම් තැන්පතු එකතුව */}
                   <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
-                    <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ඉතුරුම් තැන්පතු)</td>
+                    <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">{t(`එකතුව (ඉතුරුම් තැන්පතු)`)}</td>
                     <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
                       {summaryData.memberActive.reduce((s, i) => s + i.count, 0) +
                        summaryData.memberInactive.reduce((s, i) => s + i.count, 0) +
@@ -5319,7 +5334,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 
                   {/* 2. Fixed Deposits Section Headline */}
                   <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
-                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ස්ථාවර තැන්පතු (Fixed Deposits)</td>
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>{t(`ස්ථාවර තැන්පතු (Fixed Deposits)`)}</td>
                   </tr>
                   {summaryData.fds.map((item, idx) => {
                     const sb = splitBalance(item.balance);
@@ -5334,7 +5349,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   })}
                   {summaryData.fds.length > 0 && (
                     <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
-                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ස්ථාවර තැන්පතු)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">{t(`එකතුව (ස්ථාවර තැන්පතු)`)}</td>
                       <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
                         {summaryData.fds.reduce((s, i) => s + i.count, 0)}
                       </td>
@@ -5356,16 +5371,16 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
               <table className="w-full text-xs text-left border-collapse">
                 <thead>
                   <tr className="border-b-2 border-[#1E40AF] text-[#1E40AF] font-bold bg-blue-50/30">
-                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">ලේඛනය (Category)</th>
-                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">ගි/ගණ</th>
-                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>ශේෂය (Balance)</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 w-[45%]">{t(`ලේඛනය (Category)`)}</th>
+                    <th className="px-3 py-2 border-r border-[#1E40AF]/40 text-center w-[15%]">{t(`ගි/ගණ`)}</th>
+                    <th className="px-3 py-2 text-right w-[40%]" colSpan={2}>{t(`ශේෂය (Balance)`)}</th>
                   </tr>
                 </thead>
                 <tbody className="font-semibold text-[#1D3D8C]">
                   
                   {/* 1. Loans Section Headline */}
                   <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
-                    <td className="px-3 py-1 font-bold italic" colSpan={4}>ණය ගිණුම් (Loans & Advances)</td>
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>{t(`ණය ගිණුම් (Loans & Advances)`)}</td>
                   </tr>
                   {summaryData.loans.map((item, idx) => {
                     const sb = splitBalance(item.balance);
@@ -5380,7 +5395,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   })}
                   {summaryData.loans.length > 0 && (
                     <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
-                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (ණය ගිණුම්)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">{t(`එකතුව (ණය ගිණුම්)`)}</td>
                       <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
                         {summaryData.loans.reduce((s, i) => s + i.count, 0)}
                       </td>
@@ -5395,7 +5410,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 
                   {/* 2. Pawning Section Headline */}
                   <tr className="bg-amber-50/20 text-[#C22727] border-b border-[#1E40AF]/30">
-                    <td className="px-3 py-1 font-bold italic" colSpan={4}>උකස් අත්තිකාරම් (Pawn Advances)</td>
+                    <td className="px-3 py-1 font-bold italic" colSpan={4}>{t(`උකස් අත්තිකාරම් (Pawn Advances)`)}</td>
                   </tr>
                   {summaryData.pawning.map((item, idx) => {
                     const sb = splitBalance(item.balance);
@@ -5410,7 +5425,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                   })}
                   {summaryData.pawning.length > 0 && (
                     <tr className="bg-blue-100/80 text-[#1E40AF] font-black border-b-2 border-blue-300 shadow-[inset_0_0_15px_rgba(30,64,175,0.25)]">
-                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">එකතුව (උකස් අත්තිකාරම්)</td>
+                      <td className="px-3 py-1 border-r border-[#1E40AF]/40 pl-6">{t(`එකතුව (උකස් අත්තිකාරම්)`)}</td>
                       <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">
                         {summaryData.pawning.reduce((s, i) => s + i.count, 0)}
                       </td>
@@ -5438,6 +5453,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 
 // ── Vault Cash View (මුදල් ශේෂය සහ ගනුදෙනු) ──────────────────────────────
 function VaultCashView({ branchId }: { branchId?: number }) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<'MONTH' | 'DAY'>('MONTH');
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
@@ -5663,8 +5679,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         <div className="flex flex-wrap justify-between items-center mb-8 border-b-2 border-indigo-500 pb-4 gap-4">
           <div className="text-sm font-bold text-indigo-600 font-mono">ශාඛාව (Branch): {getBranchName(branchId || 1)}</div>
           <h3 className="text-xl font-bold text-indigo-700 text-center uppercase tracking-widest font-mono flex-1 pl-4">
-            මුදල් ශේෂ විස්තරය (VAULT CASH STATEMENT)
-          </h3>
+            {t(`මුදල් ශේෂ විස්තරය (VAULT CASH STATEMENT)`)}</h3>
           <div className="flex items-center gap-4 bg-indigo-50/50 p-2 rounded-xl border border-indigo-100 shadow-sm">
             <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider pl-2 hidden sm:inline-block">Filter By:</span>
             <div className="flex border-2 border-indigo-500 rounded-lg overflow-hidden shrink-0 shadow-sm">
@@ -5672,14 +5687,12 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                 className={`px-4 py-1.5 text-xs font-bold transition-colors ${filterMode === 'MONTH' ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}
                 onClick={() => setFilterMode('MONTH')}
               >
-                මාසික (Monthly)
-              </button>
+                {t(`මාසික (Monthly)`)}</button>
               <button
                 className={`px-4 py-1.5 text-xs font-bold transition-colors ${filterMode === 'DAY' ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}
                 onClick={() => setFilterMode('DAY')}
               >
-                දෛනික (Daily)
-              </button>
+                {t(`දෛනික (Daily)`)}</button>
             </div>
             
             <div className="h-8 w-px bg-indigo-200 mx-1"></div>
@@ -5713,9 +5726,9 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-indigo-700 animate-pulse font-bold text-sm">දත්ත ලබා ගනිමින්... (Loading vault details...)</div>
+          <div className="p-12 text-center text-indigo-700 animate-pulse font-bold text-sm">{t(`දත්ත ලබා ගනිමින්... (Loading vault details...)`)}</div>
         ) : !cashData ? (
-          <div className="p-12 text-center text-indigo-700 font-bold text-sm">දත්ත ලබා ගැනීමට අපොහොසත් විය.</div>
+          <div className="p-12 text-center text-indigo-700 font-bold text-sm">{t(`දත්ත ලබා ගැනීමට අපොහොසත් විය.`)}</div>
         ) : (
           <div className="space-y-6">
             <div className="grid grid-cols-2 border-4 border-indigo-600 rounded-2xl overflow-hidden divide-x-4 divide-double divide-indigo-600 bg-[#FAF8F5]">
@@ -5723,18 +5736,17 @@ function VaultCashView({ branchId }: { branchId?: number }) {
               {/* Left Side: Cash Inflow */}
               <div>
                 <div className="bg-indigo-50 p-2 font-bold text-center border-b-2 border-indigo-600 text-indigo-700 text-sm tracking-wide">
-                  මුදල් ලැබීම් (Cash Inflows / Debits)
-                </div>
+                  {t(`මුදල් ලැබීම් (Cash Inflows / Debits)`)}</div>
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
-                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">විස්තරය (Description)</th>
-                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>මුදල (Amount)</th>
+                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">{t(`විස්තරය (Description)`)}</th>
+                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>{t(`මුදල (Amount)`)}</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-indigo-900">
                     {cashData.inflow.length === 0 && (
-                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">ලැබීම් නොමැත (No inflows)</td></tr>
+                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ලැබීම් නොමැත (No inflows)`)}</td></tr>
                     )}
                     {cashData.inflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
@@ -5761,18 +5773,17 @@ function VaultCashView({ branchId }: { branchId?: number }) {
               {/* Right Side: Cash Outflow */}
               <div>
                 <div className="bg-indigo-50 p-2 font-bold text-center border-b-2 border-indigo-600 text-indigo-700 text-sm tracking-wide">
-                  මුදල් ගෙවීම් (Cash Outflows / Credits)
-                </div>
+                  {t(`මුදල් ගෙවීම් (Cash Outflows / Credits)`)}</div>
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
-                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">විස්තරය (Description)</th>
-                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>මුදල (Amount)</th>
+                      <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">{t(`විස්තරය (Description)`)}</th>
+                      <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>{t(`මුදල (Amount)`)}</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-indigo-900">
                     {cashData.outflow.length === 0 && (
-                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">ගෙවීම් නොමැත (No outflows)</td></tr>
+                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ගෙවීම් නොමැත (No outflows)`)}</td></tr>
                     )}
                     {cashData.outflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
@@ -6170,7 +6181,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
               <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
-              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t(`සිංහල`)}</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
               <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
             </div>

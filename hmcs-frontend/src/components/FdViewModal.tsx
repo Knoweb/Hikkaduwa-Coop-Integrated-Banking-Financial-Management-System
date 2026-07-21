@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Printer, Download, FileText, CheckCircle2, ShieldCheck, Download as DownloadIcon } from 'lucide-react';
 import PrintableFdReceipt from './PrintableFdReceipt';
 import { useTenantInfo } from '../hooks/useTenantInfo';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface FdViewModalProps {
   fd: any;
@@ -12,6 +14,7 @@ interface FdViewModalProps {
 }
 
 export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewModalProps) {
+  const { t } = useLanguage();
   const { societyNameSi, branchNameSi, societyNameEn, branchNameEn } = useTenantInfo();
   const [activeTab, setActiveTab] = useState<'APP' | 'RECEIPT'>('APP');
   const printRef = useRef<HTMLDivElement>(null);
@@ -24,6 +27,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
   }, []);
 
   const getMemberName = (id: string) => {
+  const { t } = useLanguage();
 
 
     if (!id) return '-';
@@ -32,18 +36,21 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
   };
 
   const getMemberNic = (id: string) => {
+  const { t } = useLanguage();
     if (!id) return '-';
     const member = members.find(m => m.memberId === id);
     return member ? member.nic : '-';
   };
 
   const getMemberAddress = (id: string) => {
+  const { t } = useLanguage();
     if (!id) return '-';
     const member = members.find(m => m.memberId === id);
     return member ? member.addressSinhala || member.address : '-';
   };
 
   const renderMemberDetails = (id: string) => {
+  const { t } = useLanguage();
     if (!id) return null;
     const member = members.find(m => m.memberId === id);
     if (!member) return null;
@@ -52,27 +59,27 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
       <div className="p-5 bg-emerald-50/50 rounded-xl border border-emerald-100 relative mt-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">සම්පූර්ණ නම</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">{t(`සම්පූර්ණ නම`)}</label>
             <input type="text" readOnly value={member.fullName || member.fullNameSinhala || ''} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">මුලකුරු සමඟ නම</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">{t(`මුලකුරු සමඟ නම`)}</label>
             <input type="text" readOnly value={member.nameWithInitials || ''} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">ජාතික හැඳුනුම්පත් අංකය</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">{t(`ජාතික හැඳුනුම්පත් අංකය`)}</label>
             <input type="text" readOnly value={member.nic || member.birthCertificateNumber || ''} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">උපන් දිනය (DATE OF BIRTH)</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t(`උපන් දිනය (DATE OF BIRTH)`)}</label>
             <input type="text" readOnly value={member.dateOfBirth ? String(member.dateOfBirth).split('T')[0] : '-'} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">දුරකථන අංකය (PHONE NUMBER)</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t(`දුරකථන අංකය (PHONE NUMBER)`)}</label>
             <input type="text" readOnly value={member.contactNumber || member.mobileNumber || member.phoneNumber || '-'} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">ලිපිනය</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t(`ලිපිනය`)}</label>
             <input type="text" readOnly value={member.address || member.residentialAddress || ''} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700" />
           </div>
         </div>
@@ -95,6 +102,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
     : (Number(fd.interestRate) >= 15 ? 'ජ්‍යෙෂ්ඨ පුරවැසි' : Number(fd.interestRate) <= 10 ? 'ළමා ස්ථාවර' : 'සාමාන්‍ය ස්ථාවර');
 
   const handlePrint = () => {
+  const { t } = useLanguage();
     window.print();
   };
 
@@ -109,7 +117,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
               <FileText size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-800 leading-tight">ස්ථාවර තැන්පතු විස්තර</h2>
+              <h2 className="text-lg font-black text-slate-800 leading-tight">{t(`ස්ථාවර තැන්පතු විස්තර`)}</h2>
               <p className="text-xs font-semibold text-slate-500">ගිණුම් අංකය: {fd.fdNumber}</p>
             </div>
           </div>
@@ -120,17 +128,15 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                 onClick={() => setActiveTab('APP')}
                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'APP' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                අයදුම්පත
-              </button>
+                {t(`අයදුම්පත`)}</button>
               <button 
                 onClick={() => setActiveTab('RECEIPT')}
                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'RECEIPT' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                කුවිතාන්සිය
-              </button>
+                {t(`කුවිතාන්සිය`)}</button>
             </div>
 
-            <button onClick={handlePrint} className="p-2 text-slate-400 hover:text-[#025a4e] hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200" title="මුද්‍රණය කරන්න">
+            <button onClick={handlePrint} className="p-2 text-slate-400 hover:text-[#025a4e] hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200" title={t(`මුද්‍රණය කරන්න`)}>
               <Printer size={18} />
             </button>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2">
@@ -166,32 +172,31 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                 {/* Step 1: Member Details */}
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-2">
-                    1. සාමාජික විස්තර (Member Details)
-                  </h3>
+                    {t(`1. සාමාජික විස්තර (Member Details)`)}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු කාණ්ඩය (CATEGORY)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`තැන්පතු කාණ්ඩය (CATEGORY)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">{category}</div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කාලය (TERM)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කාලය (TERM)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">මාස {fd.termMonths}</div>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම් වර්ගය (ACCOUNT TYPE)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`ගිණුම් වර්ගය (ACCOUNT TYPE)`)}</label>
                       <div className="flex gap-6 mt-3">
                         <label className="flex items-center gap-2 cursor-not-allowed opacity-80">
                           <input type="radio" checked={!fd.memberId2} readOnly className="w-5 h-5 text-[#025a4e] border-slate-300" />
-                          <span className="font-bold text-slate-700">තනි ගිණුමක් (Individual)</span>
+                          <span className="font-bold text-slate-700">{t(`තනි ගිණුමක් (Individual)`)}</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-not-allowed opacity-80">
                           <input type="radio" checked={!!fd.memberId2} readOnly className="w-5 h-5 text-[#025a4e] border-slate-300" />
-                          <span className="font-bold text-slate-700">හවුල් ගිණුමක් (Joint)</span>
+                          <span className="font-bold text-slate-700">{t(`හවුල් ගිණුමක් (Joint)`)}</span>
                         </label>
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">සාමාජිකයා (MEMBER)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`සාමාජිකයා (MEMBER)`)}</label>
                       {renderMemberDetails(fd.memberId)}
                       {fd.memberId2 && renderMemberDetails(fd.memberId2)}
                       {fd.memberId3 && renderMemberDetails(fd.memberId3)}
@@ -202,36 +207,35 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                 {/* Step 2: Deposit Details */}
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-2">
-                    2. තැන්පතු විස්තර (Deposit Details)
-                  </h3>
+                    {t(`2. තැන්පතු විස්තර (Deposit Details)`)}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම් අංකය (ACCOUNT NUMBER)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`ගිණුම් අංකය (ACCOUNT NUMBER)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
                         {fd.fdNumber}
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">තැන්පතු මුදල (PRINCIPAL AMOUNT)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`තැන්පතු මුදල (PRINCIPAL AMOUNT)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
                         Rs. {Number(fd.principalAmount).toLocaleString('en-US', {minimumFractionDigits: 2})}
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">පොලිය ගෙවන ආකාරය (INTEREST PAYOUT)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`පොලිය ගෙවන ආකාරය (INTEREST PAYOUT)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
                         {payoutMethodText}
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කල් පිරුණු පසු උපදෙස් (MATURITY INSTRUCTION)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කල් පිරුණු පසු උපදෙස් (MATURITY INSTRUCTION)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
                         {maturityInstructionText}
                       </div>
                     </div>
                     {fd.linkedSavingsAccountId && (
                       <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-2">සම්බන්ධිත ඉතිරිකිරීමේ ගිණුම (LINKED SAVINGS ACCOUNT)</label>
+                        <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`සම්බන්ධිත ඉතිරිකිරීමේ ගිණුම (LINKED SAVINGS ACCOUNT)`)}</label>
                         <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800">
                           {savingsAccounts?.find(sa => sa.accountId === fd.linkedSavingsAccountId)?.accountNumber || fd.linkedSavingsAccountId}
                         </div>
@@ -243,18 +247,17 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                 {/* Step 3: Office Use Only */}
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-2">
-                    3. කාර්යාලීය ප්‍රයෝජනය සඳහා පමණි (Office Use Only)
-                  </h3>
+                    {t(`3. කාර්යාලීය ප්‍රයෝජනය සඳහා පමණි (Office Use Only)`)}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කුවිතාන්සි අංකය (RECEIPT NO)</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කුවිතාන්සි අංකය (RECEIPT NO)`)}</label>
                       <div className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800">
                         {fd.receiptNumber || '-'}
                       </div>
                     </div>
                     <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4 mt-2 border-t border-slate-200 pt-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">තැන්පත් කළ දිනය (DEPOSIT DATE)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t(`තැන්පත් කළ දිනය (DEPOSIT DATE)`)}</label>
                         <div className="font-semibold text-slate-800">
                           {fd.openedDate ? new Date(fd.openedDate).toISOString().split('T')[0] : 
                            fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
@@ -262,17 +265,17 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">කල්පිරෙන දිනය (MATURITY DATE)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t(`කල්පිරෙන දිනය (MATURITY DATE)`)}</label>
                         <div className="font-semibold text-slate-800">
                           {fd.maturityDate ? new Date(fd.maturityDate).toISOString().split('T')[0] : '-'}
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">පොලී අනුපාතිකය (INTEREST RATE)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t(`පොලී අනුපාතිකය (INTEREST RATE)`)}</label>
                         <div className="font-semibold text-slate-800">{fd.interestRate || '0'}%</div>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">බදු ආකෘති පත්‍රය (TAX FORM)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t(`බදු ආකෘති පත්‍රය (TAX FORM)`)}</label>
                         <div className="font-semibold text-slate-800 flex items-center gap-2">
                           <input type="checkbox" checked={fd.hasSubmittedTaxForm || false} readOnly className="w-4 h-4 text-[#025a4e] bg-slate-100 border-slate-300 rounded cursor-not-allowed pointer-events-none" />
                           <span className="text-sm">{fd.hasSubmittedTaxForm ? 'ලබා දී ඇත' : 'ලබා දී නැත'}</span>
@@ -291,7 +294,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                         <img src={fd.depositorSignature} alt="Depositor Signature" className="max-h-16 w-auto object-contain" />
                       )}
                     </div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">තැන්පත්කරුගේ අත්සන</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">{t(`තැන්පත්කරුගේ අත්සන`)}</p>
                   </div>
                   <div className="text-center">
                     <div className="w-40 border-b-2 border-emerald-800/20 mx-auto mb-2 border-dashed"></div>
@@ -304,7 +307,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                        fd.createdAt ? new Date(fd.createdAt).toISOString().split('T')[0] : 
                        '-'}
                     </div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">දිනය</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">{t(`දිනය`)}</p>
                   </div>
                 </div>
               </div>

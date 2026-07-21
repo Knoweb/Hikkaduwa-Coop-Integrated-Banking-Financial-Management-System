@@ -60,18 +60,27 @@ public class SavingsAccountTypeController {
             type.setInterestRate(newRate);
             
             // Cascade update to all existing accounts of this type
-            String accountTypeCode = type.getCode().toLowerCase();
-            if ("NORMAL".equals(type.getCode())) {
-                accountTypeCode = "samanaya"; // Revert the mapping for existing DB records
+            String originalCode = type.getCode();
+            String legacyCode = type.getCode().toLowerCase();
+            if ("NORMAL".equalsIgnoreCase(originalCode) || "SAMANYA".equalsIgnoreCase(originalCode)) {
+                legacyCode = "samanaya"; // Legacy mapping for old DB records
             }
             
+            System.out.println("Updating rate for type: " + originalCode + " to " + newRate);
+            
             List<com.hmcs.savings.entity.Account> existingAccounts = accountRepository.findAll();
+            System.out.println("Found " + existingAccounts.size() + " total accounts for this tenant.");
+            int updatedCount = 0;
             for (com.hmcs.savings.entity.Account acc : existingAccounts) {
-                if (acc.getAccountType() != null && acc.getAccountType().equalsIgnoreCase(accountTypeCode)) {
+                if (acc.getAccountType() != null && 
+                   (acc.getAccountType().equalsIgnoreCase(originalCode) || 
+                    acc.getAccountType().equalsIgnoreCase(legacyCode))) {
                     acc.setAnnualInterestRate(newRate);
                     accountRepository.save(acc);
+                    updatedCount++;
                 }
             }
+            System.out.println("Successfully updated " + updatedCount + " accounts.");
         }
         return ResponseEntity.ok(repository.save(type));
     }

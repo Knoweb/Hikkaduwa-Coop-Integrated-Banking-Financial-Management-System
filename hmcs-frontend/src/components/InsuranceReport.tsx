@@ -4,8 +4,11 @@ import type { Loan } from '../services/loan.service';
 import * as LoanService from '../services/loan.service';
 import type { MemberData } from '../services/account.service';
 import { getMembers } from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
+
 
 export default function InsuranceReport() {
+  const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [members, setMembers] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,7 @@ export default function InsuranceReport() {
   };
 
   const handleCustomDataChange = (loanId: string, field: 'lifeCover' | 'premium', value: string) => {
+  
     setCustomData(prev => ({
       ...prev,
       [loanId]: {
@@ -52,6 +56,7 @@ export default function InsuranceReport() {
   const getMemberData = (memberId: string) => members.find(m => m.memberId === memberId);
 
   const calculateTotal = (field: 'lifeCover' | 'premium') => {
+  
     return reportLoans.reduce((sum, l) => {
       const val = parseFloat(customData[l.loanId]?.[field] || '0');
       return sum + (isNaN(val) ? 0 : val);
@@ -59,6 +64,7 @@ export default function InsuranceReport() {
   };
 
   const handleDownloadWord = () => {
+  
     const tableHTML = document.getElementById('insurance-table-container')?.innerHTML;
     if (!tableHTML) return;
 
@@ -109,13 +115,13 @@ export default function InsuranceReport() {
             <ShieldCheck size={28} className="text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-black tracking-tight">රක්ෂණ වාර්තාව (Insurance Report)</h3>
-            <p className="text-emerald-100 text-sm font-medium mt-1">ණය මුදාහැරීම් සඳහා මාසික රක්ෂණ වාර්තාව</p>
+            <h3 className="text-xl font-black tracking-tight">{t(`රක්ෂණ වාර්තාව (Insurance Report)`)}</h3>
+            <p className="text-emerald-100 text-sm font-medium mt-1">{t(`ණය මුදාහැරීම් සඳහා මාසික රක්ෂණ වාර්තාව`)}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3 bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-          <label className="text-sm font-bold text-emerald-50 whitespace-nowrap">මාසය (Month):</label>
+          <label className="text-sm font-bold text-emerald-50 whitespace-nowrap">{t(`මාසය (Month):`)}</label>
           <input 
             type="month" 
             value={selectedMonth}
@@ -138,7 +144,7 @@ export default function InsuranceReport() {
         ) : reportLoans.length === 0 ? (
           <div className="p-10 text-center text-slate-500">
             <ShieldCheck size={48} className="mx-auto mb-4 text-slate-300 opacity-50" />
-            <p className="font-semibold text-lg">කිසිදු දත්තයක් හමු නොවීය</p>
+            <p className="font-semibold text-lg">{t(`කිසිදු දත්තයක් හමු නොවීය`)}</p>
             <p className="text-sm mt-1">{selectedMonth} මාසය සඳහා මුදාහැර ඇති ණය නොමැත.</p>
           </div>
         ) : (
@@ -213,8 +219,7 @@ export default function InsuranceReport() {
             <div className="p-4 bg-amber-50 border-t border-amber-100 flex items-start gap-3">
               <span className="text-xl">💡</span>
               <p className="text-xs font-medium text-amber-800 mt-0.5 leading-relaxed">
-                <strong>උපදෙස (Tip):</strong> Life Cover සහ Premium අගයන් හිස් කොටුවල (Input boxes) Type කරන්න. ඊටපස්සේ "Download (.doc)" බටන් එක එබුවම, ඔයා Type කරපු අගයන් සහ එකතුව (Total) එක්කම Report එක Word File එකක් විදිහට Download වෙයි.
-              </p>
+                <strong>{t(`උපදෙස (Tip):`)}</strong> {t(`Life Cover සහ Premium අගයන් හිස් කොටුවල (Input boxes) Type කරන්න. ඊටපස්සේ "Download (.doc)" බටන් එක එබුවම, ඔයා Type කරපු අගයන් සහ එකතුව (Total) එක්කම Report එක Word File එකක් විදිහට Download වෙයි.`)}</p>
             </div>
           </div>
         )}

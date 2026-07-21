@@ -83,6 +83,49 @@ public class LoanService {
         UUID loanId = saved.getLoanId();
 
         Map<String, Object> ad = saved.getApplicationData();
+        if (type.getName().contains("FD ණය") || type.getName().contains("ස්ථාවර තැන්පතු ණය")) {
+            if (ad == null || !ad.containsKey("associatedFdId") || ad.get("associatedFdId").toString().isBlank()) {
+                throw new RuntimeException("FD Loan requires an associated Fixed Deposit");
+            }
+            String fdId = ad.get("associatedFdId").toString();
+            try {
+                String savingsServiceHost = System.getenv("SAVINGS_SERVICE_HOST");
+                if (savingsServiceHost == null || savingsServiceHost.isEmpty()) {
+                    savingsServiceHost = "localhost";
+                }
+                String fdUrl = "http://" + savingsServiceHost + ":8082/api/v1/fixed-deposits/" + fdId;
+                
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                Integer currentTenant = com.hmcs.loan.multitenancy.TenantContext.getTenantId();
+                if (currentTenant == null) currentTenant = loanRequest.getTenantId();
+                if (currentTenant != null) headers.set("X-Tenant-ID", String.valueOf(currentTenant));
+
+                org.springframework.http.HttpEntity<?> entity = new org.springframework.http.HttpEntity<>(headers);
+                org.springframework.http.ResponseEntity<Map> response = restTemplate.exchange(fdUrl, org.springframework.http.HttpMethod.GET, entity, Map.class);
+                
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    Map fdData = response.getBody();
+                    if (fdData.get("principalAmount") != null) {
+                        BigDecimal principal = new BigDecimal(fdData.get("principalAmount").toString());
+                        BigDecimal maxLimit = principal.multiply(new BigDecimal("0.85"));
+                        if (loanRequest.getRequestedAmount().compareTo(maxLimit) > 0) {
+                            throw new RuntimeException("Requested amount exceeds 85% of Fixed Deposit principal");
+                        }
+                    }
+                } else {
+                    throw new RuntimeException("Could not verify Fixed Deposit details");
+                }
+            } catch (Exception e) {
+                if (e instanceof RuntimeException && e.getMessage().contains("exceeds")) {
+                    throw e;
+                }
+                System.err.println("Failed to validate Fixed Deposit limit: " + e.getMessage());
+                // We could throw here, but if savings service is unreachable, we shouldn't block tests entirely.
+                // For strict enforcement, we throw:
+                throw new RuntimeException("Failed to validate Fixed Deposit limit: " + e.getMessage());
+            }
+        }
+
         if (ad != null && !ad.isEmpty()) {
             saveApplicantDetails(loanId, ad);
             saveAssetDetails(loanId, ad);
@@ -512,7 +555,7 @@ public class LoanService {
         }
         if (termMonths == null) termMonths = 12; // default
 
-        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(loan.getDisbursedAmount(), termMonths, loan.getInterestRate(), loan.getAppliedDate());
+        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(loan.getDisbursedAmount(), termMonths, loan.getInterestRate(), loan.getDisbursementDate() != null ? loan.getDisbursementDate().toLocalDate() : loan.getAppliedDate());
         
         for (Map<String, Object> row : scheduleData) {
             LoanSchedule schedule = new LoanSchedule();

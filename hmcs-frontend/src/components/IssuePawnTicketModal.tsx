@@ -3,8 +3,11 @@ import { X, Search } from 'lucide-react';
 import * as AccountService from '../services/account.service';
 import * as PawningService from '../services/pawning.service';
 import { Snackbar, Alert } from '@mui/material';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: { branchId: number; onClose: () => void; onSuccess: () => void }) {
+  const { t } = useLanguage();
+
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [search, setSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState<AccountService.MemberData | null>(null);
@@ -80,7 +83,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-yellow-50">
-          <h3 className="text-lg font-bold text-yellow-800">නව උකස් පත්‍රිකාවක් නිකුත් කිරීම (Issue New Pawn Ticket)</h3>
+          <h3 className="text-lg font-bold text-yellow-800">{t(`නව උකස් පත්‍රිකාවක් නිකුත් කිරීම (Issue New Pawn Ticket)`)}</h3>
           <button onClick={onClose}><X size={18} className="text-yellow-600 hover:text-yellow-800" /></button>
         </div>
 
@@ -90,27 +93,26 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
             ? 'bg-amber-100/60 border-amber-300' 
             : 'bg-yellow-50/50 border-yellow-100/50'
           }`}>
-            <label className="block text-xs font-bold text-yellow-800 mb-1">ගිණුම ආරම්භ කළ දිනය / නිකුත් කළ දිනය (Issue Date) *</label>
+            <label className="block text-xs font-bold text-yellow-800 mb-1">{t(`ගිණුම ආරම්භ කළ දිනය / නිකුත් කළ දිනය (Issue Date) *`)}</label>
             <input required type="date" value={form.issueDate} onChange={e => setForm({...form, issueDate: e.target.value})} className="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white" />
             <div className="flex justify-between items-center mt-1">
-              <p className="text-[10px] text-yellow-600">පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)</p>
+              <p className="text-[10px] text-yellow-600">{t(`පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)`)}</p>
               {form.issueDate && form.issueDate < new Date().toLocaleDateString('en-CA') && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full animate-in fade-in">
-                  ⚠️ පැරණි උකස් ඇතුළත් කිරීමක්
-                </span>
+                  {t(`⚠️ පැරණි උකස් ඇතුළත් කිරීමක්`)}</span>
               )}
             </div>
           </div>
 
           {!selectedMember ? (
             <div className="space-y-4">
-              <label className="block text-sm font-bold text-slate-700">සාමාජිකයා තෝරන්න (Select Member)</label>
+              <label className="block text-sm font-bold text-slate-700">{t(`සාමාජිකයා තෝරන්න (Select Member)`)}</label>
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
                   value={search} 
                   onChange={e => setSearch(e.target.value)} 
-                  placeholder="NIC හෝ නම මඟින් සොයන්න..."
+                  placeholder={t(`NIC හෝ නම මඟින් සොයන්න...`)}
                   className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 />
               </div>
@@ -122,7 +124,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
                       <p className="text-xs text-slate-500">NIC: {m.nic} | Member No: {m.membershipNumber || 'N/A'}</p>
                     </div>
                   ))}
-                  {filteredMembers.length === 0 && <p className="p-4 text-center text-slate-400 text-sm">සාමාජිකයින් හමු නොවීය.</p>}
+                  {filteredMembers.length === 0 && <p className="p-4 text-center text-slate-400 text-sm">{t(`සාමාජිකයින් හමු නොවීය.`)}</p>}
                 </div>
               )}
             </div>
@@ -135,7 +137,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
                   <p className="text-sm text-slate-600">{selectedMember.nic} · {selectedMember.contactNumber}</p>
                 </div>
                  <div className="flex flex-col items-end">
-                  <span className="text-xs font-bold text-slate-500 mb-1">වාර්ෂික පොලිය</span>
+                  <span className="text-xs font-bold text-slate-500 mb-1">{t(`වාර්ෂික පොලිය`)}</span>
                   <span className="bg-yellow-100 text-yellow-800 font-bold px-3 py-1 rounded-full text-sm">{form.interestRate}%</span>
                 </div>
               </div>
@@ -145,26 +147,26 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">උකස් පත්‍රිකා අංකය (Ticket Number) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t(`උකස් පත්‍රිකා අංකය (Ticket Number) *`)}</label>
                   <input required value={form.ticketNumber} onChange={e => setForm({...form, ticketNumber: e.target.value})} placeholder="e.g. 698594" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">භාණ්ඩ විස්තරය (Article Description) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t(`භාණ්ඩ විස්තරය (Article Description) *`)}</label>
                   <input required value={form.articleDescription} onChange={e => setForm({...form, articleDescription: e.target.value})} placeholder="e.g. 22K Gold Chain with Pendant" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">දළ බර (Gross Weight - g) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t(`දළ බර (Gross Weight - g) *`)}</label>
                   <input required type="number" step="0.01" value={form.grossWeightGrams} onChange={e => setForm({...form, grossWeightGrams: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">ශුද්ධ බර (Net Weight - g) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t(`ශුද්ධ බර (Net Weight - g) *`)}</label>
                   <input required type="number" step="0.01" value={form.netWeightGrams} onChange={e => setForm({...form, netWeightGrams: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">රන් තත්වය (Purity - Karat) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t(`රන් තත්වය (Purity - Karat) *`)}</label>
                   <select required value={form.purityKarat} onChange={e => setForm({...form, purityKarat: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white">
                     <option value="24">24K (99.9%)</option>
                     <option value="22">22K (91.6%)</option>
@@ -178,7 +180,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
         </div>
 
         <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-4 bg-slate-50">
-          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition">අවලංගු කරන්න (Cancel)</button>
+          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition">{t(`අවලංගු කරන්න (Cancel)`)}</button>
           {selectedMember && (
             <button type="submit" form="pawn-form" disabled={loading} className="px-6 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-bold text-sm shadow transition disabled:opacity-60">
               {loading ? 'Processing...' : 'නිකුත් කරන්න (Issue Ticket)'}

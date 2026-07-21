@@ -4,8 +4,11 @@ import type { LoanType } from '../services/loan.service';
 import { X, FileText, ChevronRight, Briefcase, Phone, Users, Home, Landmark, ShieldAlert, CreditCard, Banknote, Wallet, Building2, Package, Zap } from 'lucide-react';
 import DisasterLoanForm from './DisasterLoanForm';
 import NormalLoanForm from './NormalLoanForm';
+import { useLanguage } from '../context/LanguageContext';
+
 
 const getIconForLoanName = (name: string) => {
+  
   if (name.includes('ක්ෂණික')) return Zap;
   if (name.includes('දුරකථන')) return Phone;
   if (name.includes('ආපදා')) return ShieldAlert;
@@ -24,6 +27,7 @@ const getIconForLoanName = (name: string) => {
 };
 
 const getColorForLoanName = (name: string) => {
+  
   if (name.includes('ක්ෂණික')) return 'text-yellow-500 bg-yellow-50 border-yellow-200 shadow-yellow-100';
   if (name.includes('දුරකථන')) return 'text-purple-600 bg-purple-50 border-purple-200 shadow-purple-100';
   if (name.includes('ආපදා')) return 'text-red-600 bg-red-50 border-red-200 shadow-red-100';
@@ -49,6 +53,7 @@ const sortLoanTypes = (types: LoanType[]): LoanType[] => {
 };
 
 const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
+  const { t } = useLanguage();
   const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +106,7 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-3 tracking-tight">
               <FileText size={24} className="text-indigo-200" /> 
-              ණය වර්ගය තෝරන්න
-            </h3>
+              {t(`ණය වර්ගය තෝරන්න`)}</h3>
             <p className="text-indigo-100 text-xs mt-0.5 font-medium opacity-90">Select a loan type to proceed with your application</p>
           </div>
           <button 
@@ -149,21 +153,21 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
             {isLoading && (
               <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-slate-400 animate-pulse">
                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                <p className="text-base font-medium">ණය වර්ග පූරණය වෙමින් පවතී... (Loading...)</p>
+                <p className="text-base font-medium">{t(`ණය වර්ග පූරණය වෙමින් පවතී... (Loading...)`)}</p>
               </div>
             )}
             
             {error && !isLoading && (
               <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-red-500">
                 <ShieldAlert size={48} className="mb-4 text-red-400" />
-                <p className="text-base font-medium mb-2">ණය වර්ග පූරණය කිරීම අසාර්ථක විය.</p>
+                <p className="text-base font-medium mb-2">{t(`ණය වර්ග පූරණය කිරීම අසාර්ථක විය.`)}</p>
                 <p className="text-sm font-mono bg-red-50 p-2 rounded">{error}</p>
               </div>
             )}
             
             {!isLoading && !error && loanTypes.length === 0 && (
               <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 flex flex-col items-center justify-center py-12 text-slate-400">
-                <p className="text-base font-medium">කිසිදු ණය වර්ගයක් සොයාගත නොහැකි විය.</p>
+                <p className="text-base font-medium">{t(`කිසිදු ණය වර්ගයක් සොයාගත නොහැකි විය.`)}</p>
               </div>
             )}
           </div>

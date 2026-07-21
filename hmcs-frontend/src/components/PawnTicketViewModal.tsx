@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { X, Gem, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { printPawnTicket } from '../utils/print';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; onClose: () => void }) {
+
+export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any, onClose: () => void }) {
+  const { t } = useLanguage();
   if (!ticket) return null;
 
   const [activeTab, setActiveTab] = useState<'details' | 'payments'>('details');
@@ -11,6 +14,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                          new Date(ticket.expiryDate).getTime() - new Date().getTime() <= 30 * 24 * 60 * 60 * 1000;
 
   const handlePrint = () => {
+  
     printPawnTicket(ticket);
   };
 
@@ -20,7 +24,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
         {/* Header */}
         <div className="bg-gradient-to-r from-yellow-800 to-yellow-600 text-white p-5 rounded-t-2xl flex justify-between items-start shrink-0">
           <div>
-            <p className="text-xs text-yellow-200 font-medium uppercase tracking-wider mb-1">උකස් පත්‍රිකාව (Pawn Ticket)</p>
+            <p className="text-xs text-yellow-200 font-medium uppercase tracking-wider mb-1">{t(`උකස් පත්‍රිකාව (Pawn Ticket)`)}</p>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Gem size={20} /> ටිකට් අංකය: {ticket.ticketNumber}
             </h2>
@@ -45,8 +49,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
-            <Gem size={16} /> විස්තර (Details)
-          </button>
+            <Gem size={16} /> {t(`විස්තර (Details)`)}</button>
           <button
             onClick={() => setActiveTab('payments')}
             className={`py-3 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
@@ -72,15 +75,15 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
                   <AlertTriangle className="shrink-0" />
                   <div>
-                    <p className="font-bold text-sm">කල් ඉකුත් වීමට ආසන්නයි! (Expiring Soon!)</p>
-                    <p className="text-xs mt-1">මෙම උකස් පත්‍රිකාව දින 30ක් ඇතුළත කල් ඉකුත් වේ. කරුණාකර ගනුදෙනුකරු දැනුවත් කරන්න.</p>
+                    <p className="font-bold text-sm">{t(`කල් ඉකුත් වීමට ආසන්නයි! (Expiring Soon!)`)}</p>
+                    <p className="text-xs mt-1">{t(`මෙම උකස් පත්‍රිකාව දින 30ක් ඇතුළත කල් ඉකුත් වේ. කරුණාකර ගනුදෙනුකරු දැනුවත් කරන්න.`)}</p>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-xs text-slate-500 font-medium mb-1">සාමාජිකයා (Member)</p>
+                  <p className="text-xs text-slate-500 font-medium mb-1">{t(`සාමාජිකයා (Member)`)}</p>
                   <h4 className="text-sm font-bold text-slate-800">
                     {ticket.memberDetails?.nameWithInitials || ticket.memberDetails?.fullNameSinhala || ticket.memberDetails?.fullName || ticket.memberName || 'Unknown Member'}
                   </h4>
@@ -89,64 +92,64 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                   </p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <p className="text-xs text-slate-500 font-medium mb-1">නිකුත් කළ දිනය / කල් ඉකුත් වන දිනය</p>
+                  <p className="text-xs text-slate-500 font-medium mb-1">{t(`නිකුත් කළ දිනය / කල් ඉකුත් වන දිනය`)}</p>
                   <p className="text-sm font-semibold text-slate-800">{ticket.issueDate} / {ticket.expiryDate}</p>
                 </div>
 
                 <div className="col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <p className="text-xs text-slate-500 font-medium mb-1">භාණ්ඩ විස්තරය (Article Description)</p>
+                  <p className="text-xs text-slate-500 font-medium mb-1">{t(`භාණ්ඩ විස්තරය (Article Description)`)}</p>
                   <p className="text-sm font-semibold text-slate-800">{ticket.articleDescription}</p>
                   <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-slate-200">
                     <div>
-                      <p className="text-xs text-slate-500">දළ බර</p>
+                      <p className="text-xs text-slate-500">{t(`දළ බර`)}</p>
                       <p className="font-mono text-sm font-semibold">{ticket.grossWeightGrams}g</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">ශුද්ධ බර</p>
+                      <p className="text-xs text-slate-500">{t(`ශුද්ධ බර`)}</p>
                       <p className="font-mono text-sm font-semibold text-blue-700">{ticket.netWeightGrams}g</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">කැරට් අගය</p>
+                      <p className="text-xs text-slate-500">{t(`කැරට් අගය`)}</p>
                       <p className="font-mono text-sm font-semibold">{ticket.purityKarat}K</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="col-span-2 border-2 border-yellow-100 rounded-xl p-5 bg-yellow-50/30">
-                  <h3 className="text-sm font-bold text-yellow-800 border-b border-yellow-200 pb-2 mb-3">මුල්‍ය විස්තර සහ ගණනය කිරීම් (Financial Details)</h3>
+                  <h3 className="text-sm font-bold text-yellow-800 border-b border-yellow-200 pb-2 mb-3">{t(`මුල්‍ය විස්තර සහ ගණනය කිරීම් (Financial Details)`)}</h3>
                   
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-slate-600">තක්සේරු වටිනාකම (Assessed Value)</span>
+                    <span className="text-sm text-slate-600">{t(`තක්සේරු වටිනාකම (Assessed Value)`)}</span>
                     <span className="text-sm font-semibold">Rs. {Number(ticket.assessedValue).toLocaleString()}</span>
                   </div>
                   
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-slate-600">උකස් අත්තිකාරම (Advance Amount)</span>
+                    <span className="text-sm text-slate-600">{t(`උකස් අත්තිකාරම (Advance Amount)`)}</span>
                     <span className="text-sm font-semibold text-slate-800">Rs. {Number(ticket.advanceAmount).toLocaleString()}</span>
                   </div>
 
                   <div className="flex justify-between items-center py-2 bg-emerald-50/50 px-2 rounded-lg my-1 text-emerald-800">
-                    <span className="text-sm font-semibold">ඉතිරි මූලික මුදල (Remaining Principal)</span>
+                    <span className="text-sm font-semibold">{t(`ඉතිරි මූලික මුදල (Remaining Principal)`)}</span>
                     <span className="text-sm font-bold">Rs. {Number(ticket.remainingAdvance).toLocaleString()}</span>
                   </div>
 
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-slate-600">වාර්ෂික පොලිය (Interest Rate)</span>
+                    <span className="text-sm text-slate-600">{t(`වාර්ෂික පොලිය (Interest Rate)`)}</span>
                     <span className="text-sm font-semibold">{ticket.interestRate}% වා.පො.</span>
                   </div>
 
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-slate-600">ගත වූ දින ගණන (Days Elapsed)</span>
+                    <span className="text-sm text-slate-600">{t(`ගත වූ දින ගණන (Days Elapsed)`)}</span>
                     <span className="text-sm font-semibold">{ticket.daysElapsed} Days</span>
                   </div>
 
                   <div className="flex justify-between items-center py-2 border-t border-slate-200 mt-2">
-                    <span className="text-sm font-medium text-slate-800">එකතු වූ පොලිය (Accrued Interest)</span>
+                    <span className="text-sm font-medium text-slate-800">{t(`එකතු වූ පොලිය (Accrued Interest)`)}</span>
                     <span className="text-sm font-bold text-red-600">+ Rs. {Number(ticket.accruedInterest).toLocaleString()}</span>
                   </div>
 
                   <div className="flex justify-between items-center py-3 border-t-2 border-slate-800 mt-2">
-                    <span className="text-base font-bold text-slate-800">මුළු ගෙවිය යුතු මුදල (Total Due)</span>
+                    <span className="text-base font-bold text-slate-800">{t(`මුළු ගෙවිය යුතු මුදල (Total Due)`)}</span>
                     <span className="text-xl font-bold text-blue-700">Rs. {Number(ticket.totalDue).toLocaleString()}</span>
                   </div>
                   <p className="text-[10px] text-slate-400 text-center mt-2 italic">
@@ -160,7 +163,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
           {activeTab === 'payments' && (
             <div className="space-y-4">
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center text-emerald-800 text-sm">
-                <span className="font-semibold">වත්මන් ඉතිරි මූලික මුදල (Remaining Principal)</span>
+                <span className="font-semibold">{t(`වත්මන් ඉතිරි මූලික මුදල (Remaining Principal)`)}</span>
                 <span className="font-bold text-base">Rs. {Number(ticket.remainingAdvance).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
               </div>
 
@@ -170,11 +173,11 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 text-slate-500 font-semibold">
-                        <th className="py-2">දිනය (Date)</th>
-                        <th className="py-2">ලදුපත් අංකය (Receipt No)</th>
-                        <th className="py-2 text-right">මූලික මුදල (Principal)</th>
-                        <th className="py-2 text-right">පොලිය (Interest)</th>
-                        <th className="py-2 text-right font-bold text-slate-700">මුළු ගෙවීම (Total Paid)</th>
+                        <th className="py-2">{t(`දිනය (Date)`)}</th>
+                        <th className="py-2">{t(`ලදුපත් අංකය (Receipt No)`)}</th>
+                        <th className="py-2 text-right">{t(`මූලික මුදල (Principal)`)}</th>
+                        <th className="py-2 text-right">{t(`පොලිය (Interest)`)}</th>
+                        <th className="py-2 text-right font-bold text-slate-700">{t(`මුළු ගෙවීම (Total Paid)`)}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -202,7 +205,7 @@ export default function PawnTicketViewModal({ ticket, onClose }: { ticket: any; 
                 </div>
               ) : (
                 <div className="text-center py-12 text-slate-400 font-medium text-sm">
-                  මෙම උකස් පත්‍රිකාව සඳහා තවමත් කිසිදු වාරික ගෙවීමක් සිදු කර නොමැත.<br/>
+                  {t(`මෙම උකස් පත්‍රිකාව සඳහා තවමත් කිසිදු වාරික ගෙවීමක් සිදු කර නොමැත.`)}<br/>
                   (No payment history found for this ticket)
                 </div>
               )}

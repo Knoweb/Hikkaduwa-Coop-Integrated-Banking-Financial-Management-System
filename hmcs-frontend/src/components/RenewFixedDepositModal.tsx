@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import * as AccountService from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface Props {
   fd: any;
@@ -9,6 +11,7 @@ interface Props {
 }
 
 export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props) {
+  const { t } = useLanguage();
   const [fdTypes, setFdTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -78,11 +81,13 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
   }, [formData.category, formData.termMonths, fdTypes]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const getInterestRate = () => {
+  
     if (!formData.fdTypeId || fdTypes.length === 0) return '0';
     const type = fdTypes.find(t => t.id === formData.fdTypeId);
     if (!type) return '0';
@@ -129,7 +134,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
       <div className="bg-white rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh] shadow-2xl">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-[#01443b] text-white rounded-t-2xl">
           <div>
-            <h2 className="text-xl font-bold">ස්ථාවර තැන්පතුව අලුත් කිරීම</h2>
+            <h2 className="text-xl font-bold">{t(`ස්ථාවර තැන්පතුව අලුත් කිරීම`)}</h2>
             <p className="text-emerald-100 text-sm">Renew Fixed Deposit</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white">
@@ -147,18 +152,18 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">ගිණුම් අංකය</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t(`ගිණුම් අංකය`)}</label>
                 <div className="text-sm font-bold text-slate-800">{fd.accountNumber}</div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">මුල් මුදල (Principal)</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t(`මුල් මුදල (Principal)`)}</label>
                 <div className="text-sm font-bold text-slate-800">Rs. {Number(fd.principalAmount).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">ගිණුම් වර්ගය (Category) *</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`ගිණුම් වර්ගය (Category) *`)}</label>
                 <select
                   name="category"
                   required
@@ -166,7 +171,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                 >
-                  <option value="">-- තෝරන්න --</option>
+                  <option value="">{t(`-- තෝරන්න --`)}</option>
                   {uniqueCategories.map(cat => (
                     <option key={cat.code} value={cat.code}>{cat.name}</option>
                   ))}
@@ -174,7 +179,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කාල සීමාව (Term) *</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කාල සීමාව (Term) *`)}</label>
                 <select
                   name="termMonths"
                   required
@@ -183,7 +188,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
                   disabled={!formData.category}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm disabled:opacity-50"
                 >
-                  <option value="">-- තෝරන්න --</option>
+                  <option value="">{t(`-- තෝරන්න --`)}</option>
                   {availableTerms.map(term => (
                     <option key={term} value={term.toString()}>මාස {term} ({term} Months)</option>
                   ))}
@@ -191,7 +196,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">පොළිය ලබාගන්නා ක්‍රමය (Interest Payout) *</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`පොළිය ලබාගන්නා ක්‍රමය (Interest Payout) *`)}</label>
                 <select
                   name="interestPayoutMethod"
                   required
@@ -199,13 +204,13 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                 >
-                  <option value="AT_MATURITY">කල් පිරුණම එකවර ගැනීම (At Maturity)</option>
-                  <option value="MONTHLY">මාසිකව ගැනීම (Monthly)</option>
+                  <option value="AT_MATURITY">{t(`කල් පිරුණම එකවර ගැනීම (At Maturity)`)}</option>
+                  <option value="MONTHLY">{t(`මාසිකව ගැනීම (Monthly)`)}</option>
                 </select>
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">කල් පිරීමේ උපදෙස් (Maturity Instructions) *</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කල් පිරීමේ උපදෙස් (Maturity Instructions) *`)}</label>
                 <select
                   name="maturityInstruction"
                   required
@@ -213,15 +218,15 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none text-sm"
                 >
-                  <option value="REINVEST_PRINCIPAL_AND_INTEREST">1. මුල් මුදල සහ පොළිය නැවත ආයෝජනය කිරීම</option>
-                  <option value="REINVEST_PRINCIPAL_PAY_INTEREST">2. මුල් මුදල නැවත ආයෝජනය කර, පොළිය ඉතුරුම් ගිණුමට</option>
-                  <option value="CLOSE_ACCOUNT">3. ගිණුම වසා සියලු මුදල් ඉතුරුම් ගිණුමට</option>
+                  <option value="REINVEST_PRINCIPAL_AND_INTEREST">{t(`1. මුල් මුදල සහ පොළිය නැවත ආයෝජනය කිරීම`)}</option>
+                  <option value="REINVEST_PRINCIPAL_PAY_INTEREST">{t(`2. මුල් මුදල නැවත ආයෝජනය කර, පොළිය ඉතුරුම් ගිණුමට`)}</option>
+                  <option value="CLOSE_ACCOUNT">{t(`3. ගිණුම වසා සියලු මුදල් ඉතුරුම් ගිණුමට`)}</option>
                 </select>
               </div>
             </div>
 
             <div className="bg-[#025a4e]/5 p-4 rounded-xl border border-[#025a4e]/20 flex justify-between items-center mt-6">
-              <span className="text-sm font-bold text-[#01443b]">අදාළ වන පොලී අනුපාතය (Applicable Interest Rate):</span>
+              <span className="text-sm font-bold text-[#01443b]">{t(`අදාළ වන පොලී අනුපාතය (Applicable Interest Rate):`)}</span>
               <span className="text-xl font-black text-[#01443b]">{getInterestRate()}%</span>
             </div>
 
@@ -231,8 +236,7 @@ export default function RenewFixedDepositModal({ fd, onClose, onSuccess }: Props
                 onClick={onClose}
                 className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
               >
-                අවලංගු කරන්න
-              </button>
+                {t(`අවලංගු කරන්න`)}</button>
               <button
                 type="submit"
                 disabled={loading || !formData.fdTypeId}

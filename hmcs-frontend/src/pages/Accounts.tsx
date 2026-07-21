@@ -4,8 +4,10 @@ import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 import ViewAccountModal from '../components/ViewAccountModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Accounts() {
+  const { t } = useLanguage();
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [loading, setLoading] = useState(true);

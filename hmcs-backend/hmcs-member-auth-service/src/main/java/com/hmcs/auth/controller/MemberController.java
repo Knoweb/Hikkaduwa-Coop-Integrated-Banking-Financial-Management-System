@@ -56,12 +56,13 @@ public class MemberController {
         List<Member> members = memberRepository.findAll().stream()
                 .filter(m -> branchId == null || branchId.equals(m.getRegisteredBranchId()))
                 .filter(m -> {
-                    String q = query.toLowerCase();
-                    boolean matchName = m.getFullName() != null && m.getFullName().toLowerCase().contains(q);
-                    boolean matchNic = m.getNic() != null && m.getNic().toLowerCase().contains(q);
-                    boolean matchMembershipNum = m.getMembershipNumber() != null && m.getMembershipNumber().toLowerCase().contains(q);
-                    boolean matchGuardianNic = m.getGuardianNic() != null && m.getGuardianNic().toLowerCase().contains(q);
-                    return matchName || matchNic || matchMembershipNum || matchGuardianNic;
+                    String q = query.toLowerCase().replace(" ", "");
+                    boolean matchName = m.getFullName() != null && m.getFullName().toLowerCase().replace(" ", "").contains(q);
+                    boolean matchNameInitials = m.getNameWithInitials() != null && m.getNameWithInitials().toLowerCase().replace(" ", "").contains(q);
+                    boolean matchNic = m.getNic() != null && m.getNic().toLowerCase().replace(" ", "").contains(q);
+                    boolean matchMembershipNum = m.getMembershipNumber() != null && m.getMembershipNumber().toLowerCase().replace(" ", "").contains(q);
+                    boolean matchGuardianNic = m.getGuardianNic() != null && m.getGuardianNic().toLowerCase().replace(" ", "").contains(q);
+                    return matchName || matchNameInitials || matchNic || matchMembershipNum || matchGuardianNic;
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(members);

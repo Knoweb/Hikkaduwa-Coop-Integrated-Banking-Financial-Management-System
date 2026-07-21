@@ -4,6 +4,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import * as AccountService from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
+
 
 const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?: boolean, onClose?: () => void }) => {
   const [step, setStep] = useState(1);
@@ -135,6 +137,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     modeOfOperation: 'self', // [cite: 92, 93]
 
     // පළමුවන අයදුම්කරු (Primary Applicant / Minor)
+    memberId1: '',
     fullName1: '', // [cite: 81]
     address1: '', // [cite: 82]
     idNumber1: '', // NIC හෝ උප්පැන්න සහතික අංකය [cite: 83]
@@ -143,6 +146,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     dob1: '',
 
     // දෙවන අයදුම්කරු (Second Applicant / Guardian)
+    memberId2: '',
     fullName2: '', // [cite: 84]
     address2: '', // [cite: 85]
     idNumber2: '', // [cite: 86]
@@ -150,6 +154,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     age2: '', // [cite: 87]
 
     // තෙවන අයදුම්කරු (Third Applicant)
+    memberId3: '',
     fullName3: '', // [cite: 88]
     address3: '', // [cite: 89]
     idNumber3: '', // [cite: 90]
@@ -157,10 +162,13 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
     age3: '', // [cite: 91]
 
     // මූල්ය සහ සාක්ෂි
+    witnessName: '',
+    witnessAddress: '',
     initialDeposit: '' // [cite: 118]
   });
 
   const handleInputChange = (e: any) => {
+  const { t } = useLanguage();
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
@@ -280,8 +288,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
           <div>
             <p className="text-xs text-emerald-200/80 mb-1 font-semibold">විවිධ සේවා සමුපකාර සමිතිය</p>
             <h2 className="text-xl font-bold tracking-wide flex items-center gap-4">
-              මුදල් ඉතිරිකිරීමේ තැන්පත් ගිණුම් පෝරමය
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${isSocietyMember ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-amber-500 text-[#01443b] border border-amber-400'}`}>
+              මුදල් ඉතිරිකිරීමේ තැන්පත් ගිණුම් පෝරමය<span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${isSocietyMember ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-amber-500 text-[#01443b] border border-amber-400'}`}>
                 {isSocietyMember ? 'සමාජික ගිණුමක්' : 'සමාජික නොවන ගිණුමක්'}
               </span>
             </h2>
@@ -304,29 +311,25 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-xs font-semibold text-gray-500 uppercase tracking-wider shrink-0 shadow-sm z-10 relative">
         <div className={`flex items-center whitespace-nowrap ${step >= 1 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 1 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>1</span>
-          ආයතනික
-        </div>
+          ආයතනික</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 1 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 2 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 2 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>2</span>
-          අයදුම්කරු
-        </div>
+          අයදුම්කරු</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 2 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 3 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 3 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>3</span>
-          සාක්ෂි
-        </div>
+          සාක්ෂි</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 3 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 4 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 4 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>4</span>
-          තැන්පතු
-        </div>
+          තැන්පතු</div>
       </div>
 
       {/* Form Details with Scroll */}
@@ -383,11 +386,9 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 {formData.openedDate !== formData.date && (
                   <div className="mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
                     <p className="text-[11px] font-bold text-amber-800">
-                      මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)
-                    </p>
+                      මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)</p>
                     <p className="text-[10px] text-amber-700 mt-1 italic">
-                      * එබැවින් 4 වන පියවරේදී ලබා ගන්නේ වර්තමාන ශේෂය පමණි.
-                    </p>
+                      * එබැවින් 4 වන පියවරේදී ලබා ගන්නේ වර්තමාන ශේෂය පමණි.</p>
                   </div>
                 )}
               </div>
@@ -422,16 +423,14 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   onClick={handleSearch}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
                 >
-                  {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                  සොයන්න
-                </button>
+                  {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} සොයන්න</button>
               </div>
 
               {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-blue-100 z-50 max-h-60 overflow-y-auto overflow-hidden">
                   <div className="p-2 bg-slate-50 border-b border-gray-100 text-xs font-semibold text-gray-500 flex justify-between">
-                    <span>ප්‍රතිඵල {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').length} ක් හමුවිය</span>
+                    <span>ප්‍රතිඵල {searchResults.filter(m => (clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD')).length} ක් හමුවිය</span>
                     <button type="button" onClick={() => setSearchResults([])} className="text-red-500 hover:underline">වසන්න</button>
                   </div>
                   {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').map((result) => (
@@ -575,8 +574,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   )}
                 </select>
                 <p className="text-[11px] text-gray-500 mt-1.5 leading-tight">
-                  * අපෙන් කවරෙකු වුවද මිය ගිය විට ඒ මියගිය තැනැත්තාගේ නියෝජිතයන්ගෙන් කරුණු නොවිමසා ගිණුමෙහි ශේෂව ඇති මුදල ජීවත්ව සිටින අයට ගෙවීමට මෙයින් එකඟ වේ.
-                </p>
+                  * අපෙන් කවරෙකු වුවද මිය ගිය විට ඒ මියගිය තැනැත්තාගේ නියෝජිතයන්ගෙන් කරුණු නොවිමසා ගිණුමෙහි ශේෂව ඇති මුදල ජීවත්ව සිටින අයට ගෙවීමට මෙයින් එකඟ වේ.</p>
               </div>
             </div>
 
@@ -596,8 +594,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-400 italic leading-tight">
-                  * (සාමදාන විනිශ්චයකාර / ශ්‍රේෂ්ඨාධිකරණයේ පෙරකදෝරු / ප්‍රසිද්ධ නොතාරිස් හෝ සමිතියේ සාමාජිකයෙක් විය යුතුය)
-                </p>
+                  * (සාමදාන විනිශ්චයකාර / ශ්‍රේෂ්ඨාධිකරණයේ පෙරකදෝරු / ප්‍රසිද්ධ නොතාරිස් හෝ සමිතියේ සාමාජිකයෙක් විය යුතුය)</p>
               </div>
 
               {/* අයදුම්කරුගේ අත්සන (Specimen Signature Section) */}
@@ -624,11 +621,9 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                       </div>
                       <div className="flex flex-wrap justify-center gap-2 mt-1">
                         <button type="button" className="px-3 py-1.5 bg-gray-200 text-gray-700 text-[10px] font-bold rounded hover:bg-gray-300 transition-colors">
-                          ස්කෑන් (Scan)
-                        </button>
+                          ස්කෑන් (Scan)</button>
                         <label className="cursor-pointer px-3 py-1.5 bg-[#025a4e]/10 text-[#025a4e] text-[10px] font-bold rounded border border-[#025a4e]/20 hover:bg-[#025a4e]/20 transition-colors inline-block text-center">
-                          පින්තූරයක් (Upload)
-                          <input type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
+                          පින්තූරයක් (Upload)<input type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
                         </label>
                       </div>
                     </>
@@ -665,8 +660,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   </div>
                   {formData.openedDate !== formData.date && (
                     <p className="text-[10px] text-amber-700 mt-1 italic">
-                      * පැරණි ගිණුමේ අද දිනට පවතින සම්පූර්ණ ශේෂය මෙහි ඇතුළත් කරන්න.
-                    </p>
+                      * පැරණි ගිණුමේ අද දිනට පවතින සම්පූර්ණ ශේෂය මෙහි ඇතුළත් කරන්න.</p>
                   )}
                 </div>
               </div>
@@ -697,13 +691,11 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         {/* Buttons */}
         <div className="flex justify-between items-center border-t border-gray-100 pt-5 mt-6">
           <button type="button" onClick={prevStep} disabled={step === 1} className={`px-4 py-2 text-xs font-semibold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}>
-            පසුපසට (Back)
-          </button>
+            පසුපසට (Back)</button>
 
           {step < 4 ? (
             <button type="button" onClick={nextStep} className="px-5 py-2 text-xs font-semibold rounded-lg text-white bg-[#025a4e] hover:bg-[#01443b] transition">
-              ඉදිරියට (Next)
-            </button>
+              ඉදිරියට (Next)</button>
           ) : (
             <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-xs font-bold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition disabled:bg-emerald-400">
               {isSubmitting ? 'ගිණුම සකසමින් පවතී...' : 'ගිණුම විවෘත කරන්න (Open Account)'}
@@ -738,8 +730,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 }} 
                 className={`px-5 py-2 text-white text-sm font-semibold rounded-lg transition shadow-sm ${alertConfig.isSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-900 hover:bg-gray-800'}`}
               >
-                හරි (OK)
-              </button>
+                හරි (OK)</button>
             </div>
           </div>
         </div>

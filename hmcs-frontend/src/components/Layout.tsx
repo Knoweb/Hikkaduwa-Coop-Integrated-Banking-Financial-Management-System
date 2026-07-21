@@ -10,9 +10,9 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, language, setLanguage } = useLanguage();
   const user = AuthService.getCurrentUser();
 
   const handleLogout = () => {
@@ -28,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
   const isSystemAdmin = user.role === 'ROLE_ORGANIZATION_ADMIN';
 
   const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => {
+  const { t } = useLanguage();
     const isActive = location.pathname === to;
     return (
       <Link
@@ -98,7 +99,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
               <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
-              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t(`සිංහල`)}</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
               <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
             </div>

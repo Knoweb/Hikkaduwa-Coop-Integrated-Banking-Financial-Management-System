@@ -26,7 +26,7 @@ interface Props {
 export default function TransactionModal({ accountId, accountNumber, accountType, balance = 0, accountHolder = 'N/A', action, onClose, onSuccess, allAccounts = [], members = [], isMatured = false, linkedSavingsAccount, memberId, penaltyAmount, principalAmount }: Props) {
   const { t, language } = useLanguage();
   const [showConfirm, setShowConfirm] = useState(false);
-  if (window.__isAdminView) return <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center"><h3 className="text-xl font-bold text-red-600 mb-2">Access Denied</h3><p className="text-slate-600 mb-6">System Administrators are in Read-Only mode and cannot perform transactions or open accounts.</p><button onClick={typeof onClose !== 'undefined' ? onClose : () => {}} className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold hover:bg-slate-700">Close</button></div></div>;
+  if ((window as any).__isAdminView) return <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center"><h3 className="text-xl font-bold text-red-600 mb-2">Access Denied</h3><p className="text-slate-600 mb-6">System Administrators are in Read-Only mode and cannot perform transactions or open accounts.</p><button onClick={typeof onClose !== 'undefined' ? onClose : () => {}} className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold hover:bg-slate-700">Close</button></div></div>;
   const [internalAccNo, setInternalAccNo] = useState(accountNumber || '');
   const [internalAccId, setInternalAccId] = useState(accountId || '');
   const [amount, setAmount] = useState<number | ''>('');
@@ -151,14 +151,14 @@ export default function TransactionModal({ accountId, accountNumber, accountType
     try {
       let result;
       if (action === 'DEPOSIT') {
-        result = await AccountService.deposit({ accountNumber: internalAccNo, amount: Number(amount), reference });
+        result = await AccountService.deposit({ accountNumber: internalAccNo, amount: Number(amount), reference } as any);
       } else if (action === 'WITHDRAW') {
         result = await AccountService.withdraw({ 
           accountNumber: internalAccNo, 
           amount: Number(amount),
           reference,
           requestApproval: needsManagerOverride
-        });
+        } as any);
         
         if (result.message === 'APPROVAL_REQUESTED') {
           setReceiptData({
@@ -176,7 +176,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
           return;
         }
       } else if (action === 'PAY_INSTALLMENT') {
-        result = await AccountService.deposit({ accountNumber: internalAccNo, amount: Number(amount), reference });
+        result = await AccountService.deposit({ accountNumber: internalAccNo, amount: Number(amount), reference } as any);
       } else if (action === 'CLOSE_FD') {
         let targetId = '';
         if ((!linkedSavingsAccount || linkedSavingsAccount === 'Not Linked') && selectedTargetAccount) {
@@ -226,6 +226,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
   };
 
   const getActionDetails = () => {
+  const { t } = useLanguage();
     switch (action) {
       case 'DEPOSIT':
         return {
@@ -409,7 +410,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                     {loading ? (
                       <span className="animate-spin border-2 border-white/20 border-t-white rounded-full w-5 h-5"></span>
                     ) : (
-                      language === 'si' ? 'ඔව්, තහවුරු කරන්න' : 'Yes, Confirm'
+                      t(`ඔව්, තහවුරු කරන්න`)
                     )}
                   </button>
                 </div>
@@ -444,15 +445,14 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                 
                 <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                   <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">ගිණුම් හිමියා (Account Holder)</span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">{t(`ගිණුම් හිමියා (Account Holder)`)}</span>
                     <p className={`text-sm font-bold ${currentHolder === 'Account Not Found' ? 'text-red-500' : 'text-slate-800'}`}>{currentHolder}</p>
                   </div>
                   
                   {isAccountSelected && (
                     <div className={`border-2 px-5 py-3 rounded-xl shadow-sm text-right ${action === 'WITHDRAW' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200'}`}>
                       <span className={`text-xs font-black uppercase tracking-wider block mb-1 ${action === 'WITHDRAW' ? 'text-blue-600' : 'text-emerald-600'}`}>
-                        ලබාගත හැකි ශේෂය (Available)
-                      </span>
+                        {t(`ලබාගත හැකි ශේෂය (Available)`)}</span>
                       <div className={`text-3xl font-black tracking-tight font-mono ${action === 'WITHDRAW' ? 'text-blue-700' : 'text-emerald-700'}`}>
                         <span className="text-xl mr-1">Rs.</span>
                         {availableBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -469,10 +469,9 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start">
                       <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
                       <div className="w-full">
-                        <h4 className="text-sm font-bold text-amber-800 uppercase tracking-wide">⚠️ ළමා ගිණුම්වලින් මුදල් ගැනීම (Manager Approval Required)</h4>
+                        <h4 className="text-sm font-bold text-amber-800 uppercase tracking-wide">{t(`⚠️ ළමා ගිණුම්වලින් මුදල් ගැනීම (Manager Approval Required)`)}</h4>
                         <p className="text-xs text-amber-700 mt-1 font-medium mb-3">
-                          ළමා ගිණුමකින් මුදල් ආපසු ගැනීම සඳහා ශාඛා කළමනාකරුගේ අනුමැතිය අවශ්‍ය වේ. අනුමැතිය සඳහා ඉල්ලීමක් යැවීමට පහත බොත්තම භාවිතා කරන්න.
-                        </p>
+                          {t(`ළමා ගිණුමකින් මුදල් ආපසු ගැනීම සඳහා ශාඛා කළමනාකරුගේ අනුමැතිය අවශ්‍ය වේ. අනුමැතිය සඳහා ඉල්ලීමක් යැවීමට පහත බොත්තම භාවිතා කරන්න.`)}</p>
                       </div>
                     </div>
                   )}
@@ -481,21 +480,21 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                     <div className="p-4 bg-red-50 rounded-xl border border-red-200 mb-6 flex gap-3 text-red-800 text-sm">
                       <AlertTriangle size={24} className="shrink-0 text-red-500" />
                       <div className="w-full">
-                        <p className="font-bold mb-2">කරුණාකර මෙය අවධානයෙන් කියවන්න!</p>
-                        <p className="mb-3">මෙම ස්ථාවර තැන්පතුව කල් පිරෙන්නට පෙර අවලංගු කරන්නේ නම්, මාසිකව දැනටමත් ගිණුමට බැර කර ඇති පොලී මුදල මුල් මුදලින් හර කර ඉතිරිය ගිණුමට බැර කරනු ඇත. ඔබ මෙය ස්ථිර කරන්නේද?</p>
+                        <p className="font-bold mb-2">{t(`කරුණාකර මෙය අවධානයෙන් කියවන්න!`)}</p>
+                        <p className="mb-3">{t(`මෙම ස්ථාවර තැන්පතුව කල් පිරෙන්නට පෙර අවලංගු කරන්නේ නම්, මාසිකව දැනටමත් ගිණුමට බැර කර ඇති පොලී මුදල මුල් මුදලින් හර කර ඉතිරිය ගිණුමට බැර කරනු ඇත. ඔබ මෙය ස්ථිර කරන්නේද?`)}</p>
                         
                         {principalAmount !== undefined && penaltyAmount !== undefined && (
                           <div className="bg-white rounded-lg p-3 border border-red-100 font-mono text-xs shadow-sm">
                             <div className="flex justify-between mb-1">
-                              <span>මූලික තැන්පතුව (Principal):</span>
+                              <span>{t(`මූලික තැන්පතුව (Principal):`)}</span>
                               <span>Rs. {principalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                             </div>
                             <div className="flex justify-between mb-1 text-red-600 font-bold">
-                              <span>අඩු කරන පොළිය (Penalty):</span>
+                              <span>{t(`අඩු කරන පොළිය (Penalty):`)}</span>
                               <span>- Rs. {penaltyAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                             </div>
                             <div className="flex justify-between pt-2 mt-2 border-t border-red-100 font-bold text-sm text-slate-800">
-                              <span>ගෙවන මුදල (Final Payout):</span>
+                              <span>{t(`ගෙවන මුදල (Final Payout):`)}</span>
                               <span>Rs. {balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                             </div>
                           </div>
@@ -508,8 +507,8 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 mb-6 flex gap-3 text-blue-800 text-sm">
                       <CheckCircle size={24} className="shrink-0 text-blue-500" />
                       <div>
-                        <p className="font-bold mb-1">ගිණුම කල්පිරී ඇත</p>
-                        <p>මෙම ස්ථාවර තැන්පතුව සම්පූර්ණයෙන්ම කල්පිරී ඇති බැවින්, සම්පූර්ණ මුදල සම්බන්ධිත ඉතුරුම් ගිණුමට බැර කරනු ඇත.</p>
+                        <p className="font-bold mb-1">{t(`ගිණුම කල්පිරී ඇත`)}</p>
+                        <p>{t(`මෙම ස්ථාවර තැන්පතුව සම්පූර්ණයෙන්ම කල්පිරී ඇති බැවින්, සම්පූර්ණ මුදල සම්බන්ධිත ඉතුරුම් ගිණුමට බැර කරනු ඇත.`)}</p>
                       </div>
                     </div>
                   )}
@@ -559,8 +558,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                       {(!linkedSavingsAccount || linkedSavingsAccount === 'Not Linked') && memberSavingsAccounts.length === 0 && (
                         <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-lg flex gap-2 items-center">
                           <AlertTriangle size={16} /> 
-                          මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. මුදල් ලබා ගැනීමට පෙර ඉතුරුම් ගිණුමක් ආරම්භ කරන්න.
-                        </div>
+                          {t(`මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. මුදල් ලබා ගැනීමට පෙර ඉතුරුම් ගිණුමක් ආරම්භ කරන්න.`)}</div>
                       )}
                       <style>{`
                         @keyframes slideRight {
@@ -581,7 +579,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                       {/* Amount Field */}
                       <div>
                         <div className="flex justify-between mb-2">
-                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">මුදල (Amount Rs.)</label>
+                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">{t(`මුදල (Amount Rs.)`)}</label>
                         </div>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">Rs.</span>
@@ -598,14 +596,13 @@ export default function TransactionModal({ accountId, accountNumber, accountType
                         </div>
                         {isInsufficientBalance && (
                           <p className="text-xs text-red-600 font-bold mt-2 flex items-center gap-1">
-                            <AlertTriangle size={14} /> ලබාගත හැකි උපරිම ශේෂය ඉක්මවා ඇත. (රු. 500ක අවම ශේෂයක් තබා ගත යුතුය)
-                          </p>
+                            <AlertTriangle size={14} /> {t(`ලබාගත හැකි උපරිම ශේෂය ඉක්මවා ඇත. (රු. 500ක අවම ශේෂයක් තබා ගත යුතුය)`)}</p>
                         )}
                       </div>
 
                       {/* Reference Field */}
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">ලදුපත් අංකය (Reference / Slip No)</label>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t(`ලදුපත් අංකය (Reference / Slip No)`)}</label>
                         <input 
                           type="text"
                           value={reference} 
@@ -658,8 +655,8 @@ export default function TransactionModal({ accountId, accountNumber, accountType
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Fingerprint size={24} />
               </div>
-              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest">නිදර්ශක අත්සන <br/><span className="text-[10px] text-slate-500">(Specimen Signature)</span></h4>
-              <p className="text-xs text-slate-500 mt-1">මුදල් ලබා දීමට පෙර අත්සන තහවුරු කරන්න.</p>
+              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest">{t(`නිදර්ශක අත්සන`)}<br/><span className="text-[10px] text-slate-500">(Specimen Signature)</span></h4>
+              <p className="text-xs text-slate-500 mt-1">{t(`මුදල් ලබා දීමට පෙර අත්සන තහවුරු කරන්න.`)}</p>
             </div>
             
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative h-48 flex items-center justify-center overflow-hidden">
@@ -667,7 +664,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
               {!isAccountSelected ? (
                 <div className="text-center z-10 opacity-50">
                   <Lock size={32} className="mx-auto text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-400">පළමුව ගිණුම තෝරන්න</p>
+                  <p className="text-xs font-bold text-slate-400">{t(`පළමුව ගිණුම තෝරන්න`)}</p>
                 </div>
               ) : currentSignature ? (
                 <img 
@@ -682,7 +679,7 @@ export default function TransactionModal({ accountId, accountNumber, accountType
               ) : (
                 <div className="text-center z-10 opacity-60">
                   <Fingerprint size={32} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-xs font-bold text-slate-500">අත්සනක් ඇතුළත් කර නැත</p>
+                  <p className="text-xs font-bold text-slate-500">{t(`අත්සනක් ඇතුළත් කර නැත`)}</p>
                 </div>
               )}
             </div>

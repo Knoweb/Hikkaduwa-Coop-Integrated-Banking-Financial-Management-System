@@ -8,8 +8,10 @@ import * as AccountService from '../services/account.service';
 import { getBranches } from '../services/branch.service';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function PawningApprovalsView() {
+  const { t } = useLanguage();
   const [tickets, setTickets] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);

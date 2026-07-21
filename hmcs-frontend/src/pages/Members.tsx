@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Search, UserPlus, FileDown, MoreVertical } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Members() {
+  const { t } = useLanguage();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

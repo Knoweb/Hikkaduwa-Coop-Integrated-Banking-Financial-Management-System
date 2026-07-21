@@ -442,7 +442,7 @@ function TenantsTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-slate-800">නව සමිතියක් ලියාපදිංචි කරන්න (Register New Organization)</h3>
+              <h3 className="font-bold text-slate-800">{t(`නව සමිතියක් ලියාපදිංචි කරන්න (Register New Organization)`)}</h3>
               <button onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
@@ -451,36 +451,36 @@ function TenantsTab() {
             <form onSubmit={handleAddTenant} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">සමුපකාර සමිතියේ නම</label>
-                  <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="උදා: පොළොන්නරුව සමුපකාර බැංකුව" required />
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`සමුපකාර සමිතියේ නම`)}</label>
+                  <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t(`උදා: පොළොන්නරුව සමුපකාර බැංකුව`)} required />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">උප වසම් කේතය (Subdomain)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`උප වසම් කේතය (Subdomain)`)}</label>
                   <input type="text" value={form.subdomain} onChange={e => setForm({...form, subdomain: e.target.value.toLowerCase()})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="e.g. polonnaruwa" required pattern="^[a-z0-9-]+$" title="Lowercase letters, numbers, hyphens" />
                 </div>
               </div>
               
               <div className="pt-2 border-t border-slate-100">
-                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-3">මූලික සැකසුම් (Admin & Branch)</p>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-3">{t(`මූලික සැකසුම් (Admin & Branch)`)}</p>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">ප්‍රධාන ශාඛාවේ නම</label>
-                    <input type="text" value={form.branchName} onChange={e => setForm({...form, branchName: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="උදා: පොළොන්නරුව ප්‍රධාන ශාඛාව" required />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`ප්‍රධාන ශාඛාවේ නම`)}</label>
+                    <input type="text" value={form.branchName} onChange={e => setForm({...form, branchName: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t(`උදා: පොළොන්නරුව ප්‍රධාන ශාඛාව`)} required />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">පරිපාලකගේ පරිශීලක නාමය (Username)</label>
-                    <input type="text" value={form.adminUsername} onChange={e => setForm({...form, adminUsername: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="උදා: admin_polo" required />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`පරිපාලකගේ පරිශීලක නාමය (Username)`)}</label>
+                    <input type="text" value={form.adminUsername} onChange={e => setForm({...form, adminUsername: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t(`උදා: admin_polo`)} required />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">පරිපාලකගේ මුරපදය (Password)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`පරිපාලකගේ මුරපදය (Password)`)}</label>
                     <input type="password" value={form.adminPassword} onChange={e => setForm({...form, adminPassword: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" required />
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl transition">අවලංගු කරන්න</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl transition hover:bg-indigo-700">නව සමිතිය නිර්මාණය කරන්න</button>
+                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl transition">{t(`අවලංගු කරන්න`)}</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl transition hover:bg-indigo-700">{t(`නව සමිතිය නිර්මාණය කරන්න`)}</button>
               </div>
             </form>
           </div>
@@ -1270,7 +1270,7 @@ export default function SystemAdminDashboard() {
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 shadow-sm">
               <button onClick={() => setLanguage('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'en' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
-              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>සිංහල</button>
+              <button onClick={() => setLanguage('si')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'si' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t(`සිංහල`)}</button>
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
               <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
             </div>

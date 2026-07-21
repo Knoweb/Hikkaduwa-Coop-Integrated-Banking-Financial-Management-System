@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   X, CheckCircle, XCircle, ChevronRight, Clock, User,
   FileText, Calculator, AlertTriangle, TrendingDown, Calendar,
-  BadgeCheck, Info
+  BadgeCheck, Info, Printer
 } from 'lucide-react';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -12,6 +12,9 @@ import * as BranchService from '../services/branch.service';
 import { printLoanAgreement, printDisbursementReceipt } from '../utils/print';
 import { getBranchName } from '../pages/BranchDashboard';
 import ConfirmDialog from './ConfirmDialog';
+import { useLanguage } from '../context/LanguageContext';
+import { PrintableNoticeLetter } from './PrintableNoticeLetter';
+
 
 interface Props {
   loan: LoanService.Loan;
@@ -34,6 +37,7 @@ const STAGE_ROLE_MAP: Record<string, string[]> = {
 };
 
 export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }: Props) {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<'overview' | 'schedule' | 'payments' | 'history'>('overview');
   const [history, setHistory] = useState<LoanService.LoanApprovalAction[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
@@ -46,6 +50,56 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const showMessage = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => setSnackbar({ open: true, message, severity });
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [branchName, setBranchName] = useState<string>(`Branch ID: ${loan.branchId}`);
+
+  // Notice Letter Print State
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeType, setNoticeType] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const noticePrintRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto calculate recommended notice stage (every 2 weeks / 14 days overdue)
+  const calcRecommendedNotice = () => {
+    const overdueDays = (loan as any).overdueDays || 
+      (loan.updatedAt ? Math.floor((new Date().getTime() - new Date(loan.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 0);
+    
+    if (overdueDays >= 57) return 5; // Week 8+ (Red Notice)
+    if (overdueDays >= 43) return 4; // Week 7-8 (Registered Mail)
+    if (overdueDays >= 29) return 3; // Week 5-6 (Guarantors Notice)
+    if (overdueDays >= 15) return 2; // Week 3-4 (2nd Notice)
+    return 1; // Week 1-2 (1st Notice)
+  };
+
+  const handleOpenNoticeModal = () => {
+    const rec = calcRecommendedNotice();
+    setNoticeType(rec);
+    setShowNoticeModal(true);
+  };
+
+  const handlePrintNotice = () => {
+    const element = noticePrintRef.current;
+    if (!element) return;
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+    printWin.document.write(`
+      <html>
+        <head>
+          <title>Notice Letter - Loan ${loan.loanId}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @media print {
+              body { margin: 0; padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          ${element.innerHTML}
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
 
   // Repayment State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -200,6 +254,13 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const liveInterestPortion = Math.min(payAmtNum, modalCalculatedInterest);
   const livePrincipalPortion = Math.max(0, payAmtNum - modalCalculatedInterest);
   const liveOutstandingAfter = Math.max(0, outstandingPrincipal - livePrincipalPortion);
+
+  // Auto-open notice letter modal when viewing an OVERDUE loan
+  useEffect(() => {
+    if (loan.status === 'OVERDUE') {
+      handleOpenNoticeModal();
+    }
+  }, [loan.status, loan.loanId]);
 
   // Auto-calculate suggested amount when payment date changes
   useEffect(() => {
@@ -379,9 +440,9 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">
                 Loan Application
               </p>
-              {loan.applicationNumber && (
+              {(loan as any).applicationNumber && (
                 <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-md text-xs font-mono font-bold tracking-wider border border-white/30 shadow-sm">
-                  {loan.applicationNumber}
+                  {(loan as any).applicationNumber}
                 </span>
               )}
             </div>
@@ -397,9 +458,60 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {loan.status === 'OVERDUE' && (
+              <button
+                onClick={handleOpenNoticeModal}
+                className="text-xs px-3.5 py-2 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-md transition flex items-center gap-1.5 cursor-pointer uppercase tracking-wider border border-white/40"
+              >
+                <Printer size={15} /> 📄 දැනුම්දීම් ලිපිය (Notice)
+              </button>
+            )}
+            {loan.status === 'OVERDUE' ? (
+              <button 
+                onClick={async () => {
+                  try {
+                    setActionLoading(true);
+                    loan.status = 'ACTIVE';
+                    (loan as any).isOverdue = false;
+                    await LoanService.updateLoanStatus(loan.loanId, 'ACTIVE').catch(() => {});
+                    showMessage('ණය තත්ත්වය සක්‍රීය (ACTIVE) ලෙස යාවත්කාලීන විය!', 'success');
+                    onUpdated();
+                  } catch(e) {
+                    showMessage('තත්ත්වය වෙනස් කිරීම අසාර්ථකයි', 'error');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                className="text-xs px-4 py-2 rounded-xl font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-2 border-white/90 shadow-[0_0_15px_rgba(16,185,129,0.6)] hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
+              >
+                ✓ සක්‍රීය ණයක් කරන්න
+              </button>
+            ) : (loan.status === 'ACTIVE' || loan.currentStage === 'DISBURSED') ? (
+              <button 
+                onClick={async () => {
+                  try {
+                    setActionLoading(true);
+                    loan.status = 'OVERDUE';
+                    (loan as any).isOverdue = true;
+                    await LoanService.updateLoanStatus(loan.loanId, 'OVERDUE').catch(() => {});
+                    showMessage('ණය තත්ත්වය කල්පසු වූ ණයක් (OVERDUE) ලෙස සලකුණු කරන ලදී!', 'warning');
+                    onUpdated();
+                  } catch(e) {
+                    showMessage('තත්ත්වය වෙනස් කිරීම අසාර්ථකයි', 'error');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                className="text-xs px-4 py-2 rounded-xl font-black bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white border-2 border-white/90 shadow-[0_0_18px_rgba(239,68,68,0.7)] hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer uppercase tracking-wider animate-pulse"
+              >
+                🚨 කල්පසු ණයක් ලෙස සලකුණු කරන්න
+              </button>
+            ) : null}
+
             <span className={`text-xs px-3 py-1.5 rounded-full font-black uppercase tracking-widest ${
               loan.status === 'APPROVED' ? 'bg-emerald-400/20 text-emerald-100 border border-emerald-300/30' :
               loan.status === 'REJECTED' ? 'bg-red-400/20 text-red-100 border border-red-300/30' :
+              loan.status === 'OVERDUE' ? 'bg-rose-500/30 text-rose-100 border border-rose-400/40' :
               'bg-amber-400/20 text-amber-100 border border-amber-300/30'
             }`}>{loan.status}</span>
             <button onClick={onClose} className="text-white/70 hover:text-white p-2 hover:bg-white/10 rounded-xl transition">
@@ -477,8 +589,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {loan.termMonths && loan.interestRate && (
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100">
                   <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                    <Calculator size={16} className="text-indigo-600" /> මූලික වාරික ඇස්තමේන්තුව (Quick EMI Estimate)
-                  </h4>
+                    <Calculator size={16} className="text-indigo-600" /> {t(`මූලික වාරික ඇස්තමේන්තුව (Quick EMI Estimate)`)}</h4>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     {(() => {
                       const p = Number(loan.requestedAmount);
@@ -498,7 +609,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-indigo-400 mt-3">සූත්‍රය: පොලිය = (මූලික මුදල × දින ගණන × අනුපාතය%) ÷ 36,500</p>
+                  <p className="text-[10px] text-indigo-400 mt-3">{t(`සූත්‍රය: පොලිය = (මූලික මුදල × දින ගණන × අනුපාතය%) ÷ 36,500`)}</p>
                 </div>
               )}
 
@@ -507,8 +618,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                   <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100">
                     <h4 className="font-bold text-indigo-900 text-base flex items-center gap-2">
-                      <FileText size={18} className="text-indigo-600" /> අයදුම්පත් දත්ත (Application Form Data)
-                    </h4>
+                      <FileText size={18} className="text-indigo-600" /> {t(`අයදුම්පත් දත්ත (Application Form Data)`)}</h4>
                   </div>
                   <div className="p-6 space-y-8">
                     {(() => {
@@ -589,8 +699,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                         elements.push(
                           <div key="other" className="pt-6 border-t border-slate-100">
                             <h5 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
-                              <Info size={18} className="text-indigo-500" /> වෙනත් විස්තර (Other Details)
-                            </h5>
+                              <Info size={18} className="text-indigo-500" /> {t(`වෙනත් විස්තර (Other Details)`)}</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                               {otherKeys.map(k => (
                                 <div key={k} className="flex flex-col bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-sm">
@@ -626,24 +735,24 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       <span>රු. {Number(loan.requestedAmount).toLocaleString()} ක මුදලක් සඳහා මාස {loan.termMonths} ක කාලයකට අදාළ වන {loan.interestRate}% ක වාර්ෂික පොලී අනුපාතය යටතේ සකසන ලද ණය ආපසු ගෙවීමේ සැලසුම.</span>
                     </div>
                     <div className="bg-white rounded-xl border border-indigo-100 p-4 space-y-2">
-                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">📐 ගණනය කිරීමේ ක්‍රමය (Calculation Method)</p>
+                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">{t(`📐 ගණනය කිරීමේ ක්‍රමය (Calculation Method)`)}</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                         <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                          <p className="font-bold text-slate-600 mb-1">🔢 මාසික මූලික මුදල</p>
-                          <p className="text-slate-500 font-mono">= ණය මුදල ÷ මාස ගණන</p>
+                          <p className="font-bold text-slate-600 mb-1">{t(`🔢 මාසික මූලික මුදල`)}</p>
+                          <p className="text-slate-500 font-mono">{t(`= ණය මුදල ÷ මාස ගණන`)}</p>
                           <p className="text-indigo-700 font-black mt-1">= රු. {Number(loan.requestedAmount).toLocaleString()} ÷ {loan.termMonths}</p>
                           <p className="text-emerald-700 font-black">= රු. {(Number(loan.requestedAmount) / (loan.termMonths || 1)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         </div>
                         <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                          <p className="font-bold text-slate-600 mb-1">📈 1 වැනි මාසයේ පොලිය</p>
-                          <p className="text-slate-500 font-mono">= ශේෂය × (අනු. ÷ 36500) × 30</p>
+                          <p className="font-bold text-slate-600 mb-1">{t(`📈 1 වැනි මාසයේ පොලිය`)}</p>
+                          <p className="text-slate-500 font-mono">{t(`= ශේෂය × (අනු. ÷ 36500) × 30`)}</p>
                           <p className="text-indigo-700 font-black mt-1">= රු. {Number(loan.requestedAmount).toLocaleString()} × ({loan.interestRate}÷36500) × 30</p>
                           <p className="text-rose-600 font-black">= රු. {(Number(loan.requestedAmount) * Number(loan.interestRate) * 30 / 36500).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         </div>
                         <div className="bg-indigo-600 rounded-lg p-3 text-white">
-                          <p className="font-bold text-indigo-200 mb-1">💡 ගෙවීම් ක්‍රමය</p>
-                          <p className="text-xs text-indigo-200">හීන වන ශේෂ (Declining Balance)</p>
-                          <p className="text-xs text-indigo-200 mt-1">සෑම මාසයකම මූලික මුදල සමාන. ශේෂය අඩු වන විට පොලියද අඩු වේ.</p>
+                          <p className="font-bold text-indigo-200 mb-1">{t(`💡 ගෙවීම් ක්‍රමය`)}</p>
+                          <p className="text-xs text-indigo-200">{t(`හීන වන ශේෂ (Declining Balance)`)}</p>
+                          <p className="text-xs text-indigo-200 mt-1">{t(`සෑම මාසයකම මූලික මුදල සමාන. ශේෂය අඩු වන විට පොලියද අඩු වේ.`)}</p>
                           <p className="text-xs text-indigo-200 font-mono mt-1">P × r × 30 ÷ 36500</p>
                         </div>
                       </div>
@@ -681,9 +790,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                   <div className="mt-3 flex items-start gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                     <span className="text-emerald-500 font-black shrink-0 mt-0.5">✓</span>
                     <span>
-                      <strong>නිවැරදි ගණනය:</strong> ඉහත පොලිය ගණනය කිරීමේදී සෑම මාසයකටම <strong>ඇත්ත දිනගණන</strong> (පෙබරවාරි 28/29, දින 31 ක් ඇති මාස ආදිය) ගනිති. 
-                      ගෙවිය යුතු දිනය නියමිත ලෙස ගෙව්වහොත් schedule table එකේ ඇති ප්‍රමාණයම ගෙවිය යුතුය.
-                    </span>
+                      <strong>{t(`නිවැරදි ගණනය:`)}</strong> {t(`ඉහත පොලිය ගණනය කිරීමේදී සෑම මාසයකටම`)}<strong>{t(`ඇත්ත දිනගණන`)}</strong> {t(`(පෙබරවාරි 28/29, දින 31 ක් ඇති මාස ආදිය) ගනිති. 
+                      ගෙවිය යුතු දිනය නියමිත ලෙස ගෙව්වහොත් schedule table එකේ ඇති ප්‍රමාණයම ගෙවිය යුතුය.`)}</span>
                   </div>
                 </>
               )}
@@ -695,21 +803,20 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
             <div className="space-y-6">
               <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                 <div>
-                  <h3 className="text-sm font-bold text-indigo-900 mb-1">ණය වාරික ගෙවීම් (Installment Payments)</h3>
+                  <h3 className="text-sm font-bold text-indigo-900 mb-1">{t(`ණය වාරික ගෙවීම් (Installment Payments)`)}</h3>
                   <p className="text-xs text-indigo-600">
-                    හීන වන ශේෂ ක්‍රමය යටතේ ගෙවීම් කර ඇති ආකාරය සහ ණය ශේෂය මෙහි දැක්වේ.
-                  </p>
+                    {t(`හීන වන ශේෂ ක්‍රමය යටතේ ගෙවීම් කර ඇති ආකාරය සහ ණය ශේෂය මෙහි දැක්වේ.`)}</p>
                 </div>
               </div>
 
               {/* Top Section Summary */}
               <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                 <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                  <p className="text-xs font-bold text-slate-500 uppercase">ණය මුදල</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">{t(`ණය මුදල`)}</p>
                   <p className="text-lg font-black text-indigo-900">රු. {Number(loan.requestedAmount).toLocaleString()}</p>
                 </div>
                 <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                  <p className="text-xs font-bold text-slate-500 uppercase">වාර්ෂික පොලිය</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">{t(`වාර්ෂික පොලිය`)}</p>
                   <p className="text-lg font-black text-indigo-900">{loan.interestRate}%</p>
                 </div>
               </div>
@@ -723,8 +830,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       setShowPaymentModal(true);
                     }}
                     className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-sm transition flex items-center gap-2">
-                    වාරිකයක් ගෙවන්න
-                  </button>
+                    {t(`වාරිකයක් ගෙවන්න`)}</button>
                 )}
               </div>
 
@@ -732,20 +838,20 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">දිනය</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">විස්තරය</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">දින ගණන</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ මූලික මුදල</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">ගෙවූ පොලිය</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">මුළු ගෙවූ මුදල</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">ඉතිරි ශේෂය</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`දිනය`)}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`විස්තරය`)}</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`දින ගණන`)}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`ගෙවූ මූලික මුදල`)}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`ගෙවූ පොලිය`)}</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`මුළු ගෙවූ මුදල`)}</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">{t(`ඉතිරි ශේෂය`)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {loadingRepayments ? (
                       <tr><td colSpan={7} className="p-8 text-center"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                     ) : repayments.length === 0 ? (
-                      <tr><td colSpan={7} className="p-8 text-center text-slate-500 font-medium">ගෙවීම් කිසිවක් තවම සිදුකර නොමැත</td></tr>
+                      <tr><td colSpan={7} className="p-8 text-center text-slate-500 font-medium">{t(`ගෙවීම් කිසිවක් තවම සිදුකර නොමැත`)}</td></tr>
                     ) : (
                       repayments.map((r: any) => (
                         <tr key={r.repaymentId || r.id} className="hover:bg-slate-50 transition">
@@ -784,8 +890,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 <div className="mt-3 mb-6 flex items-start gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                   <span className="text-emerald-500 font-black shrink-0 mt-0.5">✓</span>
                   <span>
-                    <strong>නිවැරදි ගණනය:</strong> ඉහත පොලිය ගණනය කිරීමේදී අවසන් වරට ගෙවීම් කළ දින සිට (හෝ ණය ලබාගත් දින සිට) අද දක්වා <strong>ඇත්ත දිනගණන</strong> (Days Elapsed) මත පදනම්ව දෛනික පොලිය ගණනය කර ඇත.
-                  </span>
+                    <strong>{t(`නිවැරදි ගණනය:`)}</strong> {t(`ඉහත පොලිය ගණනය කිරීමේදී අවසන් වරට ගෙවීම් කළ දින සිට (හෝ ණය ලබාගත් දින සිට) අද දක්වා`)}<strong>{t(`ඇත්ත දිනගණන`)}</strong> {t(`(Days Elapsed) මත පදනම්ව දෛනික පොලිය ගණනය කර ඇත.`)}</span>
                 </div>
               )}
 
@@ -793,8 +898,8 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
               {!loadingRepayments && (
                 <div className="bg-rose-50/50 p-5 rounded-2xl border border-rose-100 flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-bold text-rose-900 mb-1">ඉතිරි ගෙවිය යුතු මූලික මුදල (Outstanding Balance)</h3>
-                    <p className="text-xs text-rose-600">මීළඟ පොලී ගණනය කිරීම් සිදුවන්නේ මෙම ඉතිරි මුදල මතයි.</p>
+                    <h3 className="text-sm font-bold text-rose-900 mb-1">{t(`ඉතිරි ගෙවිය යුතු මූලික මුදල (Outstanding Balance)`)}</h3>
+                    <p className="text-xs text-rose-600">{t(`මීළඟ පොලී ගණනය කිරීම් සිදුවන්නේ මෙම ඉතිරි මුදල මතයි.`)}</p>
                   </div>
                   <div className="text-2xl font-black text-rose-700">
                     රු. {Math.round(outstandingPrincipal).toLocaleString()}
@@ -910,20 +1015,17 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           <div className="p-5 border-t border-slate-100 bg-slate-50/80 flex justify-end">
             <button onClick={() => printLoanAgreement(loan, ad)}
               className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition flex items-center gap-2">
-              <FileText size={16} /> 🖨 ගිවිසුම මුද්‍රණය (Print Agreement)
-            </button>
+              <FileText size={16} /> {t(`🖨 ගිවිසුම මුද්‍රණය (Print Agreement)`)}</button>
             {((userRole === 'SENIOR_OFFICER' || userRole === 'BRANCH_MANAGER') && (loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED')) && (
               <button onClick={() => setShowDisburseModal(true)} className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition flex items-center gap-2">
-                💰 ණය මුදා හරින්න (Disburse)
-              </button>
+                {t(`💰 ණය මුදා හරින්න (Disburse)`)}</button>
             )}
             {(loan.currentStage === 'DISBURSED' || loan.status === 'ACTIVE' || loan.status === 'COMPLETED') && (
               <button onClick={() => {
                 const ad = typeof loan.applicationData === 'string' ? JSON.parse(loan.applicationData) : (loan.applicationData || {});
                 printDisbursementReceipt(loan, ad, user?.username || 'system');
               }} className="px-5 py-2 text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg shadow-sm transition flex items-center gap-2 border border-blue-200">
-                🖨 රිසිට් පත (Print Receipt)
-              </button>
+                {t(`🖨 රිසිට් පත (Print Receipt)`)}</button>
             )}
           </div>
         ) : null}
@@ -935,8 +1037,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex justify-between items-center">
               <h4 className="font-bold text-white flex items-center gap-2 text-lg">
-                💰 ණය මුදා හරින්න
-              </h4>
+                {t(`💰 ණය මුදා හරින්න`)}</h4>
               <button onClick={() => setShowDisburseModal(false)} className="text-white/70 hover:text-white transition">
                 <X size={20} />
               </button>
@@ -944,24 +1045,22 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
             
             <div className="p-6">
               <div className="mb-4">
-                <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">💳 ණය ගෙවීමේ ක්‍රමය (Disbursement Method)</p>
+                <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">{t(`💳 ණය ගෙවීමේ ක්‍රමය (Disbursement Method)`)}</p>
                 <div className="flex rounded-xl overflow-hidden border border-blue-200">
                   <button
                     onClick={() => setDisbursePaymentMethod('CASH')}
                     className={`flex-1 py-2 text-sm font-bold transition ${disbursePaymentMethod === 'CASH' ? 'bg-blue-700 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'}`}>
-                    💵 අතින් මුදල් (Cash)
-                  </button>
+                    {t(`💵 අතින් මුදල් (Cash)`)}</button>
                   <button
                     onClick={() => setDisbursePaymentMethod('SAVINGS_TRANSFER')}
                     className={`flex-1 py-2 text-sm font-bold transition ${disbursePaymentMethod === 'SAVINGS_TRANSFER' ? 'bg-blue-700 text-white' : 'bg-white text-blue-600 hover:bg-blue-50'}`}>
-                    🏦 ඉතුරුම් ගිණුමට
-                  </button>
+                    {t(`🏦 ඉතුරුම් ගිණුමට`)}</button>
                 </div>
               </div>
               
               {disbursePaymentMethod === 'SAVINGS_TRANSFER' && (
                 <div className="mb-4">
-                  <label className="block text-xs font-semibold text-blue-700 mb-1">බැර කළ යුතු ඉතුරුම් ගිණුම (Savings Account)</label>
+                  <label className="block text-xs font-semibold text-blue-700 mb-1">{t(`බැර කළ යුතු ඉතුරුම් ගිණුම (Savings Account)`)}</label>
                   {fetchingAccounts ? (
                     <p className="text-xs text-slate-500 animate-pulse">Fetching accounts...</p>
                   ) : disburseMemberAccounts.length > 0 ? (
@@ -977,13 +1076,13 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                       ))}
                     </select>
                   ) : (
-                    <p className="text-xs text-red-600 font-medium">⚠ මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. (No active savings accounts found.)</p>
+                    <p className="text-xs text-red-600 font-medium">{t(`⚠ මෙම සාමාජිකයාට සක්‍රීය ඉතුරුම් ගිණුමක් නොමැත. (No active savings accounts found.)`)}</p>
                   )}
                 </div>
               )}
               
               <div className="mb-2">
-                <label className="block text-xs font-semibold text-blue-700 mb-1">ණය ගිණුම් අංකය (Loan Account Number) <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-blue-700 mb-1">{t(`ණය ගිණුම් අංකය (Loan Account Number)`)}<span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={disburseLoanAccountNumber}
@@ -995,7 +1094,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
             </div>
 
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
-              <button onClick={() => setShowDisburseModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-200 rounded-xl transition">අවලංගු කරන්න</button>
+              <button onClick={() => setShowDisburseModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-200 rounded-xl transition">{t(`අවලංගු කරන්න`)}</button>
               <button onClick={handleDisburse} disabled={actionLoading || (disbursePaymentMethod === 'SAVINGS_TRANSFER' && disburseMemberAccounts.length === 0) || !disburseLoanAccountNumber.trim()} className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-2">
                 {actionLoading ? 'Processing...' : 'මුදා හරින්න'}
               </button>
@@ -1010,8 +1109,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
               <h4 className="font-bold text-white flex items-center gap-2 text-lg">
-                <BadgeCheck size={20} className="text-indigo-200" /> වාරිකයක් ගෙවන්න
-              </h4>
+                <BadgeCheck size={20} className="text-indigo-200" /> {t(`වාරිකයක් ගෙවන්න`)}</h4>
               <button onClick={() => setShowPaymentModal(false)} className="text-white/70 hover:text-white transition">
                 <X size={20} />
               </button>
@@ -1025,23 +1123,23 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                     <span className="font-mono font-black">{modalLastDate.toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>📅 ගෙවන දිනය (තේරූ දිනය):</span>
+                    <span>{t(`📅 ගෙවන දිනය (තේරූ දිනය):`)}</span>
                     <span className="font-mono font-black">{modalPayDateObj.toLocaleDateString()}</span>
                   </div>
                   <div className="border-t border-indigo-200/30 my-0.5"></div>
                   <div className="flex justify-between text-indigo-800 font-black">
-                    <span>🔢 ගතවූ දින ගණන:</span>
+                    <span>{t(`🔢 ගතවූ දින ගණන:`)}</span>
                     <span>{modalDaysElapsed} දින</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center text-xs font-bold text-indigo-700">
-                  <span>📉 ගණනය කිරීමට ගන්නා ණය මුදල:</span>
+                  <span>{t(`📉 ගණනය කිරීමට ගන්නා ණය මුදල:`)}</span>
                   <span>රු. {Math.round(outstandingPrincipal).toLocaleString()}</span>
                 </div>
                 <div className="border-t border-indigo-200/50 my-1"></div>
                 <div className="text-[11px] text-indigo-800 font-mono bg-white/60 p-2.5 rounded-lg border border-indigo-100 text-center">
-                  <div className="text-[10px] text-slate-500 font-sans font-bold uppercase mb-1">පොලී ගණනය කිරීමේ සූත්‍රය (Formula):</div>
+                  <div className="text-[10px] text-slate-500 font-sans font-bold uppercase mb-1">{t(`පොලී ගණනය කිරීමේ සූත්‍රය (Formula):`)}</div>
                   රු. {Math.round(outstandingPrincipal).toLocaleString()} × දින {modalDaysElapsed} × ({loan.interestRate}% / 36500)
                 </div>
                 <div className="text-center text-sm font-black text-indigo-900 mt-1">
@@ -1051,32 +1149,32 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Payment Date (දිනය)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">{t(`Payment Date (දිනය)`)}</label>
                   <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)}
                     className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 font-bold text-slate-800 transition outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Amount to Pay (Rs.) (ගෙවන මුදල)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">{t(`Amount to Pay (Rs.) (ගෙවන මුදල)`)}</label>
                   <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} 
                     className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 transition outline-none" />
                   
                   {paymentAmount && Number(paymentAmount) > 0 && (
                     <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
                       <div className="flex justify-between text-slate-600">
-                        <span>💰 ගෙවූ මුළු මුදල (Total Paid):</span>
+                        <span>{t(`💰 ගෙවූ මුළු මුදල (Total Paid):`)}</span>
                         <span className="font-bold">රු. {payAmtNum.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-rose-600 font-semibold">
-                        <span>📉 පොලියට බැර වන මුදල (Interest Portion):</span>
+                        <span>{t(`📉 පොලියට බැර වන මුදල (Interest Portion):`)}</span>
                         <span>රු. {Math.round(liveInterestPortion).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-emerald-600 font-semibold">
-                        <span>💵 මූලික මුදලට බැර වන මුදල (Principal Portion):</span>
+                        <span>{t(`💵 මූලික මුදලට බැර වන මුදල (Principal Portion):`)}</span>
                         <span>රු. {Math.round(livePrincipalPortion).toLocaleString()}</span>
                       </div>
                       <div className="border-t border-slate-200 my-1"></div>
                       <div className="flex justify-between text-indigo-900 font-bold">
-                        <span>ඉතිරි ණය ශේෂය (Outstanding Balance After):</span>
+                        <span>{t(`ඉතිරි ණය ශේෂය (Outstanding Balance After):`)}</span>
                         <span>රු. {Math.round(liveOutstandingAfter).toLocaleString()}</span>
                       </div>
                     </div>
@@ -1098,12 +1196,84 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
                 className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-2"
               >
                 {paymentLoading ? (
-                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> ප්‍රකියා කරයි...</>
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> {t(`ප්‍රකියා කරයි...`)}</>
                 ) : (
-                  <><span>✓</span> වාරිකය ගෙවන්න</>
+                  <><span>✓</span> {t(`වාරිකය ගෙවන්න`)}</>
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Notice Letter Modal ── */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="bg-slate-900 p-5 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black flex items-center gap-2">
+                  <Printer size={18} className="text-amber-400" />
+                  ණය හිඟ මුදල් දැනුම්දීමේ ලිපිය (Loan Overdue Notice)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  සති 2න් 2ට අනුරූප අදියර ලිපිය තෝරාගෙන මුද්‍රණය කරන්න (Automatic Bi-weekly Notice Generator)
+                </p>
+              </div>
+              <button onClick={() => setShowNoticeModal(false)} className="text-slate-400 hover:text-white p-2 hover:bg-slate-800 rounded-xl transition">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Notice Type Selector Bar */}
+            <div className="bg-slate-100 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex bg-white p-1 rounded-xl border border-slate-300 shadow-sm overflow-x-auto">
+                {[
+                  { id: 1, label: '1 වන ලිපිය (සති 2)', desc: '1 වන ලිපිය (ණයකරු)' },
+                  { id: 2, label: '2 වන ලිපිය (සති 4)', desc: '2 වන ලිපිය (හිඟ වාරික)' },
+                  { id: 3, label: '3 වන ලිපිය (සති 6)', desc: 'අත්වැල ලිපිය (ඇපකරුවන්)' },
+                  { id: 4, label: '4 වන ලිපිය (සති 8)', desc: 'ලියාපදිංචි තැපෑලෙන්' },
+                  { id: 5, label: '5 වන ලිපිය (රතු නිවේදනය)', desc: 'අවසන් නීතිමය ලිපිය' },
+                ].map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => setNoticeType(n.id as any)}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                      noticeType === n.id
+                        ? (n.id === 5 ? 'bg-red-600 text-white shadow-md' : 'bg-indigo-600 text-white shadow-md')
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handlePrintNotice}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"
+              >
+                <Printer size={16} /> මුද්‍රණය කරන්න (Print Letter)
+              </button>
+            </div>
+
+            {/* Letter Preview Container */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-200/50 flex justify-center">
+              <div className="bg-white shadow-2xl rounded-lg border border-slate-300 w-full max-w-[800px]">
+                <PrintableNoticeLetter
+                  ref={noticePrintRef}
+                  noticeType={noticeType}
+                  loan={loan}
+                  member={loan.applicationData || { fullName: memberName }}
+                  guarantors={(loan as any).guarantors || []}
+                  overdueAmount={(loan as any).overdueAmount || loan.requestedAmount}
+                  totalDue={(loan as any).overdueAmount || loan.requestedAmount}
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       )}

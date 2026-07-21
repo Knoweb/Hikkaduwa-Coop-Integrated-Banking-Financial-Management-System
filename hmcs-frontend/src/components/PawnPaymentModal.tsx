@@ -2,8 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, DollarSign, Calendar, Info, Clock, CheckCircle } from 'lucide-react';
 import { Snackbar, Alert } from '@mui/material';
 import { makePayment } from '../services/pawning.service';
+import { useLanguage } from '../context/LanguageContext';
+
 
 export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
+  const { t } = useLanguage();
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [loading, setLoading] = useState(false);
@@ -74,7 +77,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-amber-50 shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-amber-900">වාරික ගෙවීම (Payment)</h3>
+            <h3 className="text-lg font-bold text-amber-900">{t(`වාරික ගෙවීම (Payment)`)}</h3>
             <p className="text-xs font-medium text-amber-700 mt-0.5">{ticket.ticketNumber}</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition">
@@ -111,7 +114,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
 
           <div className="grid grid-cols-2 gap-4 mb-6 mt-4">
             <div className="col-span-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">ගෙවන දිනය (Payment Date)</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">{t(`ගෙවන දිනය (Payment Date)`)}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Calendar size={18} className="text-slate-400" />
@@ -123,13 +126,13 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-xl outline-none transition font-semibold text-slate-800"
                 />
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 font-medium">* දිනය අනුව පොලිය ස්වයංක්‍රීයව වෙනස් වේ (අවසාන ගෙවීමේ සිට දින 15/30 ඛණ්ඩ අනුව).</p>
+              <p className="text-[10px] text-slate-500 mt-1 font-medium">{t(`* දිනය අනුව පොලිය ස්වයංක්‍රීයව වෙනස් වේ (අවසාන ගෙවීමේ සිට දින 15/30 ඛණ්ඩ අනුව).`)}</p>
             </div>
           </div>
 
           <div className="space-y-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold text-slate-600">ඉතිරි මූලික මුදල (Principal)</span>
+              <span className="text-sm font-semibold text-slate-600">{t(`ඉතිරි මූලික මුදල (Principal)`)}</span>
               <span className="font-bold text-slate-800">Rs. {remainingPrincipal.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
             </div>
             
@@ -139,7 +142,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
             </div>
             
             <div className="pt-3 mt-3 border-t border-slate-200 flex justify-between items-center">
-              <span className="text-sm font-bold text-amber-900">මුළු ගෙවිය යුතු මුදල (Total Due)</span>
+              <span className="text-sm font-bold text-amber-900">{t(`මුළු ගෙවිය යුතු මුදල (Total Due)`)}</span>
               <span className="text-lg font-black text-amber-900">Rs. {dynamicCalc.totalDue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
             </div>
             <p className="text-[10px] text-slate-400 text-center mt-2 italic">
@@ -149,7 +152,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">ගෙවන මුදල (Payment Amount)</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">{t(`ගෙවන මුදල (Payment Amount)`)}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <span className="text-slate-500 font-bold">Rs.</span>
@@ -173,8 +176,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
                 onClick={onClose}
                 className="flex-1 px-4 py-2.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
               >
-                අවලංගු කරන්න
-              </button>
+                {t(`අවලංගු කරන්න`)}</button>
               <button
                 type="submit"
                 disabled={loading}
@@ -189,8 +191,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
           {ticket.payments && ticket.payments.length > 0 && (
             <div className="mt-8 pt-6 border-t border-slate-100">
               <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Clock size={16} className="text-slate-400" /> පෙර ගෙවීම් වාර්තා (Payment History)
-              </h4>
+                <Clock size={16} className="text-slate-400" /> {t(`පෙර ගෙවීම් වාර්තා (Payment History)`)}</h4>
               <div className="space-y-3">
                 {ticket.payments.map((p: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl">

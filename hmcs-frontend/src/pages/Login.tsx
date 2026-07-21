@@ -3,8 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import logo from '../assets/logo.jpg';
+import { useLanguage } from '../context/LanguageContext';
+
 
 export default function Login() {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,10 +91,10 @@ export default function Login() {
           
           <div className="text-center mb-10 w-full">
             <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 mb-2 tracking-tight leading-tight">
-              සමුපකාර බැංකු පද්ධතිය<br />
+              {t(`සමුපකාර බැංකු පද්ධතිය`)}<br />
               <span className="text-lg font-bold text-slate-400">Cooperative Banking System</span>
             </h1>
-            <p className="text-yellow-500/80 text-xs font-semibold tracking-wide uppercase">සුරක්ෂිත පිවිසුම / Secure Login</p>
+            <p className="text-yellow-500/80 text-xs font-semibold tracking-wide uppercase">{t(`සුරක්ෂිත පිවිසුම / Secure Login`)}</p>
           </div>
 
           {error && (
@@ -102,7 +105,7 @@ export default function Login() {
 
           <form onSubmit={handleLogin} className="w-full space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">පරිශීලක නාමය (Username)</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t(`පරිශීලක නාමය (Username)`)}</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-yellow-500 transition-colors">
                   <User size={18} />
@@ -113,13 +116,13 @@ export default function Login() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/5 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 focus:border-yellow-500/50 transition-all backdrop-blur-md font-medium"
-                  placeholder="Enter Username / පරිශීලක නාමය"
+                  placeholder={t(`Enter Username / පරිශීලක නාමය`)}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">මුරපදය (Password)</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t(`මුරපදය (Password)`)}</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-yellow-500 transition-colors">
                   <Lock size={18} />
@@ -151,17 +154,17 @@ export default function Login() {
                 {loading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>තහවුරු කරමින්... / Authenticating...</span>
+                    <span>{t(`තහවුරු කරමින්... / Authenticating...`)}</span>
                   </>
                 ) : (
-                  <span>පද්ධතියට ඇතුළු වන්න (Sign In)</span>
+                  <span>{t(`පද්ධතියට ඇතුළු වන්න (Sign In)`)}</span>
                 )}
               </div>
             </button>
           </form>
 
           <div className="mt-8 text-center space-y-1">
-            <p className="text-slate-500 text-xs font-medium">සමුපකාර බැංකු පද්ධතිය / HMCS Bank</p>
+            <p className="text-slate-500 text-xs font-medium">{t(`සමුපකාර බැංකු පද්ධතිය / HMCS Bank`)}</p>
             <p className="text-slate-600 text-[10px]">© 2026 All Rights Reserved Knoweb (Pvt) Ltd</p>
           </div>
         </div>

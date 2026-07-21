@@ -3,10 +3,10 @@ import { useLanguage } from '../context/LanguageContext';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as PawningService from '../services/pawning.service';
-import { Percent, PiggyBank, Plus, Key, X, Eye, EyeOff, Edit, CheckCircle, Shield, ChevronDown, ChevronRight, Lock, Briefcase, Scale, Database, Trash2 } from 'lucide-react';
+import { Percent, PiggyBank, Plus, Key, X, Eye, EyeOff, Edit, CheckCircle, Shield, ChevronDown, ChevronRight, Lock, Briefcase, Scale, Database, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function GlobalSettings({ currentTab, readOnly = false }: { currentTab: 'rates' | 'account_types' | 'settings', readOnly?: boolean }) {
-  const { t, language } = useLanguage();
+    const { t, language } = useLanguage();
 
   const [rateCategory, setRateCategory] = useState<'savings'|'fd'|'loans'|'pawning'|'general'>('savings');
   const [accountCategory, setAccountCategory] = useState<'savings'|'fd'|'loans'|'pawning'>('savings');
@@ -93,6 +93,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
   const [expandedFdCategories, setExpandedFdCategories] = useState<string[]>([]);
 
   const toggleFdCategory = (cat: string) => {
+  
     setExpandedFdCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
@@ -123,6 +124,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
   useEffect(() => { fetchLoanTypes(); }, []);
 
   const openCreateLoanType = () => {
+  
     setEditingLoanType(null);
     setLoanTypeForm({ code: '', nameEn: '', nameSi: '', description: '', maxAmount: '', maxTermMonths: '', category: 'SOCIETY', eligibilityCriteria: '', isActive: true });
     setLoanTypeError('');
@@ -130,6 +132,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
   };
 
   const openEditLoanType = (lt: LoanService.LoanType) => {
+  
     const { code, nameSi, nameEn, category, cleanDesc } = parseLoanMeta(lt);
     setEditingLoanType(lt);
     setLoanTypeForm({
@@ -140,7 +143,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       maxAmount: String(lt.maxAmount || ''),
       maxTermMonths: String(lt.maxTermMonths || ''),
       category: category || 'SOCIETY',
-      eligibilityCriteria: lt.eligibilityCriteria || '',
+      eligibilityCriteria: (lt as any).eligibilityCriteria || '',
       isActive: lt.isActive,
     });
     setLoanTypeError('');
@@ -158,10 +161,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
         maxTermMonths: Number(loanTypeForm.maxTermMonths),
         // interest rate set from Interest Rates tab; default 14%
         interestRate: editingLoanType?.interestRate || 14,
-        eligibilityCriteria: loanTypeForm.eligibilityCriteria,
         isActive: loanTypeForm.isActive,
-        ...(loanTypeForm.code && { name: loanTypeForm.nameEn }),
       };
+      (payload as any).eligibilityCriteria = loanTypeForm.eligibilityCriteria;
       // Attach extra fields via applicationData workaround (stored in description)
       (payload as any).description = [
         loanTypeForm.description,
@@ -182,6 +184,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
   const isSinhala = (str: string) => /[\u0D80-\u0DFF]/.test(str);
 
   const parseLoanMeta = (lt: LoanService.LoanType) => {
+  
     const desc = lt.description || '';
     const hasMetadata = desc.includes('[CODE:') || desc.includes('[SI:');
     const cleanDesc = desc.replace(/\s*\|?\s*\[(SI|CODE|CAT):[^\]]+\]/g, '').trim();
@@ -287,7 +290,6 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
       fetchSavingsTypes();
     } catch (err) {
       console.error(err);
-      setError("Failed to create savings type");
     }
   };
 
@@ -333,7 +335,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
         await AccountService.deleteSavingsAccountType(id);
         fetchSavingsTypes();
       } catch (err) {
-        (window as any).showToast("Failed to delete account type.");
+        console.error(err);
       }
     }
   };
@@ -513,8 +515,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                               items.length === 0 ? (
                                 <tr>
                                   <td colSpan={4} className="px-8 py-4 text-xs font-semibold text-slate-400 text-center">
-                                    මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)
-                                  </td>
+                                    {t(`මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)`)}</td>
                                 </tr>
                               ) : (
                                 items.map((st: any) => {
@@ -557,7 +558,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                           {isEditing ? (
                                             <>
                                               <button onClick={() => setEditingRateId(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"><X size={16}/></button>
-                                              <button onClick={() => setConfirmRateChange({ category: 'fd', id: st.id, name: st.name, oldVal: st.interestRateMaturity, newVal: { maturity: Number(editRateValueMaturity), monthly: Number(editRateValueMonthly) }, unit: '%', fullObj: st })} className="p-1.5 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
+                                              <button onClick={() => setConfirmRateChange({ category: 'fd', id: st.id, name: st.name, oldVal: st.interestRateMaturity, newVal: { maturity: Number(editRateValueMaturity), monthly: Number(editRateValueMonthly) } as any, unit: '%', fullObj: st })} className="p-1.5 text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 rounded-lg transition"><CheckCircle size={16}/></button>
                                             </>
                                           ) : !readOnly && (
                                             <button onClick={() => { setEditingRateId(st.id); setEditRateValueMaturity(st.interestRateMaturity); setEditRateValueMonthly(st.interestRateMonthly); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
@@ -679,25 +680,25 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 <Shield size={24} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-amber-900 leading-tight">පොලී අනුපාතය යාවත්කාලීන කිරීම (Confirm Rate Update)</h3>
-                <p className="text-amber-700/80 text-sm mt-1.5 font-medium leading-snug">ඔබ විසින් තීරණාත්මක මූල්‍ය පරාමිතියක් වෙනස් කිරීමට යයි. කරුණාකර මෙය තහවුරු කරන්න. (You are about to change a critical financial parameter.)</p>
+                <h3 className="text-lg font-bold text-amber-900 leading-tight">{t(`පොලී අනුපාතය යාවත්කාලීන කිරීම (Confirm Rate Update)`)}</h3>
+                <p className="text-amber-700/80 text-sm mt-1.5 font-medium leading-snug">{t(`ඔබ විසින් තීරණාත්මක මූල්‍ය පරාමිතියක් වෙනස් කිරීමට යයි. කරුණාකර මෙය තහවුරු කරන්න. (You are about to change a critical financial parameter.)`)}</p>
               </div>
             </div>
             <div className="p-6">
               <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 mb-6">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">ගිණුම් වර්ගය (Product / Type)</p>
+                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">{t(`ගිණුම් වර්ගය (Product / Type)`)}</p>
                 <p className="text-slate-800 font-bold text-lg mb-4">{confirmRateChange.name}</p>
                 
                 <div className="flex items-center justify-between border-t border-slate-200/60 pt-4">
                   <div>
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">පෙර අනුපාතය (Previous)</p>
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">{t(`පෙර අනුපාතය (Previous)`)}</p>
                     <p className="text-slate-500 font-mono font-semibold text-lg line-through decoration-slate-300 decoration-2">{Number(Number(confirmRateChange.oldVal).toFixed(4))} <span className="text-sm font-sans">{confirmRateChange.unit === '%' ? '%' : t(confirmRateChange.unit)}</span></p>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
                     <ChevronRight size={16} className="text-blue-400" />
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-1.5">නව අනුපාතය (New Rate)</p>
+                    <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-1.5">{t(`නව අනුපාතය (New Rate)`)}</p>
                       <p className="text-blue-600 font-mono font-black text-2xl">
                         {confirmRateChange.category === 'fd' 
                           ? Number(Number((confirmRateChange.newVal as any).maturity).toFixed(4))
@@ -708,10 +709,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setConfirmRateChange(null)} className="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">අවලංගු කරන්න (Cancel)</button>
+                <button onClick={() => setConfirmRateChange(null)} className="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">{t(`අවලංගු කරන්න (Cancel)`)}</button>
                 <button onClick={handleConfirmRateUpdate} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5">
-                  තහවුරු කරන්න (Confirm)
-                </button>
+                  {t(`තහවුරු කරන්න (Confirm)`)}</button>
               </div>
             </div>
           </div>
@@ -763,7 +763,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Lock size={18} /> {t('Add FD Time Period')}</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">ප්‍රධාන වර්ගය (Main Category)</label>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">{t(`ප්‍රධාන වර්ගය (Main Category)`)}</label>
                     <select value={newFdType.category} onChange={e => setNewFdType(p => ({ ...p, category: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium">
                       {uniqueFdCategories.map(cat => (
                         <option key={cat.code} value={cat.code}>{cat.name}</option>
@@ -771,7 +771,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">කාල සීමාව (Term in Months)</label>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">{t(`කාල සීමාව (Term in Months)`)}</label>
                     <input type="number" value={newFdType.termMonths} onChange={e => setNewFdType(p => ({ ...p, termMonths: parseInt(e.target.value) }))} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" />
                   </div>
                 </div>
@@ -894,8 +894,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                   <div className="divide-y divide-slate-50">
                                     {items.length === 0 ? (
                                       <div className="px-8 py-4 text-xs font-semibold text-slate-400">
-                                        මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)
-                                      </div>
+                                        {t(`මෙම වර්ගය සඳහා කාල සීමාවන් ඇතුළත් කර නොමැත. (No time periods added)`)}</div>
                                     ) : (
                                       items.map((st: any) => (
                                         <div key={st.id} className="flex items-center justify-between px-8 py-3 hover:bg-slate-50 transition-colors">
@@ -971,7 +970,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Sinhala Name')}</label>
                               <input value={loanTypeForm.nameSi} onChange={e => setLoanTypeForm(p => ({ ...p, nameSi: e.target.value }))}
-                                placeholder="e.g. සාමාන්‍ය ණය" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                                placeholder={t(`e.g. සාමාන්‍ය ණය`)} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Max Amount')} (Rs.) *</label>
