@@ -96,3 +96,17 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
+
+  hmcs-frontend:
+    build: ./hmcs-frontend
+    container_name: hmcs-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - hmcs-api-gateway
+    volumes:
+      - ./hmcs-frontend/src:/app/src
+      - ./hmcs-frontend/public:/app/public
+      - ./hmcs-frontend/index.html:/app/index.html
+      - ./hmcs-frontend/vite.config.ts:/app/vite.config.ts
+    restart: unless-stopped

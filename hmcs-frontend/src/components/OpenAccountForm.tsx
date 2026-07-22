@@ -4,7 +4,6 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import * as AccountService from '../services/account.service';
-import { useLanguage } from '../context/LanguageContext';
 
 
 const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?: boolean, onClose?: () => void }) => {
@@ -168,7 +167,6 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
   });
 
   const handleInputChange = (e: any) => {
-  const { t } = useLanguage();
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,

@@ -28,7 +28,6 @@ export default function Layout({ children }: LayoutProps) {
   const isSystemAdmin = user.role === 'ROLE_ORGANIZATION_ADMIN';
 
   const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => {
-  const { t } = useLanguage();
     const isActive = location.pathname === to;
     return (
       <Link

@@ -27,7 +27,6 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
   }, []);
 
   const getMemberName = (id: string) => {
-  const { t } = useLanguage();
 
 
     if (!id) return '-';
@@ -36,21 +35,18 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
   };
 
   const getMemberNic = (id: string) => {
-  const { t } = useLanguage();
     if (!id) return '-';
     const member = members.find(m => m.memberId === id);
     return member ? member.nic : '-';
   };
 
   const getMemberAddress = (id: string) => {
-  const { t } = useLanguage();
     if (!id) return '-';
     const member = members.find(m => m.memberId === id);
     return member ? member.addressSinhala || member.address : '-';
   };
 
   const renderMemberDetails = (id: string) => {
-  const { t } = useLanguage();
     if (!id) return null;
     const member = members.find(m => m.memberId === id);
     if (!member) return null;
@@ -102,7 +98,6 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
     : (Number(fd.interestRate) >= 15 ? 'ජ්‍යෙෂ්ඨ පුරවැසි' : Number(fd.interestRate) <= 10 ? 'ළමා ස්ථාවර' : 'සාමාන්‍ය ස්ථාවර');
 
   const handlePrint = () => {
-  const { t } = useLanguage();
     window.print();
   };
 

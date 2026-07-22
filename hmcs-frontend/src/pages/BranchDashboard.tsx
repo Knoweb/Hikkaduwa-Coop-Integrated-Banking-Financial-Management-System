@@ -29,6 +29,7 @@ import GlobalLoanSearchModal from '../components/GlobalLoanSearchModal';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import InsuranceReport from '../components/InsuranceReport';
+import BranchOverviewView from '../components/BranchOverviewView';
 
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 import PawningModule from '../components/PawningModule';
@@ -83,7 +84,6 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: Briefcase, label: 'Pawning Approvals', key: 'pawning_approvals' },
     { isSection: true, label: 'Customer Relations' },
     { icon: UserPlus, label: 'Members', key: 'members' },
-    { icon: Users, label: 'Non-Members', key: 'non-members' },
     { isSection: true, label: 'Core Banking Facilities' },
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
@@ -112,7 +112,6 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: LayoutDashboard, label: 'Overview', key: 'overview' },
     { isSection: true, label: 'Customer Relations' },
     { icon: UserPlus, label: 'Members', key: 'members' },
-    { icon: Users, label: 'Non-Members', key: 'non-members' },
     { isSection: true, label: 'Core Banking Facilities' },
     { icon: PiggyBank, label: 'Savings Accounts', key: 'savings' },
     { icon: Lock, label: 'Fixed Deposits', key: 'fds' },
@@ -668,10 +667,11 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   );
 }
 
-function BranchManagerView({ activeTab }: { activeTab: string }) {
+function BranchManagerView({ activeTab, setTab }: { activeTab: string; setTab: (tab: string) => void }) {
   const { t } = useLanguage();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
+  const [fixedDeposits, setFixedDeposits] = useState<any[]>([]);
   const [loanQueue, setLoanQueue] = useState<LoanService.Loan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [search, setSearch] = useState('');
@@ -684,6 +684,7 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
   const loadData = () => {
     AccountService.getBranchMembers().then(setMembers).catch(() => {});
     AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
+    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {});
     LoanService.getLoans().then(setLoanQueue).catch(() => {});
   };
 
@@ -717,42 +718,20 @@ function BranchManagerView({ activeTab }: { activeTab: string }) {
     return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
   }
 
-  if (activeTab === 'overview') return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign}    label="Total Branch Balance" value={`Rs. ${totalBalance.toLocaleString()}`} sub="All accounts" color="text-blue-600" />
-        <StatCard icon={Users}         label="Total Members"        value={members.length.toString()}              sub="Registered"  color="text-green-600" />
-        <StatCard icon={CreditCard}    label="Total Accounts"       value={accounts.length.toString()}             sub="Active"      color="text-purple-600" />
-        <StatCard icon={FileText}      label="Pending Loans"        value={managerPendingLoans.length.toString()} sub="Awaiting action" color="text-amber-600" />
-      </div>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><FileText size={16} /> {t(`ණය ඉල්ලීම් පෝලිම (Loan Queue)`)}</h3>
-          {managerPendingLoans.length === 0 ? <p className="text-sm text-slate-400 text-center py-6">No pending loan applications.</p> : managerPendingLoans.slice(0,5).map((l, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{(l.applicationData?.applicantName || l.applicationData?.name || l.memberId?.slice(0,8))}</p>
-                <p className="text-xs text-slate-400">{l.appliedDate?.slice(0,10)} · Rs. {l.requestedAmount?.toLocaleString()}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700">{l.status}</span>
-                <button onClick={() => setSelectedLoan(l)} className="text-xs px-3 py-1.5 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">View</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /> Alerts</h3>
-          {[{ msg: 'FD #10234 matures in 3 days — Rs. 100,000', type: 'FD' }, { msg: 'Pawn Ticket #698594 expires in 7 days', type: 'PAWN' }].map((a, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{a.type}</span>
-              <p className="text-sm text-slate-700">{a.msg}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  if (activeTab === 'overview') {
+    const user = AuthService.getCurrentUser();
+    return (
+      <BranchOverviewView 
+        branchId={user?.branchId || 1}
+        members={members}
+        accounts={accounts}
+        fixedDeposits={fixedDeposits}
+        loans={loans}
+        setTab={setTab}
+        t={t}
+      />
+    );
+  }
 
   if (activeTab === 'members') return (
     <div className="space-y-4">
@@ -1030,7 +1009,6 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const loadData = () => {
-  const { t } = useLanguage();
     LoanService.getLoans().then(setLoans).catch(() => {});
   };
 
@@ -1429,7 +1407,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
 
   const getMemberName = (memberId: string, accNo?: string) => {
-  const { t } = useLanguage();
     const m = members.find(mem => mem.memberId === memberId);
     if (m) {
       if (language === 'si' && m.fullNameSinhala) {
@@ -1454,6 +1431,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [search, setSearch] = useState('');
   const [ageFilter, setAgeFilter] = useState('ALL');
   const [showRegModal, setShowRegModal] = useState(false);
+  const [memberTypeFilter, setMemberTypeFilter] = useState<'ALL' | 'MEMBERS' | 'NON_MEMBERS'>('ALL');
+  const [showMemberChoiceModal, setShowMemberChoiceModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -1645,17 +1624,24 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     setShowGuardianDropdown(false);
   };
 
-  const isNonMembersTab = activeTab === 'non-members';
-  const displayedMembers = members.filter(m => isNonMembersTab ? m.isMember === false : m.isMember !== false);
+  const isNonMembersTab = false;
+  const displayedMembers = members.filter(m => {
+    if (memberTypeFilter === 'MEMBERS') return m.isMember !== false;
+    if (memberTypeFilter === 'NON_MEMBERS') return m.isMember === false;
+    return true;
+  });
   const filtered = members.filter(m => {
     const matchesSearch = search ? (
       m.fullName.toLowerCase().includes(search.toLowerCase()) ||
       m.nic.toLowerCase().includes(search.toLowerCase()) ||
       (m.membershipNumber && m.membershipNumber.toLowerCase().includes(search.toLowerCase()))
     ) : true;
-    const matchesTab = isNonMembersTab ? m.isMember === false : m.isMember !== false;
     
-    let isMatch = search ? matchesSearch : matchesTab;
+    let matchesType = true;
+    if (memberTypeFilter === 'MEMBERS') matchesType = m.isMember !== false;
+    if (memberTypeFilter === 'NON_MEMBERS') matchesType = m.isMember === false;
+    
+    let isMatch = matchesSearch && matchesType;
     
     if (ageFilter !== 'ALL') {
       const ageCat = m.ageCategory || 'ADULT';
@@ -3040,7 +3026,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                     ));
                                   const isCredit = tx.transactionType.includes('DEPOSIT') || tx.transactionType.includes('INTEREST') || tx.transactionType === 'BROUGHT_FORWARD' || isFdClosure;
                                   const isInterest = tx.transactionType === 'INTEREST';
-                                  const isFdInterest = tx.transactionType === 'FD_MONTHLY_INTEREST';
+                                  const isFdInterest = tx.transactionType === 'FD_MONTHLY_INTEREST' || tx.transactionType === 'MONTHLY_INTEREST';
                                   
                                   let txDate = new Date(tx.transactionTimestamp);
                                   let txMonthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
@@ -3144,7 +3130,20 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <div className="space-y-3">
                       {sortedMonths.map(monthStr => {
                         const monthDbs = balancesByMonth[monthStr];
-                        const totalEarned = monthDbs.reduce((sum, db) => sum + (db.dailyInterestEarned || db.dailyInterest || 0), 0);
+                        
+                        // Calculate minimum balance of the month
+                        const minBalance = monthDbs.reduce((min, db) => {
+                          const bal = db.closingBalance || db.endOfDayBalance || 0;
+                          return min === null ? bal : Math.min(min, bal);
+                        }, null as number | null) || 0;
+
+                        // Get latest annual rate of the month
+                        const latestDb = monthDbs[monthDbs.length - 1];
+                        const annualRate = latestDb?.annualInterestRate != null ? parseFloat(latestDb.annualInterestRate) : 0.06;
+
+                        // Calculate monthly interest using the minimum balance method
+                        const monthlyInterest = (minBalance * annualRate) / 12;
+
                         const isExpanded = interestModalMonth === monthStr;
                         
                         return (
@@ -3164,41 +3163,60 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                   <p className="text-xs text-slate-500 font-mono mt-0.5">{monthStr}</p>
                                 </div>
                               </div>
+                              <div className="text-right">
+                                <span className="text-xs text-slate-400 block font-medium">මාසික පොලිය</span>
+                                <span className="font-mono font-black text-emerald-600 text-sm">Rs. {monthlyInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
                             </div>
                             
                             {isExpanded && (
-                              <div className="border-t border-slate-100 bg-slate-50/50 p-4">
-                                <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                  <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-slate-500 bg-slate-100/80 sticky top-0 backdrop-blur-sm z-10">
-                                      <tr>
-                                        <th className="px-3 py-2 font-medium border-b border-slate-200 rounded-tl-lg">Date</th>
-                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">EOD Balance</th>
-                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right">Annual Rate</th>
-                                        <th className="px-3 py-2 font-medium border-b border-slate-200 text-right rounded-tr-lg">Earned</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 bg-white">
-                                      {monthDbs.sort((a: any, b: any) => new Date(a.recordDate).getTime() - new Date(b.recordDate).getTime()).map((db: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                          <td className="px-3 py-2 text-slate-600 font-mono text-xs">{db.recordDate}</td>
-                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-700">Rs. {(db.closingBalance || db.endOfDayBalance || 0).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right font-mono text-xs text-slate-500">
-                                             {db.annualInterestRate != null
-                                               ? `${(parseFloat(db.annualInterestRate) * 100).toFixed(2)}%`
-                                               : '6.00%'}
-                                           </td>
-                                          <td className="px-3 py-2 text-right font-mono text-xs font-medium text-emerald-600">+ {(db.dailyInterestEarned || db.dailyInterest || 0).toFixed(2)}</td>
+                              <div className="border-t border-slate-100 bg-slate-50/50 p-5 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <span className="text-slate-500 text-xs font-semibold block uppercase">මාසයේ අවම ශේෂය (Min Balance)</span>
+                                    <span className="text-slate-800 text-base font-bold font-mono mt-1 block">Rs. {minBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <span className="text-slate-500 text-xs font-semibold block uppercase">වාර්ෂික පොලී අනුපාතය (Rate)</span>
+                                    <span className="text-slate-800 text-base font-bold font-mono mt-1 block">{(annualRate * 100).toFixed(2)}%</span>
+                                  </div>
+                                </div>
+
+                                <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
+                                  <div>
+                                    <span className="text-blue-700 text-xs font-black block uppercase">මාසිකව උපයා ඇති පොලිය (Total Earned)</span>
+                                    <p className="text-slate-500 text-[10px] mt-0.5 font-medium">සූත්‍රය: (අවම ශේෂය රු. {minBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} × {(annualRate * 100).toFixed(2)}%) ÷ 12</p>
+                                  </div>
+                                  <span className="text-emerald-600 text-lg font-black font-mono">Rs. {monthlyInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+
+                                <div className="border-t border-slate-200/60 pt-4">
+                                  <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">දෛනික ශේෂයන්ගේ ලේඛනය (Daily Balances List)</h5>
+                                  <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white custom-scrollbar">
+                                    <table className="w-full text-left text-[11px] border-collapse">
+                                      <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 z-10">
+                                        <tr>
+                                          <th className="px-3 py-1.5 text-slate-500 font-bold">දිනය (Date)</th>
+                                          <th className="px-3 py-1.5 text-right text-slate-500 font-bold">දෛනික ශේෂය (EOD Balance)</th>
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                    <tfoot className="bg-slate-50/80 border-t border-slate-200">
-                                      <tr>
-                                        <td colSpan={3} className="px-3 py-2 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Total Earned for Month</td>
-                                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600 text-sm">Rs. {totalEarned.toFixed(2)}</td>
-                                      </tr>
-                                    </tfoot>
-                                  </table>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100 font-mono">
+                                        {monthDbs.sort((a: any, b: any) => new Date(a.recordDate).getTime() - new Date(b.recordDate).getTime()).map((db: any, idx: number) => {
+                                          const bal = db.closingBalance || db.endOfDayBalance || 0;
+                                          const isMin = bal === minBalance;
+                                          return (
+                                            <tr key={idx} className={`hover:bg-slate-50 transition-colors ${isMin ? 'bg-amber-50/70 font-semibold text-amber-900' : 'text-slate-600'}`}>
+                                              <td className="px-3 py-1 flex items-center gap-1.5">
+                                                {db.recordDate}
+                                                {isMin && <span className="bg-amber-100 text-amber-800 text-[8px] px-1 py-0.5 rounded font-sans uppercase font-bold">අවම ශේෂය (Min)</span>}
+                                              </td>
+                                              <td className="px-3 py-1 text-right">Rs. {bal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -3236,18 +3254,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   return (
     <div className="flex flex-col gap-6 flex-1 min-h-0">
       <div className="grid grid-cols-3 gap-4 shrink-0">
-        <StatCard icon={Users}        label={isNonMembersTab ? t('Total Non-Members') : t('Total Members')}    value={displayedMembers.length.toString()} color="text-green-600" />
+        <StatCard icon={Users}        label="මුළු සාමාජිකයින් (Total Members)"    value={members.filter(m => m.isMember !== false).length.toString()} color="text-green-600" />
         <StatCard icon={CreditCard}   label={t('Total Accounts')}   value={accounts.length.toString()} color="text-blue-600" />
-        <StatCard icon={UserPlus}     label={isNonMembersTab ? t('Active Non-Members') : t('Active Members')}   value={displayedMembers.filter(m => m.status === 'ACTIVE').length.toString()} color="text-purple-600" />
+        <StatCard icon={UserPlus}     label="සාමාජික නොවන අය (Non-Members)"   value={members.filter(m => m.isMember === false).length.toString()} color="text-purple-600" />
       </div>
 
       <div className="bg-white rounded-2xl p-6 pb-4 shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between mb-4 shrink-0">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> {isNonMembersTab ? t('Non-Members') : t('Branch Members')}</h3>
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> සාමාජිකයින් සහ ගනුදෙනුකරුවන් (Members & Customers)</h3>
           {!readOnly && (
-            <button onClick={() => { setForm(prev => ({ ...initialFormState, isMember: !isNonMembersTab })); setEditingOriginalForm(null); setShowRegModal(true); }}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
-              <UserPlus size={14} /> {isNonMembersTab ? t('Register Non-Member') : t('Register Member')}
+            <button onClick={() => setShowMemberChoiceModal(true)}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow-sm">
+              <UserPlus size={14} /> ලියාපදිංචි කරන්න (Register)
             </button>
           )}
         </div>
@@ -3257,6 +3275,12 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by name or NIC...')}
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
           </div>
+          <select value={memberTypeFilter} onChange={e => setMemberTypeFilter(e.target.value as any)}
+            className="w-48 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white text-slate-600 font-medium">
+            <option value="ALL">සියල්ල (All Customers)</option>
+            <option value="MEMBERS">සාමාජිකයින් (Members)</option>
+            <option value="NON_MEMBERS">සාමාජික නොවන අය (Non-members)</option>
+          </select>
           <select value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
             className="w-40 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white text-slate-600 font-medium">
             <option value="ALL">{t('All Ages')}</option>
@@ -3268,17 +3292,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3">{isNonMembersTab ? t('Name') : t('Member')}</th>
-                <th className="px-4 py-3">{isNonMembersTab ? t('Client ID') : t('Membership No')}</th>
+                <th className="px-4 py-3">සාමාජිකයා / ගනුදෙනුකරු (Name)</th>
+                <th className="px-4 py-3">සාමාජික / සේවාලාභී අංකය (ID / No.)</th>
                 <th className="px-4 py-3">{t('NIC / Birth Cert. No.')}</th>
                 <th className="px-4 py-3">{t('Accounts')}</th>
+                <th className="px-4 py-3">වර්ගය (Type)</th>
                 <th className="px-4 py-3">{t('Status')}</th>
                 <th className="px-4 py-3 text-right">{t('Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-slate-400">{isNonMembersTab ? t('No non-members found.') : t('No members found. Register the first member!')}</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-slate-400">කිසිදු සාමාජිකයෙකු හෝ ගනුදෙනුකරුවෙකු හමු නොවීය. (No records found.)</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.memberId} className="hover:bg-slate-50 transition">
                   <td className="px-4 py-3 flex items-center gap-3">
@@ -3287,9 +3312,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     </div>
                     <span className="font-semibold text-slate-800">{m.nameWithInitials || m.fullName}</span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-600">{m.membershipNumber || '-'}</td>
+                  <td className="px-4 py-3 font-medium text-slate-600">{m.membershipNumber || m.clientId || '-'}</td>
                   <td className="px-4 py-3">{m.nic}</td>
                   <td className="px-4 py-3">{getAccountCount(m.memberId)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.isMember !== false ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {m.isMember !== false ? 'සාමාජික (Member)' : 'සාමාජික නොවන (Non-member)'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{t(m.status || '')}</span>
@@ -3454,6 +3484,56 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 );
               })()}
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMemberChoiceModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-slate-800 px-6 py-4 flex items-center justify-between text-white border-b-4 border-green-600">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <UserPlus size={16} />
+                ලියාපදිංචි කිරීම් වර්ගය තෝරන්න (Select Type)
+              </h3>
+              <button 
+                onClick={() => setShowMemberChoiceModal(false)} 
+                className="text-white/80 hover:text-white transition bg-white/10 p-1 rounded-full"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-600 text-center mb-6 text-sm font-semibold">
+                ලියාපදිංචි කරනු ලබන්නේ සමිතියේ සාමාජිකයෙක්ද? නැතහොත් සාමාජික නොවන අයෙක්ද?
+              </p>
+              
+              <button 
+                onClick={() => {
+                  setForm({ ...initialFormState, isMember: true });
+                  setEditingOriginalForm(null);
+                  setShowMemberChoiceModal(false);
+                  setShowRegModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-3 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 py-3.5 rounded-xl font-bold text-sm transition-all"
+              >
+                <UserPlus size={18} />
+                ඔව්, සාමාජිකයෙක් (Yes, Member)
+              </button>
+
+              <button 
+                onClick={() => {
+                  setForm({ ...initialFormState, isMember: false });
+                  setEditingOriginalForm(null);
+                  setShowMemberChoiceModal(false);
+                  setShowRegModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-slate-200 py-3.5 rounded-xl font-bold text-sm transition-all"
+              >
+                <Users size={18} />
+                නැත, සාමාජික නොවන අයෙක් (No, Non-Member)
+              </button>
             </div>
           </div>
         </div>
@@ -3788,7 +3868,6 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   const user = AuthService.getCurrentUser();
 
   const fetchHandovers = () => {
-  const { t } = useLanguage();
     setLoading(true);
     LoanService.getPendingFieldCollections(user?.branchId || 1)
       .then(data => {
@@ -3823,7 +3902,6 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
       if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
       
       const getTime = (dateVal: any) => {
-  const { t } = useLanguage();
         if (!dateVal) return 0;
         if (typeof dateVal === 'string') return new Date(dateVal).getTime();
         if (Array.isArray(dateVal)) return new Date(dateVal[0], dateVal[1] - 1, dateVal[2], dateVal[3] || 0, dateVal[4] || 0, dateVal[5] || 0).getTime();
@@ -3865,7 +3943,6 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   };
 
   const handleAcceptClick = (officer: string) => {
-  const { t } = useLanguage();
     const summary = handoversSummary.find(s => s.officer === officer);
     if (summary) {
       setConfirmState({ isOpen: true, officer: summary.officer, total: summary.total });
@@ -4021,6 +4098,12 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [evalTab, setEvalTab] = useState<'pending' | 'history'>('pending');
 
   const [evaluationDocs, setEvaluationDocs] = useState<string[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+
+  const getMemberName = (memberId: string) => {
+    const m = members.find(mem => mem.memberId === memberId);
+    return m ? (m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
+  };
 
   // Mobile Collection States
   const [searchAccNum, setSearchAccNum] = useState('');
@@ -4028,7 +4111,6 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [searchError, setSearchError] = useState('');
 
   const fetchLoans = () => {
-  const { t } = useLanguage();
     setLoading(true);
     LoanService.getLoans().then(setLoans).catch(() => {}).finally(() => setLoading(false));
   };
@@ -4064,6 +4146,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
 
   useEffect(() => {
     fetchLoans();
+    AccountService.getBranchMembers().then(setMembers).catch(() => {});
   }, []);
 
   const user = AuthService.getCurrentUser();
@@ -4114,7 +4197,6 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const collectionList = loans.filter(l => l.status === 'ACTIVE' && l.evaluatorId === currentUserId && (l.repaymentMethod === 'FIELD_COLLECTION' || l.applicationData?.repaymentMethod === 'FIELD_COLLECTION'));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { t } = useLanguage();
     if (e.target.files) {
       Array.from(e.target.files).forEach(file => {
         const reader = new FileReader();
@@ -4366,8 +4448,9 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
       ? loans.filter((l: any) => 
           (l.branchId === user?.branchId || !l.branchId) && // Some loans might not have branchId in older mock data
           (l.status === 'ACTIVE' || l.currentStage === 'DISBURSED') &&
-          (l.accountNumber.toLowerCase().includes(searchAccNum.toLowerCase()) || 
-          (l.applicationData?.name || '').toLowerCase().includes(searchAccNum.toLowerCase()))
+          ((l.accountNumber || '').toLowerCase().includes(searchAccNum.toLowerCase()) || 
+          (l.applicationData?.name || '').toLowerCase().includes(searchAccNum.toLowerCase()) ||
+          (getMemberName(l.memberId) || '').toLowerCase().includes(searchAccNum.toLowerCase()))
         ).slice(0, 5)
       : [];
 
@@ -4493,7 +4576,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                             className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors"
                           >
                             <div>
-                              <p className="text-sm font-bold text-slate-800">{s.applicationData?.name || s.applicationData?.applicantName || 'Unknown'}</p>
+                              <p className="text-sm font-bold text-slate-800">{s.applicationData?.name || s.applicationData?.applicantName || getMemberName(s.memberId) || 'Unknown'}</p>
                               <p className="text-xs text-slate-500 font-mono mt-0.5">{s.accountNumber}</p>
                             </div>
                           </div>
@@ -4521,10 +4604,10 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                     <div className="flex items-center justify-between p-5 rounded-xl border-2 border-emerald-100 bg-emerald-50/50">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold text-xl shadow-inner">
-                          {(searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || 'U').charAt(0)}
+                          {(searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || getMemberName(searchedLoan.memberId) || 'U').charAt(0)}
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-slate-800">{searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || 'Unknown'}</p>
+                          <p className="text-lg font-bold text-slate-800">{searchedLoan.applicationData?.name || searchedLoan.applicationData?.applicantName || getMemberName(searchedLoan.memberId) || 'Unknown'}</p>
                           <p className="text-sm text-slate-600 font-medium font-mono bg-white px-2 py-0.5 rounded border border-slate-100 inline-block mt-1">{searchedLoan.accountNumber}</p>
                           <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1"><MapPin size={12}/> {searchedLoan.applicationData?.addressLine1}</p>
                         </div>
@@ -4551,7 +4634,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                 <h3 className="text-lg font-bold text-slate-800 mb-2">{t(`වාරිකය එකතු කිරීම`)}</h3>
                 <div className="flex justify-between items-start mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-800">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName}</p>
+                    <p className="text-sm font-bold text-slate-800">{collectionLoan.applicationData?.name || collectionLoan.applicationData?.applicantName || getMemberName(collectionLoan.memberId) || 'Unknown'}</p>
                     <ul className="mt-2 space-y-1.5 list-disc list-inside text-xs text-slate-600 ml-1 marker:text-emerald-500">
                       <li>
                         <span className="font-bold text-slate-800">{t(`ණය අංකය:`)}</span> <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{collectionLoan.accountNumber}</span>
@@ -4664,7 +4747,6 @@ function LedgerView({ branchId }: { branchId?: number }) {
     LedgerService.GL_ACCOUNT_LABELS[code] || code;
 
   const accountColor = (code: string) => {
-  const { t } = useLanguage();
     if (code === 'LOAN_RECEIVABLE')  return 'bg-blue-100 text-blue-800';
     if (code === 'CASH_IN_VAULT')    return 'bg-emerald-100 text-emerald-800';
     if (code === 'SAVINGS_DEPOSITS') return 'bg-purple-100 text-purple-800';
@@ -4816,7 +4898,6 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
   }, []);
 
   const getDynamicBranchName = () => {
-  const { t } = useLanguage();
     const b = branches.find(x => x.branchId === branchId);
     return b ? b.branchName : `Branch ${branchId}`;
   };
@@ -5981,16 +6062,20 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     switch (role) {
       case 'BRANCH_MANAGER':
         if (['overview', 'approvals', 'loans', 'manager-approved', 'committee-approved', 'pawning_approvals'].includes(tab)) {
-          return <BranchManagerView activeTab={tab} />;
+          return <BranchManagerView activeTab={tab} setTab={setTabState} />;
         }
         return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
       case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} />;
-      case 'SENIOR_OFFICER':       return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
+      case 'SENIOR_OFFICER':
+        if (tab === 'overview') {
+          return <BranchManagerView activeTab="overview" setTab={setTabState} />;
+        }
+        return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
-      default:                     return <BranchManagerView activeTab={tab} />;
+      default:                     return <BranchManagerView activeTab={tab} setTab={setTabState} />;
     }
   };
 

@@ -51,7 +51,10 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
     return sum + Number(l.outstandingBalance || l.amount || l.requestedAmount || 0);
   }, 0);
 
-  const pendingLoans = loans.filter(l => l.status === 'PENDING').length;
+  const managerPending = loans.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING').length;
+  const committeePending = loans.filter(l => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' && l.status === 'PENDING').length;
+  const disbursementPending = loans.filter(l => (l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED') && l.status !== 'ACTIVE' && l.status !== 'COMPLETED' && l.status !== 'REJECTED' && l.currentStage !== 'DISBURSED').length;
+  const pendingLoans = managerPending + committeePending + disbursementPending;
   
   const totalPawningAdvances = pawningTickets.filter(p => p.status === 'ACTIVE').reduce((sum, p) => sum + Number(p.advanceAmount || p.advance_amount || 0), 0);
   const pendingPawning = pawningTickets.filter(p => p.status === 'PENDING').length;
@@ -99,23 +102,31 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
           <div className="flex items-start gap-3">
             <AlertCircle className="text-orange-500 mt-0.5" size={20} />
             <div>
-              <h4 className="text-orange-800 font-bold text-sm">Action Required</h4>
-              <p className="text-orange-700 text-sm mt-1">
-                You have {pendingLoans > 0 && <span className="font-bold">{pendingLoans} pending loan(s)</span>}
-                {pendingLoans > 0 && pendingPawning > 0 && " and "}
-                {pendingPawning > 0 && <span className="font-bold">{pendingPawning} pending pawning ticket(s)</span>} 
-                {' '}waiting for your approval.
-              </p>
+              <h4 className="text-orange-800 font-bold text-sm">ක්‍රියාමාර්ග ගැනීමට ඇත (Action Required)</h4>
+              <div className="text-orange-700 text-xs mt-1.5 space-y-1 font-medium">
+                {managerPending > 0 && (
+                  <p>• ශාඛා කළමනාකරුගේ අනුමැතිය සඳහා ණය අයදුම්පත් <span className="font-bold text-orange-900">{managerPending}</span> ක් ඇත. (Branch Manager Approval)</p>
+                )}
+                {committeePending > 0 && (
+                  <p>• ණය කමිටුවේ අනුමැතිය සඳහා ණය අයදුම්පත් <span className="font-bold text-orange-900">{committeePending}</span> ක් ඇත. (Loan Committee Approval)</p>
+                )}
+                {disbursementPending > 0 && (
+                  <p>• මුදල් නිදහස් කිරීමට (කැෂියර්/මුදල් අයකැමි) ණය අයදුම්පත් <span className="font-bold text-orange-900">{disbursementPending}</span> ක් ඇත. (Disbursement / Payout)</p>
+                )}
+                {pendingPawning > 0 && (
+                  <p>• අනුමැතිය සඳහා පොරොත්තු වන රන් උකස් පත් <span className="font-bold text-orange-900">{pendingPawning}</span> ක් ඇත. (Pawning Approval)</p>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             {pendingLoans > 0 && (
-              <button onClick={() => setTab('approvals')} className="text-sm bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors">
+              <button onClick={() => setTab('approvals')} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors">
                 View Loans
               </button>
             )}
             {pendingPawning > 0 && (
-              <button onClick={() => setTab('pawning_approvals')} className="text-sm bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors">
+              <button onClick={() => setTab('pawning_approvals')} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors">
                 View Pawning
               </button>
             )}

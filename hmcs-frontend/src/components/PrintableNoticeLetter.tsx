@@ -35,13 +35,33 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
 
   const ad = typeof loan?.applicationData === 'string' ? JSON.parse(loan.applicationData || '{}') : (loan?.applicationData || {});
   
-  const extractedMemberName = memberNameProp || member?.fullNameSinhala || member?.fullName || member?.nameWithInitials || ad?.applicantName || ad?.name || ad?.fullName || '........................................................';
-  const extractedMemberAddress = member?.address || ad?.address || ad?.applicantAddress || '........................................................';
+  const cleanText = (txt: any) => {
+    if (!txt || typeof txt !== 'string') return '';
+    const trimmed = txt.trim();
+    if (trimmed.match(/^\.+$/)) return '';
+    return trimmed;
+  };
+
+  const extractedMemberName = cleanText(memberNameProp) || cleanText(member?.fullNameSinhala) || cleanText(member?.fullName) || cleanText(member?.nameWithInitials) || cleanText(ad?.applicantName) || cleanText(ad?.name) || cleanText(ad?.fullName) || '';
+  const extractedMemberAddress = cleanText(member?.address) || cleanText(ad?.address) || cleanText(ad?.applicantAddress) || '';
   
-  const branchNameStr = getBranchName(loan?.branchId || 1) || 'හික්කඩුව';
+  const branchMapSi: Record<number, string> = {
+    1: 'හික්කඩුව',
+    2: 'දොඩන්දූව',
+    3: 'රත්ගම',
+    4: 'සීනිගම',
+    5: 'තිරාණගම',
+    6: 'පෙරලිය',
+    7: 'කලුපේ',
+    8: 'ගෝනාපීනුවල',
+    9: 'බද්දේගම',
+    10: 'සන්දරවල',
+    11: 'ගාල්ල'
+  };
+  const branchNameStr = branchMapSi[loan?.branchId || 1] || 'හික්කඩුව';
   const loanNumber = loan?.accountNumber || loan?.loanNumber || loan?.loanId || '....................';
   const requestedAmount = loan?.requestedAmount ? Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '....................';
-  const arrearsAmountStr = overdueAmount ? Number(overdueAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : (loan?.overdueAmount ? Number(loan.overdueAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : requestedAmount);
+  const arrearsAmountStr = '........................';
 
   const g1 = guarantors[0] ? (guarantors[0].fullNameSinhala || guarantors[0].fullName || guarantors[0].nameWithInitials) : '........................................................';
   const g1Address = guarantors[0]?.address || '........................................................';
@@ -66,27 +86,30 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
         {/* ── LETTER 1: ණය කරු වෙත යවනු ලබන පළමු වෙනි ලිපිය (Job 1675) ── */}
         {noticeType === 1 && (
           <div className="space-y-6 text-justify">
-            <div className="border-b-2 border-black pb-3 text-center space-y-1">
-              <h2 className="text-xl font-bold uppercase">{societyNameSi}</h2>
-              <p className="text-xs">{addressSi} | දුරකථන: {telephone}</p>
-              <h3 className="text-base font-bold underline mt-2">ණය කරු වෙත යවනු ලබන පළමුවැන්න ලිපිය</h3>
+            {/* Exactly matches the original paper header */}
+            <div className="flex justify-between items-end border-b-0 pb-1 mt-4">
+              <span className="underline font-bold text-base">ණය කරුවෙත යවනු ලබන පළමුවැනි ලිපිය</span>
+              <span className="text-sm">දිනය: <span className="font-bold">{formattedNoticeDate}</span></span>
             </div>
 
-            <div className="flex justify-between items-start pt-2">
-              <div>
-                <p className="font-bold">{extractedMemberName}</p>
-                <p className="text-xs">{extractedMemberAddress}</p>
+            <div className="pt-4 text-base space-y-1.5 max-w-[480px]">
+              <div className="flex items-end gap-1">
+                <span className="flex-grow pb-0.5 min-h-[24px] font-bold focus:outline-none border-b-2 border-dotted border-black/80">
+                  {extractedMemberName}
+                </span>
+                <span className="whitespace-nowrap pb-0.5">මයා / මිය,</span>
               </div>
-              <div className="text-right text-xs">
-                <p>දිනය: <span className="font-bold">{formattedNoticeDate}</span></p>
+              <div className="pb-0.5 min-h-[24px] focus:outline-none border-b-2 border-dotted border-black/80">
+                {extractedMemberAddress}
               </div>
+              <div className="pb-0.5 min-h-[24px] focus:outline-none border-b-2 border-dotted border-black/80"></div>
             </div>
 
             <p className="pt-2 font-bold">මහත්මයාණෙනි / මහත්මියනි,</p>
 
-            <p className="text-center font-bold text-base border-y border-dashed border-gray-400 py-1">
-              රු. {requestedAmount} ක ණය මුදල - ණය අංක: {loanNumber}
-            </p>
+            <div className="border-b border-dotted border-black/60 pb-1 text-center font-bold text-base">
+              රු: <span className="underline px-2">{requestedAmount}</span> ක ණය මුදල - ණය අංක: {loanNumber}
+            </div>
 
             <p className="indent-8">
               ඔබ විසින් මෙම සමිතියේ <strong>{branchNameStr}</strong> ග්‍රාමීය බැංකුවෙන් <strong>{formattedNoticeDate}</strong> දින ලබාගෙන ඇති රු. <strong>{requestedAmount}</strong> ක ණය මුදලේ නියමිත වාරික මසපතා නොගෙවීම නිසා අද දිනට රු. <strong>{arrearsAmountStr}</strong> ක හිඟ ශේෂයක්ද, මෙයට අමතරව <strong>{formattedNoticeDate}</strong> දින සිට රු. <strong>........................</strong> පොලියද අයවිය යුතුව ඇත. එබැවින් කරුණාකර <strong>{formattedDueDate}</strong> දිනට පෙර මෙම හිඟ මුදල හා පොලියද ග්‍රාමීය බැංකුවේ තැන්පත් කරන ලෙස ඔබට මෙයින් මතක් කරමි.

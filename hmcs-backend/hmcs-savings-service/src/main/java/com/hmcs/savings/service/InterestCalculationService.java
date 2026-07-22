@@ -150,7 +150,7 @@ public class InterestCalculationService {
                     final LocalDate finalDate = date;
                     boolean alreadyCredited = transactionRepository.findByAccountAccountId(account.getAccountId())
                             .stream()
-                            .anyMatch(tx -> "INTEREST_CREDIT".equals(tx.getTransactionType()) &&
+                            .anyMatch(tx -> ("INTEREST_CREDIT".equals(tx.getTransactionType()) || "INTEREST".equals(tx.getTransactionType())) &&
                                             tx.getTransactionTimestamp().toLocalDate().getMonth().equals(finalDate.getMonth()) &&
                                             tx.getTransactionTimestamp().toLocalDate().getYear() == finalDate.getYear());
 
@@ -260,16 +260,25 @@ public class InterestCalculationService {
         List<DailyBalance> monthBalances = dailyBalanceRepository
                 .findByAccountIdAndRecordDateBetween(account.getAccountId(), startOfMonth, endOfMonth);
 
-        BigDecimal grossInterest = BigDecimal.ZERO;
-        BigDecimal daysInYearBd = BigDecimal.valueOf(daysInYear);
-
-        for (DailyBalance db : monthBalances) {
-            // I_daily = (Balance × Rate) / DaysInYear
-            BigDecimal dailyInterest = db.getClosingBalance()
-                    .multiply(db.getAnnualInterestRate())
-                    .divide(daysInYearBd, 6, RoundingMode.HALF_UP);
-            grossInterest = grossInterest.add(dailyInterest);
+        if (monthBalances.isEmpty()) {
+            return;
         }
+
+        // Find the absolute minimum closing balance of the month
+        BigDecimal minBalance = monthBalances.stream()
+                .map(DailyBalance::getClosingBalance)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        // Get the latest interest rate of the month
+        BigDecimal annualRate = monthBalances.get(monthBalances.size() - 1).getAnnualInterestRate();
+        if (annualRate == null) {
+            annualRate = account.getAnnualInterestRate() != null ? account.getAnnualInterestRate() : new BigDecimal("0.0600");
+        }
+
+        // Monthly Interest = (Min Balance × Annual Rate) / 12
+        BigDecimal grossInterest = minBalance.multiply(annualRate)
+                .divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
 
         if (grossInterest.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal netInterest = grossInterest.setScale(2, RoundingMode.HALF_UP);
@@ -280,9 +289,10 @@ public class InterestCalculationService {
 
                 Transaction transaction = new Transaction();
                 transaction.setAccount(account);
-                transaction.setTransactionType("INTEREST_CREDIT");
+                transaction.setTransactionType("INTEREST");
                 transaction.setAmount(netInterest);
                 transaction.setBalanceAfter(account.getBalance());
+                transaction.setTransactionTimestamp(endOfMonth.atTime(23, 59, 59));
                 transaction.setProcessedBy(SYSTEM_USER_ID);
                 transactionRepository.save(transaction);
             }

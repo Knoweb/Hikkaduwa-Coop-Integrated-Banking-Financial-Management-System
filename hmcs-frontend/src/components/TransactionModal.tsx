@@ -226,7 +226,6 @@ export default function TransactionModal({ accountId, accountNumber, accountType
   };
 
   const getActionDetails = () => {
-  const { t } = useLanguage();
     switch (action) {
       case 'DEPOSIT':
         return {
