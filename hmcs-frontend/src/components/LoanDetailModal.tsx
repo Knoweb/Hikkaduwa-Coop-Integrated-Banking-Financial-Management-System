@@ -21,6 +21,7 @@ interface Props {
   memberName: string;
   onClose: () => void;
   onUpdated: () => void;
+  defaultOpenNotice?: boolean;
 }
 
 const STAGE_ORDER = [
@@ -36,7 +37,7 @@ const STAGE_ROLE_MAP: Record<string, string[]> = {
   STAGE_3_APPROVED:                [],
 };
 
-export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }: Props) {
+export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, defaultOpenNotice = false }: Props) {
   const { t } = useLanguage();
   const [tab, setTab] = useState<'overview' | 'schedule' | 'payments' | 'history'>('overview');
   const [history, setHistory] = useState<LoanService.LoanApprovalAction[]>([]);
@@ -255,12 +256,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated }
   const livePrincipalPortion = Math.max(0, payAmtNum - modalCalculatedInterest);
   const liveOutstandingAfter = Math.max(0, outstandingPrincipal - livePrincipalPortion);
 
-  // Auto-open notice letter modal when viewing an OVERDUE loan
+  // Auto-open notice letter modal when viewing an OVERDUE loan and defaultOpenNotice is true
   useEffect(() => {
-    if (loan.status === 'OVERDUE') {
+    if (loan.status === 'OVERDUE' && defaultOpenNotice) {
       handleOpenNoticeModal();
     }
-  }, [loan.status, loan.loanId]);
+  }, [loan.status, loan.loanId, defaultOpenNotice]);
 
   // Auto-calculate suggested amount when payment date changes
   useEffect(() => {

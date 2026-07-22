@@ -1449,6 +1449,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [loanSearch, setLoanSearch] = useState('');
   const [loanFilter, setLoanFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'COMPLETED'>('ACTIVE');
   const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
+  const [openNoticeOnModal, setOpenNoticeOnModal] = useState(false);
   const [savingsTypes, setSavingsTypes] = useState<AccountService.SavingsAccountType[]>([]);
   const [search, setSearch] = useState('');
   const [ageFilter, setAgeFilter] = useState('ALL');
@@ -2412,11 +2413,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setViewLoan(l)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm" title={t('View Loan')}>
+                        <button onClick={() => { setViewLoan(l); setOpenNoticeOnModal(false); }} className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm" title={t('View Loan')}>
                           {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? 'මුදා හරින්න' : 'බලන්න'}
                         </button>
                         {l.status === 'OVERDUE' && (
-                          <button onClick={() => setViewLoan(l)} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm flex items-center gap-1" title="දැනුම්දීමේ ලිපිය">
+                          <button onClick={() => { setViewLoan(l); setOpenNoticeOnModal(true); }} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm flex items-center gap-1" title="දැනුම්දීමේ ලිපිය">
                             <FileText size={13} className="text-amber-600" /> ලිපිය
                           </button>
                         )}
@@ -2452,6 +2453,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               return m ? (m.fullName || m.fullNameSinhala) : 'Unknown Member';
             })()}
             onClose={() => setViewLoan(null)}
+            defaultOpenNotice={openNoticeOnModal}
             onUpdated={() => {
               setViewLoan(null);
               LoanService.getLoans().then(setLoans).catch(() => {});
