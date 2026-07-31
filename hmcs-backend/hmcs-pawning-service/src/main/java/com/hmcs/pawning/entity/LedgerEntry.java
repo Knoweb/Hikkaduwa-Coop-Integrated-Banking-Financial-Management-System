@@ -55,7 +55,6 @@ public class LedgerEntry {
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

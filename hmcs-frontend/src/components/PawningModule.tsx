@@ -83,6 +83,8 @@ export default function PawningModule({ branchId }: { branchId: number }) {
   });
 
   const activeCount = computedTickets.filter(t => t.displayStatus === 'ACTIVE').length;
+  const pendingCount = computedTickets.filter(t => t.displayStatus === 'PENDING').length;
+  const approvedCount = computedTickets.filter(t => t.displayStatus === 'APPROVED').length;
   const inactiveCount = computedTickets.filter(t => t.displayStatus === 'INACTIVE' || t.status === 'OVERDUE').length;
   const nearingCount = computedTickets.filter(t => t.displayStatus === 'NEARING').length;
   const redeemedCount = computedTickets.filter(t => t.displayStatus === 'REDEEMED').length;
@@ -93,21 +95,41 @@ export default function PawningModule({ branchId }: { branchId: number }) {
 
   const filteredTickets = filteredByStatus.filter(t => {
     if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase().trim().replace(/^(pw|PW|Pw|pW)-/, '');
-    const m = members.find(mem => String(mem.membershipNumber || mem.membership_number || mem.memberId) === String(t.memberId));
-    const nameStr = (m?.fullNameSinhala || m?.fullName || m?.nameWithInitials || m?.name_with_initials || t.memberName || '').toLowerCase();
-    const nicStr = (m?.nic || t.member?.nic || '').toLowerCase();
-    const ticketStr = String(t.ticketNumber).toLowerCase();
-    return nameStr.includes(q) || nicStr.includes(q) || ticketStr.includes(q);
+    const rawQ = searchQuery.toLowerCase().trim();
+    const q = rawQ.replace(/^(pw|PW|Pw|pW)-/, '');
+    const m = members.find(mem => String(mem.memberId) === String(t.memberId) || String(mem.membershipNumber) === String(t.memberId) || String(mem.membership_number) === String(t.memberId));
+    const displayedName = getMemberInitials(t).toLowerCase();
+    const nameStr = [
+      displayedName,
+      m?.fullNameSinhala,
+      m?.fullName,
+      m?.nameWithInitials,
+      m?.name_with_initials,
+      m?.firstName,
+      m?.lastName,
+      t.memberName,
+      t.member?.nameWithInitials,
+      t.member?.fullName,
+      t.member?.fullNameSinhala
+    ].filter(Boolean).join(' ').toLowerCase();
+    const nicStr = String(m?.nic || t.member?.nic || '').toLowerCase();
+    const ticketStr = String(t.ticketNumber || '').toLowerCase();
+    const memNumStr = String(m?.membershipNumber || m?.membership_number || t.memberId || '').toLowerCase();
+    return nameStr.includes(rawQ) || nicStr.includes(rawQ) || ticketStr.includes(q) || ticketStr.includes(rawQ) || memNumStr.includes(rawQ);
   });
 
   const eligibleTickets = tickets.filter(t => t.status !== 'PENDING' && t.status !== 'REDEEMED');
   const cleanSearchInput = searchTicketNumber.trim().replace(/^(pw|PW|Pw|pW)-/, '');
   const suggestions = searchTicketNumber.trim() 
-    ? eligibleTickets.filter(t => 
-        String(t.ticketNumber).toLowerCase().includes(cleanSearchInput.toLowerCase()) ||
-        `pw-${t.ticketNumber}`.toLowerCase().includes(searchTicketNumber.trim().toLowerCase())
-      )
+    ? eligibleTickets.filter(t => {
+        const displayedName = getMemberInitials(t).toLowerCase();
+        const ticketStr = String(t.ticketNumber || '').toLowerCase();
+        const searchLow = searchTicketNumber.trim().toLowerCase();
+        return ticketStr.includes(cleanSearchInput.toLowerCase()) ||
+               `pw-${t.ticketNumber}`.toLowerCase().includes(searchLow) ||
+               displayedName.includes(searchLow) ||
+               String(t.memberId).toLowerCase().includes(searchLow);
+      })
     : [];
 
   return (
@@ -136,7 +158,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-2">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-2">
         <div 
           onClick={() => setFilter('ALL')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'ALL' ? 'bg-amber-50 border-amber-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300 shadow-sm'}`}
@@ -146,6 +168,24 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු ගිණුම්`)}</p>
         </div>
         
+        <div 
+          onClick={() => setFilter('PENDING')}
+          className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'PENDING' ? 'bg-orange-50 border-orange-500 shadow-sm' : 'bg-white border-slate-100 hover:border-orange-200 shadow-sm'}`}
+        >
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`අනුමැතිය ලැබිය යුතු`)}</p>
+          <p className={`text-2xl font-black ${filter === 'PENDING' ? 'text-orange-700' : 'text-orange-500'}`}>{pendingCount}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`අනුමැතිය සඳහා`)}</p>
+        </div>
+
+        <div 
+          onClick={() => setFilter('APPROVED')}
+          className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'APPROVED' ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200 shadow-sm'}`}
+        >
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`නිකුත් කළ යුතු`)}</p>
+          <p className={`text-2xl font-black ${filter === 'APPROVED' ? 'text-blue-700' : 'text-blue-500'}`}>{approvedCount}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t(`අනුමත කර ඇත`)}</p>
+        </div>
+
         <div 
           onClick={() => setFilter('ACTIVE')}
           className={`cursor-pointer rounded-xl p-4 border transition-all ${filter === 'ACTIVE' ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-white border-slate-100 hover:border-emerald-200 shadow-sm'}`}
@@ -294,7 +334,17 @@ export default function PawningModule({ branchId }: { branchId: number }) {
         />
       )}
 
-      {selectedTicket && <PawnTicketViewModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} />}
+      {selectedTicket && (
+        <PawnTicketViewModal 
+          ticket={selectedTicket} 
+          onClose={() => setSelectedTicket(null)} 
+          onPay={() => {
+            const ticketToPay = selectedTicket;
+            setSelectedTicket(null);
+            setPaymentTicket(ticketToPay);
+          }}
+        />
+      )}
       
       {paymentTicket && (
         <PawnPaymentModal 

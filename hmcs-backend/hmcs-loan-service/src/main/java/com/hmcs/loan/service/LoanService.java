@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,6 +36,7 @@ public class LoanService {
     @Autowired private LoanGuarantorRepository guarantorRepository;
     @Autowired private LoanFamilyMemberRepository familyMemberRepository;
     @Autowired private com.hmcs.loan.repository.PendingFieldCollectionRepository pendingFieldCollectionRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     private String str(Map<String, Object> m, String key) {
@@ -63,6 +65,7 @@ public class LoanService {
     // ── Apply ──────────────────────────────────────────────────────────────────
     @Transactional
     public Loan applyForLoan(Loan loanRequest, UUID loanTypeId) {
+
         LoanType type = loanTypeRepository.findById(loanTypeId)
                 .orElseThrow(() -> new RuntimeException("Loan Type not found"));
 
@@ -643,7 +646,8 @@ public class LoanService {
         // Record Repayment
         LoanRepayment repayment = new LoanRepayment();
         repayment.setLoanId(loanId);
-        repayment.setPaymentDate(paymentDate.atStartOfDay());
+        java.time.LocalDateTime actualPayTime = paymentDate.equals(java.time.LocalDate.now()) ? java.time.LocalDateTime.now() : paymentDate.atTime(12, 0);
+        repayment.setPaymentDate(actualPayTime);
         repayment.setPaymentBranchId(paymentBranchId != null ? paymentBranchId : loan.getBranchId());
         repayment.setProcessedBy(UUID.randomUUID()); 
         repayment.setTotalPaid(paymentAmount);
@@ -672,6 +676,7 @@ public class LoanService {
         cashIn.setLoanId(loanId);
         cashIn.setReferenceNumber(repayment.getId().toString());
         cashIn.setEntryDate(paymentDate);
+        cashIn.setCreatedAt(actualPayTime);
         cashIn.setDescription("Loan Repayment (Cash In) — " + loan.getAccountNumber());
         cashIn.setDebitAccount(debitAccount);
         cashIn.setCreditAccount("LOAN_REPAYMENT_CLEARING");
@@ -686,6 +691,7 @@ public class LoanService {
         principalDeduction.setLoanId(loanId);
         principalDeduction.setReferenceNumber(repayment.getId().toString());
         principalDeduction.setEntryDate(paymentDate);
+        principalDeduction.setCreatedAt(actualPayTime);
         principalDeduction.setDescription("Loan Principal Deduction — " + loan.getAccountNumber());
         principalDeduction.setDebitAccount("LOAN_REPAYMENT_CLEARING");
         principalDeduction.setCreditAccount("LOAN_RECEIVABLE");
@@ -701,6 +707,7 @@ public class LoanService {
         interestIncome.setLoanId(loanId);
         interestIncome.setReferenceNumber(repayment.getId().toString());
         interestIncome.setEntryDate(paymentDate);
+        interestIncome.setCreatedAt(actualPayTime);
         interestIncome.setDescription("Loan Interest Income — " + loan.getAccountNumber());
         interestIncome.setDebitAccount("LOAN_REPAYMENT_CLEARING");
         interestIncome.setCreditAccount("INTEREST_INCOME");
@@ -805,6 +812,171 @@ public class LoanService {
         entry.setBranchId(branchId != null ? branchId : 1);
         entry.setCreatedBy(tellerUsername != null ? tellerUsername : fieldOfficerUsername);
         ledgerEntryRepository.save(entry);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void editRepaymentAndRebuildLedger(UUID entryId, BigDecimal newAmount, String reason, String actorUsername) {
+        LedgerEntry initialEntry = ledgerEntryRepository.findById(entryId).orElse(null);
+        if (initialEntry == null) {
+            List<LedgerEntry> byRef = ledgerEntryRepository.findByReferenceNumber(entryId.toString());
+            if (byRef != null && !byRef.isEmpty()) {
+                initialEntry = byRef.stream()
+                        .filter(e -> "REPAYMENT_CASH_IN".equals(e.getEntryType()) || "DISBURSEMENT".equals(e.getEntryType()))
+                        .findFirst()
+                        .orElse(byRef.get(0));
+            }
+        }
+        if (initialEntry == null) {
+            throw new RuntimeException("Ledger transaction not found: " + entryId);
+        }
+
+        BigDecimal oldAmount = initialEntry.getAmount();
+        UUID auditTxId = entryId;
+        Integer branchId = initialEntry.getBranchId() != null ? initialEntry.getBranchId() : 1;
+        Integer tenantId = com.hmcs.loan.multitenancy.TenantContext.getTenantId();
+        if (tenantId == null || tenantId == 0) tenantId = 1;
+
+        if ("REPAYMENT_CASH_IN".equals(initialEntry.getEntryType()) && initialEntry.getReferenceNumber() != null) {
+            try {
+                UUID repaymentId = UUID.fromString(initialEntry.getReferenceNumber());
+                LoanRepayment repayment = loanRepaymentRepository.findById(repaymentId).orElse(null);
+                if (repayment != null) {
+                    oldAmount = repayment.getTotalPaid();
+                    auditTxId = repayment.getId();
+                    
+                    List<LedgerEntry> entries = ledgerEntryRepository.findByReferenceNumber(initialEntry.getReferenceNumber());
+                    ledgerEntryRepository.deleteAll(entries);
+                    
+                    UUID loanId = repayment.getLoanId();
+                    Loan loan = loanRepository.findById(loanId).orElseThrow(() -> new RuntimeException("Loan not found"));
+                    String method = repayment.getPaymentMethod() != null ? repayment.getPaymentMethod().name() : "CASH";
+                    Integer payBranchId = repayment.getPaymentBranchId() != null ? Math.toIntExact(repayment.getPaymentBranchId()) : 1;
+                    
+                    repayment.setTotalPaid(newAmount);
+                    repayment.setPrincipalPortion(newAmount);
+                    repayment.setInterestPortion(BigDecimal.ZERO);
+                    loanRepaymentRepository.save(repayment);
+                    
+                    String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(method) ? "SAVINGS_DEPOSITS" : 
+                                          "FIELD_COLLECTION".equalsIgnoreCase(method) ? "FIELD_CASH_" + actorUsername.toUpperCase() : 
+                                          "CASH_IN_VAULT";
+                    
+                    java.time.LocalDateTime origTimestamp = repayment.getPaymentDate() != null ? repayment.getPaymentDate() : java.time.LocalDateTime.now();
+                    java.time.LocalDate entryDate = origTimestamp.toLocalDate();
+                    
+                    LedgerEntry cashIn = new LedgerEntry();
+                    cashIn.setLoanId(loanId);
+                    cashIn.setReferenceNumber(repayment.getId().toString());
+                    cashIn.setEntryDate(entryDate);
+                    cashIn.setCreatedAt(origTimestamp);
+                    cashIn.setDescription("Loan Repayment (Cash In) — " + loan.getAccountNumber());
+                    cashIn.setDebitAccount(debitAccount);
+                    cashIn.setCreditAccount("LOAN_REPAYMENT_CLEARING");
+                    cashIn.setAmount(newAmount);
+                    cashIn.setEntryType("REPAYMENT_CASH_IN");
+                    cashIn.setPaymentMethod(method);
+                    cashIn.setBranchId(payBranchId);
+                    cashIn.setCreatedBy(actorUsername);
+                    ledgerEntryRepository.save(cashIn);
+
+                    LedgerEntry principalDeduction = new LedgerEntry();
+                    principalDeduction.setLoanId(loanId);
+                    principalDeduction.setReferenceNumber(repayment.getId().toString());
+                    principalDeduction.setEntryDate(entryDate);
+                    principalDeduction.setCreatedAt(origTimestamp);
+                    principalDeduction.setDescription("Loan Principal Deduction — " + loan.getAccountNumber());
+                    principalDeduction.setDebitAccount("LOAN_REPAYMENT_CLEARING");
+                    principalDeduction.setCreditAccount("LOAN_RECEIVABLE");
+                    principalDeduction.setAmount(newAmount);
+                    principalDeduction.setEntryType("REPAYMENT_PRINCIPAL");
+                    principalDeduction.setPaymentMethod(method);
+                    principalDeduction.setBranchId(payBranchId);
+                    principalDeduction.setCreatedBy(actorUsername);
+                    ledgerEntryRepository.save(principalDeduction);
+                } else {
+                    initialEntry.setAmount(newAmount);
+                    ledgerEntryRepository.save(initialEntry);
+                }
+            } catch (Exception e) {
+                initialEntry.setAmount(newAmount);
+                ledgerEntryRepository.save(initialEntry);
+            }
+        } else if ("DISBURSEMENT".equals(initialEntry.getEntryType())) {
+            initialEntry.setAmount(newAmount);
+            ledgerEntryRepository.save(initialEntry);
+            if (initialEntry.getLoanId() != null) {
+                Loan loan = loanRepository.findById(initialEntry.getLoanId()).orElse(null);
+                if (loan != null) {
+                    loan.setDisbursedAmount(newAmount);
+                    loan.setRequestedAmount(newAmount);
+                    loan.setApprovedAmount(newAmount);
+                    loanRepository.save(loan);
+
+                    // Rebuild EMI Schedule
+                    try {
+                        List<LoanSchedule> oldSchedule = loanScheduleRepository.findByLoanIdOrderByInstallmentNumberAsc(loan.getLoanId());
+                        loanScheduleRepository.deleteAll(oldSchedule);
+
+                        Integer termMonths = null;
+                        if (loan.getApplicationData() != null) {
+                            try {
+                                Map<String, Object> appData = loan.getApplicationData();
+                                if (appData.containsKey("repaymentPeriodMonths")) {
+                                    termMonths = Integer.parseInt(appData.get("repaymentPeriodMonths").toString());
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                        if (termMonths == null) termMonths = 12;
+
+                        List<Map<String, Object>> scheduleData = generateRepaymentSchedule(
+                            loan.getDisbursedAmount(), 
+                            termMonths, 
+                            loan.getInterestRate(), 
+                            loan.getDisbursementDate() != null ? loan.getDisbursementDate().toLocalDate() : loan.getAppliedDate()
+                        );
+                        
+                        for (Map<String, Object> row : scheduleData) {
+                            LoanSchedule schedule = new LoanSchedule();
+                            schedule.setLoanId(loan.getLoanId());
+                            schedule.setInstallmentNumber((Integer) row.get("installmentNo"));
+                            schedule.setDueDate(LocalDate.parse(row.get("dueDate").toString()));
+                            schedule.setExpectedPrincipal((BigDecimal) row.get("principalPortion"));
+                            schedule.setExpectedInterest((BigDecimal) row.get("interestPortion"));
+                            schedule.setTotalExpectedAmount((BigDecimal) row.get("emi"));
+                            schedule.setOutstandingBalance((BigDecimal) row.get("outstandingBalance"));
+                            schedule.setStatus(LoanSchedule.ScheduleStatus.PENDING);
+                            loanScheduleRepository.save(schedule);
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Error rebuilding schedule on transaction edit: " + ex.getMessage());
+                    }
+                }
+            }
+        } else {
+            initialEntry.setAmount(newAmount);
+            ledgerEntryRepository.save(initialEntry);
+        }
+
+        String dynamicModuleType = "LOANS";
+        String entryType = initialEntry.getEntryType();
+        String desc = initialEntry.getDescription();
+        if ("REPAYMENT_CASH_IN".equals(entryType) || "REPAYMENT_PRINCIPAL".equals(entryType) || "REPAYMENT_INTEREST".equals(entryType) || (desc != null && desc.contains("Repayment"))) {
+            dynamicModuleType = "LOAN_REPAYMENT";
+        } else if ("DISBURSEMENT".equals(entryType) || (desc != null && (desc.contains("Disbursement") || desc.contains("ලබාදීම්")))) {
+            dynamicModuleType = "LOAN_DISBURSEMENT";
+        }
+
+        try {
+            String sql = "INSERT INTO audit_service.audit_corrections (correction_id, transaction_id, old_amount, new_amount, module_type, manager_id, reason, timestamp, tenant_id) VALUES (gen_random_uuid(), ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+            jdbcTemplate.update(sql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, tenantId);
+        } catch (Exception e) {
+            try {
+                String altSql = "INSERT INTO audit_service.audit_corrections (transaction_id, old_amount, new_amount, module_type, manager_id, reason, timestamp, tenant_id) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+                jdbcTemplate.update(altSql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, tenantId);
+            } catch (Exception ex) {
+                System.err.println("Failed to insert into audit_corrections: " + ex.getMessage());
+            }
+        }
     }
 }
 

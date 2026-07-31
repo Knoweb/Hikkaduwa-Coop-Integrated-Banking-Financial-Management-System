@@ -301,6 +301,7 @@ export const STAGE_LABELS: Record<string, { label: string; labelSi: string; role
   STAGE_1_MANAGER_APPROVAL:        { label: 'Manager Approval Awaiting',   labelSi: 'කළමනාකාර අනුමැතිය බලාපොරොත්තුවෙන්', role: 'BRANCH_MANAGER', color: 'bg-blue-100 text-blue-700' },
   STAGE_2_LOAN_COMMITTEE_APPROVAL: { label: 'Loan Committee Vote',         labelSi: 'ණය කමිටු අනුමැතිය සඳහා',                    role: 'LOAN_COMMITTEE', color: 'bg-amber-100 text-amber-700' },
   STAGE_3_APPROVED:                { label: 'Loan Committee Approved',     labelSi: 'ණය කමිටුව අනුමත කරන ලදී',            role: 'BRANCH_MANAGER', color: 'bg-emerald-100 text-emerald-700' },
+  DISBURSED:                       { label: 'Disbursed',                   labelSi: 'මුදා හැර ඇත',                          role: '', color: 'bg-indigo-100 text-indigo-700' },
 };
 
 // ── Field Officer Workflows ───────────────────────────────────────────────────

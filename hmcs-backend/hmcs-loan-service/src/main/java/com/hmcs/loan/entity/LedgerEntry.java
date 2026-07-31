@@ -23,6 +23,9 @@ public class LedgerEntry {
     @Column(name = "entry_id", updatable = false, nullable = false)
     private UUID entryId;
 
+    @Column(name = "transaction_id")
+    private UUID transactionId;
+
     // The loan this GL entry is linked to (optional, for loan disbursements)
     @Column(name = "loan_id")
     private UUID loanId;
@@ -62,7 +65,6 @@ public class LedgerEntry {
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

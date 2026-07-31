@@ -380,6 +380,8 @@ function PawningReviewModal({ ticket, onClose, onAction, memberDetails, branchNa
                 type="number" 
                 value={assessedValue} 
                 onChange={e => { setAssessedValue(e.target.value); setError(''); }}
+                onWheel={(e) => (e.target as HTMLElement).blur()}
+                onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                 className={`w-full border-2 rounded-xl px-4 py-3 font-semibold focus:outline-none ${error && !assessedValue ? 'border-red-500 bg-red-50/20' : 'border-slate-200 focus:border-blue-500'}`}
                 placeholder="උදා: 50000.00"
               />

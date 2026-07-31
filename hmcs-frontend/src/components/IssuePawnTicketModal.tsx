@@ -158,11 +158,11 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
                 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t(`දළ බර (Gross Weight - g) *`)}</label>
-                  <input required type="number" step="0.01" value={form.grossWeightGrams} onChange={e => setForm({...form, grossWeightGrams: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                  <input required type="number" step="0.01" value={form.grossWeightGrams} onChange={e => setForm({...form, grossWeightGrams: e.target.value})} onWheel={(e) => (e.target as HTMLElement).blur()} onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t(`ශුද්ධ බර (Net Weight - g) *`)}</label>
-                  <input required type="number" step="0.01" value={form.netWeightGrams} onChange={e => setForm({...form, netWeightGrams: e.target.value})} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                  <input required type="number" step="0.01" value={form.netWeightGrams} onChange={e => setForm({...form, netWeightGrams: e.target.value})} onWheel={(e) => (e.target as HTMLElement).blur()} onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }} placeholder="0.00" className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                 </div>
 
                 <div>

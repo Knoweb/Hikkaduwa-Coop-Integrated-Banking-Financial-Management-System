@@ -53,10 +53,15 @@ public class FixedDepositInterestService {
      * even before they create any fixed deposits.
      */
     private List<Integer> getAllTenantIds() {
-        return jdbcTemplate.queryForList(
-            "SELECT organization_id FROM auth_service.organizations WHERE status = 'ACTIVE' AND organization_id > 0",
-            Integer.class
-        );
+        try {
+            return jdbcTemplate.queryForList(
+                "SELECT DISTINCT branch_id FROM account_service.savings_accounts WHERE branch_id IS NOT NULL AND branch_id > 0",
+                Integer.class
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to get branches: " + e.getMessage());
+            return java.util.Collections.singletonList(1);
+        }
     }
 
     /**

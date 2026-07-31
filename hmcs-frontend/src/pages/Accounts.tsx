@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen, Power } from 'lucide-react';
+import { Search, ArrowUpRight, ArrowDownLeft, Wallet, Plus, Eye, BookOpen, Power, Printer } from 'lucide-react';
+import { printAccountStatement } from '../utils/print';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 import ViewAccountModal from '../components/ViewAccountModal';
@@ -433,7 +434,13 @@ export default function Accounts() {
                     <p className="text-xs text-slate-500 mt-1 font-mono">{passbookData.account?.accountNumber}</p>
                   )}
                 </div>
-                <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors">✕</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => printAccountStatement(passbookData)} className="flex items-center gap-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer border border-indigo-700" title="Print Passbook">
+                    <Printer size={17} />
+                    <span>මුද්‍රණය (Print)</span>
+                  </button>
+                  <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors">✕</button>
+                </div>
               </div>
               <div className="p-0 overflow-y-auto flex-1">
                 {passbookLoading ? (
@@ -447,7 +454,7 @@ export default function Accounts() {
                         <p className="text-2xl font-black text-slate-800 font-mono">Rs. {passbookData.account?.balance?.toLocaleString()}</p>
                       </div>
                       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interest Rate</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">වා.පො.</p>
                         <p className="text-2xl font-black text-indigo-600 font-mono">{(passbookData.account?.annualInterestRate * 100).toFixed(2)}%</p>
                       </div>
                       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">

@@ -112,7 +112,7 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
             </div>
 
             <p className="indent-8">
-              ඔබ විසින් මෙම සමිතියේ <strong>{branchNameStr}</strong> ග්‍රාමීය බැංකුවෙන් <strong>{formattedNoticeDate}</strong> දින ලබාගෙන ඇති රු. <strong>{requestedAmount}</strong> ක ණය මුදලේ නියමිත වාරික මසපතා නොගෙවීම නිසා අද දිනට රු. <strong>{arrearsAmountStr}</strong> ක හිඟ ශේෂයක්ද, මෙයට අමතරව <strong>{formattedNoticeDate}</strong> දින සිට රු. <strong>........................</strong> පොලියද අයවිය යුතුව ඇත. එබැවින් කරුණාකර <strong>{formattedDueDate}</strong> දිනට පෙර මෙම හිඟ මුදල හා පොලියද ග්‍රාමීය බැංකුවේ තැන්පත් කරන ලෙස ඔබට මෙයින් මතක් කරමි.
+              ඔබ විසින් මෙම සමිතියේ <strong>{branchNameStr}</strong> ග්‍රාමීය බැංකුවෙන් <strong>........................</strong> දින ලබාගෙන ඇති රු. <strong>{requestedAmount}</strong> ක ණය මුදලේ නියමිත වාරික මසපතා නොගෙවීම නිසා අද දිනට රු. <strong>{arrearsAmountStr}</strong> ක හිඟ ශේෂයක්ද, මෙයට අමතරව <strong>........................</strong> දින සිට රු. <strong>........................</strong> පොලියද අයවිය යුතුව ඇත. එබැවින් කරුණාකර <strong>........................</strong> දිනට පෙර මෙම හිඟ මුදල හා පොලියද ග්‍රාමීය බැංකුවේ තැන්පත් කරන ලෙස ඔබට මෙයින් මතක් කරමි.
             </p>
 
             <p className="indent-8">
@@ -156,7 +156,7 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
             </p>
 
             <p className="indent-8">
-              <strong>{formattedNoticeDate}</strong> දින දරණ රු. <strong>{requestedAmount}</strong> දරන ඔබට ප්‍රදානය කරන ලද ණය මුදල වෙනුවෙන් දිනට තවම අප වෙත ලැබිය යුතු රු. <strong>{arrearsAmountStr}</strong> ක හිඟ වාරිකයන් මෙතෙක් ගෙවා නොමැති බව දන්වා සිටිමු.
+              <strong>........................</strong> දින දරණ රු. <strong>{requestedAmount}</strong> දරන ඔබට ප්‍රදානය කරන ලද ණය මුදල වෙනුවෙන් අද දිනට තවම අප වෙත ලැබිය යුතු රු. <strong>{arrearsAmountStr}</strong> ක හිඟ වාරිකයන් මෙතෙක් ගෙවා නොමැති බව දන්වා සිටිමු.
             </p>
 
             <p className="indent-8">
@@ -257,7 +257,7 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
             </p>
 
             <p className="indent-8">
-              අපගේ <strong>{formattedNoticeDate}</strong> දින දරණ ලිපියට වැඩිදුරටත් සම්බන්ධවයි. යථෝක්ත ණය මුදල වෙනුවෙන් හිඟව ඇති වාරිකයන් ගෙවීමට ඔබ හෝ ණය කරු කිසිදු ප්‍රයත්නයක් නොගෙන ඇති බව කණගාටුවෙන් දන්වා සිටින අතර <strong>{formattedDueDate}</strong> දිනට පෙර රු. <strong>{arrearsAmountStr}</strong> ක හිඟවාර මුදල් ගෙවන ලෙස ඔබගෙන් ඉල්ලා සිටිමු.
+              අපගේ <strong>........................</strong> දින දරණ ලිපියට වැඩිදුරටත් සම්බන්ධවයි. යථෝක්ත ණය මුදල වෙනුවෙන් හිඟව ඇති වාරිකයන් ගෙවීමට ඔබ හෝ ණය කරු කිසිදු ප්‍රයත්නයක් නොගෙන ඇති බව කණගාටුවෙන් දන්වා සිටින අතර <strong>........................</strong> දිනට පෙර රු. <strong>{arrearsAmountStr}</strong> ක හිඟවාර මුදල් ගෙවන ලෙස ඔබගෙන් ඉල්ලා සිටිමු.
             </p>
 
             <p className="indent-8">
@@ -305,11 +305,11 @@ export const PrintableNoticeLetter = forwardRef<HTMLDivElement, NoticeLetterProp
             </p>
 
             <p className="indent-8 font-medium">
-              ඉහත සඳහන් ණය මුදල වෙනුවෙන් <strong>{formattedNoticeDate}</strong> දිනට මෙතෙක් ඇති රු. <strong>{arrearsAmountStr}</strong> ක වාරිකයන් ගෙවීම ඔබ විසින් පැහැර හැර ඇති බව කනගාටුවෙන් දන්වා සිටිමු. මින් පෙර අවස්ථාවලදී අප විසින් දන්වා ඇතත්, හිඟ වාර මුදල් ගෙවීම සඳහා ඔබ හෝ ඇපකරුවන් කිසිදු උත්සාහයක් නොගැනීම ගැන කනගාටුවන්නෙමු.
+              ඉහත සඳහන් ණය මුදල වෙනුවෙන් <strong>........................</strong> දිනට මෙතෙක් ඇති රු. <strong>{arrearsAmountStr}</strong> ක වාරිකයන් ගෙවීම ඔබ විසින් පැහැර හැර ඇති බව කනගාටුවෙන් දන්වා සිටිමු. මින් පෙර අවස්ථාවලදී අප විසින් දන්වා ඇතත්, හිඟ වාර මුදල් ගෙවීම සඳහා ඔබ හෝ ඇපකරුවන් කිසිදු උත්සාහයක් නොගැනීම ගැන කනගාටුවන්නෙමු.
             </p>
 
             <p className="indent-8 font-bold">
-              කෙසේ හෝ මේ සම්බන්ධයෙන් සිහි පත් කරනු ලැබීමට ප්‍රථමයෙන් හිඟ වාර මුදල් ගෙවීම සඳහා ඔබට තවත් අවස්ථාවක් ලබාදීමට අප අදහස් කොට ඇත. මේ සම්බන්ධයෙන් සුදුසු වැඩපිළිවෙලක් යොදා ගැනීම සඳහා <strong>{formattedDueDate}</strong> දිනට මත්තෙන් පහත අත්සන් කරන අප හමුවන ලෙස ඔබගෙන් ඉල්ලා සිටින අතර, අපගේ මෙම ඉල්ලීම පැහැර හරිනු ලැබුවහොත් තවදුරටත් දැනුම්දීමක් නොමැතිව හිඟ වාරිකයන් අයකර ගැනීම සඳහා නිසි මගින් කටයුතු කිරීමට සිදුවීම අකමැත්තෙන් වුවද අප විසින් ගනු ලබන පියවරක් බව දන්වා සිටිමු.
+              කෙසේ හෝ මේ සම්බන්ධයෙන් සිහි පත් කරනු ලැබීමට ප්‍රථමයෙන් හිඟ වාර මුදල් ගෙවීම සඳහා ඔබට තවත් අවස්ථාවක් ලබාදීමට අප අදහස් කොට ඇත. මේ සම්බන්ධයෙන් සුදුසු වැඩපිළිවෙලක් යොදා ගැනීම සඳහා <strong>........................</strong> දිනට මත්තෙන් පහත අත්සන් කරන අප හමුවන ලෙස ඔබගෙන් ඉල්ලා සිටින අතර, අපගේ මෙම ඉල්ලීම පැහැර හරිනු ලැබුවහොත් තවදුරටත් දැනුම්දීමක් නොමැතිව හිඟ වාරිකයන් අයකර ගැනීම සඳහා නිසි මගින් කටයුතු කිරීමට සිදුවීම අකමැත්තෙන් වුවද අප විසින් ගනු ලබන පියවරක් බව දන්වා සිටිමු.
             </p>
 
             <div className="pt-6 flex justify-between items-end">

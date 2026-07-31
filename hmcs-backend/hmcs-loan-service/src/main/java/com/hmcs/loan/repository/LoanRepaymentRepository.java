@@ -10,6 +10,7 @@ import java.util.UUID;
 @Repository
 public interface LoanRepaymentRepository extends JpaRepository<LoanRepayment, UUID> {
     List<LoanRepayment> findByLoanIdOrderByPaymentDateDesc(UUID loanId);
+    List<LoanRepayment> findByLoanIdOrderByPaymentDateAsc(UUID loanId);
     List<LoanRepayment> findByPaymentBranchIdOrderByPaymentDateDesc(Long paymentBranchId);
     void deleteByLoanId(UUID loanId);
 }

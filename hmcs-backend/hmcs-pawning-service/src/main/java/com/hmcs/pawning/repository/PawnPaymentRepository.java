@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface PawnPaymentRepository extends JpaRepository<PawnPayment, UUID> {
     List<PawnPayment> findByTicketIdOrderByPaymentDateDesc(UUID ticketId);
+    List<PawnPayment> findByTicketIdOrderByPaymentDateAsc(UUID ticketId);
 }

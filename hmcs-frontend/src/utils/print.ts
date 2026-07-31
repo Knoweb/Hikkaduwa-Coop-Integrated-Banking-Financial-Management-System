@@ -418,13 +418,13 @@ export const printAccountStatement = (passbookData: any) => {
   const printed = new Date().toLocaleString('en-US');
   const accNo = passbookData.account?.accountNumber || 'N/A';
   const balance = Number(passbookData.account?.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
-  const interestRate = (passbookData.account?.annualInterestRate || 0).toFixed(2);
+  const interestRate = ((passbookData.account?.annualInterestRate || 0) * 100).toFixed(2);
   const status = passbookData.account?.status || 'UNKNOWN';
   
   let trxRows = '';
   if (passbookData.transactions && passbookData.transactions.length > 0) {
     passbookData.transactions.forEach((tx: any) => {
-      const date = new Date(tx.transactionDate).toLocaleDateString('en-GB');
+      const date = new Date(tx.transactionTimestamp || tx.transactionDate).toLocaleDateString('en-GB');
       const isFdClosureTx =
         tx.transactionType === 'FD_CLOSURE' ||
         tx.transactionType === 'FIXED_DEPOSIT_CLOSURE' ||
@@ -512,8 +512,8 @@ export const printAccountStatement = (passbookData: any) => {
       <div class="summary-value">Rs. ${balance}</div>
     </div>
     <div class="summary-card">
-      <div class="summary-label">Interest Rate</div>
-      <div class="summary-value">${interestRate}% p.a.</div>
+      <div class="summary-label">වා.පො.</div>
+      <div class="summary-value">${interestRate}%</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Status</div>

@@ -10,8 +10,12 @@ import com.hmcs.savings.repository.TransactionRepository;
 import com.hmcs.savings.entity.Account;
 import com.hmcs.savings.entity.Transaction;
 import com.hmcs.savings.entity.FixedDepositRenewal;
+import com.hmcs.savings.entity.LedgerEntry;
+import com.hmcs.savings.repository.LedgerEntryRepository;
 import com.hmcs.savings.security.BranchContext;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,8 +43,10 @@ public class FixedDepositController {
     private final TransactionRepository transactionRepository;
     private final BranchContext branchContext;
     private final com.hmcs.savings.service.FixedDepositInterestService interestService;
+    private final LedgerEntryRepository ledgerEntryRepository;
+    private final JdbcTemplate jdbcTemplate;
 
-    public FixedDepositController(FixedDepositRepository fdRepository, FixedDepositTypeRepository typeRepository, FixedDepositRenewalRepository renewalRepository, AccountRepository accountRepository, TransactionRepository transactionRepository, BranchContext branchContext, @org.springframework.context.annotation.Lazy com.hmcs.savings.service.FixedDepositInterestService interestService) {
+    public FixedDepositController(FixedDepositRepository fdRepository, FixedDepositTypeRepository typeRepository, FixedDepositRenewalRepository renewalRepository, AccountRepository accountRepository, TransactionRepository transactionRepository, BranchContext branchContext, @org.springframework.context.annotation.Lazy com.hmcs.savings.service.FixedDepositInterestService interestService, LedgerEntryRepository ledgerEntryRepository, JdbcTemplate jdbcTemplate) {
         this.fdRepository = fdRepository;
         this.typeRepository = typeRepository;
         this.renewalRepository = renewalRepository;
@@ -48,6 +54,8 @@ public class FixedDepositController {
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
         this.interestService = interestService;
+        this.ledgerEntryRepository = ledgerEntryRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     private void populateLinkedSavingsAccountNumbers(List<FixedDeposit> fds) {
@@ -203,7 +211,84 @@ public class FixedDepositController {
             }
         }
         
+        // Generate Ledger Entry for the initial deposit
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(savedFd.getOpenedDate());
+        le.setDescription("Fixed Deposit Open — FD: " + savedFd.getFdNumber() + " | Method: CASH");
+        le.setDebitAccount("CASH_IN_VAULT");
+        le.setCreditAccount("FIXED_DEPOSIT");
+        le.setAmount(savedFd.getPrincipalAmount());
+        le.setEntryType("FD_DEPOSIT");
+        le.setPaymentMethod("CASH");
+        le.setReferenceNumber(savedFd.getFdId().toString());
+        le.setBranchId(savedFd.getBranchId());
+        ledgerEntryRepository.save(le);
+        
         return ResponseEntity.ok(savedFd);
+    }
+    
+    @Transactional
+    @PostMapping("/transactions/{id}/edit")
+    public ResponseEntity<?> editTransaction(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        java.math.BigDecimal newAmount = new java.math.BigDecimal(request.get("newAmount").toString());
+        String reason = request.get("reason").toString();
+        
+        String managerId = "SYSTEM";
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null && !auth.getName().equals("anonymousUser")) {
+            managerId = auth.getName();
+        }
+        
+        FixedDeposit fd = fdRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fixed Deposit not found for ID: " + id));
+                
+        BigDecimal oldAmount = fd.getPrincipalAmount();
+        
+        // Audit log
+        try {
+            String sql = "INSERT INTO audit_service.audit_corrections " +
+                         "(correction_id, transaction_id, module_type, old_amount, new_amount, reason, manager_id, timestamp, tenant_id) " +
+                         "VALUES (?, ?, 'FIXED_DEPOSIT_OPEN', ?, ?, ?, ?, ?, ?)";
+            jdbcTemplate.update(sql, UUID.randomUUID(), id, oldAmount, newAmount, reason, managerId, java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()), fd.getBranchId());
+        } catch (Exception ex) {
+            System.err.println("Failed to insert into audit_corrections for FD: " + ex.getMessage());
+        }
+        
+        // Remove old ledger entry and create new one
+        ledgerEntryRepository.deleteByDescriptionContaining("Fixed Deposit Open — FD: " + fd.getFdNumber());
+        
+        fd.setPrincipalAmount(newAmount);
+        fd.setAccumulatedInterest(BigDecimal.ZERO); // Reset before recalculation
+        fd.setLastInterestPayoutDate(fd.getOpenedDate()); // Reset to recalculate from beginning
+        FixedDeposit updatedFd = fdRepository.save(fd);
+        
+        // Catch up interest again with new principal
+        try {
+            interestService.catchUpSingleFD(updatedFd);
+            updatedFd = fdRepository.findById(updatedFd.getFdId()).orElse(updatedFd);
+        } catch (Exception e) {
+            System.err.println("Failed to catch up interest after edit: " + e.getMessage());
+        }
+        
+        // Recreate Ledger Entry for the initial deposit
+        LedgerEntry le = new LedgerEntry();
+        le.setEntryDate(updatedFd.getOpenedDate());
+        le.setCreatedAt(updatedFd.getCreatedAt() != null ? updatedFd.getCreatedAt() : java.time.LocalDateTime.now());
+        le.setDescription("Fixed Deposit Open — FD: " + updatedFd.getFdNumber() + " | Method: CASH");
+        le.setDebitAccount("CASH_IN_VAULT");
+        le.setCreditAccount("FIXED_DEPOSIT");
+        le.setAmount(updatedFd.getPrincipalAmount());
+        le.setEntryType("FD_DEPOSIT");
+        le.setPaymentMethod("CASH");
+        le.setReferenceNumber(updatedFd.getFdId().toString());
+        le.setBranchId(updatedFd.getBranchId());
+        ledgerEntryRepository.save(le);
+        
+        return ResponseEntity.ok(java.util.Collections.singletonMap("success", true));
     }
 
     @PostMapping("/{id}/release")

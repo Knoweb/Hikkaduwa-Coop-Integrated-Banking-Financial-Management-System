@@ -55,14 +55,14 @@ export default function PawningDisburseModal({ ticket, onClose, onSuccess }: { t
               <p className="text-sm font-semibold">{ticket.memberDetails?.fullName || ticket.memberId?.substring(0,8)}</p>
             </div>
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-              <p className="text-xs text-emerald-700 font-bold mb-1">{t(`කමිටු තක්සේරුව (Assessed)`)}</p>
+              <p className="text-xs text-emerald-700 font-bold mb-1">{t(`කළමනාකරු අනුමත කළ මුදල (Manager Approved)`)}</p>
               <p className="text-lg font-black text-emerald-800">Rs. {Number(ticket.assessedValue).toLocaleString()}</p>
             </div>
           </div>
           
           {ticket.committeeRemarks && (
             <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
-              <p className="text-xs text-amber-700 font-bold mb-1">{t(`කමිටුවේ සටහන`)}</p>
+              <p className="text-xs font-bold text-amber-700 mb-1">{t(`කළමනාකරුගේ සටහන (Manager's Remarks)`)}</p>
               <p className="text-sm font-semibold text-amber-900">{ticket.committeeRemarks}</p>
             </div>
           )}
@@ -77,7 +77,7 @@ export default function PawningDisburseModal({ ticket, onClose, onSuccess }: { t
                 className="w-full border-2 border-emerald-200 rounded-xl px-4 py-3 font-bold text-lg text-slate-800 focus:border-emerald-500 focus:outline-none"
                 placeholder={t(`උදා: 50000.00`)}
               />
-              <p className="text-xs text-slate-500 mt-1">කමිටුවෙන් අනුමත කළ උපරිම අගය: Rs. {Number(ticket.assessedValue).toLocaleString()}</p>
+              <p className="text-[10px] text-slate-500 mt-1">{t(`කළමනාකරු අනුමත කළ උපරිම අගය: Rs. ${Number(ticket.assessedValue).toLocaleString()}`)}</p>
             </div>
           </div>
         </div>

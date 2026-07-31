@@ -34,6 +34,7 @@ public class SavingsController {
     private final com.hmcs.savings.service.InterestCalculationService interestCalculationService;
     private final com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public SavingsController(AccountRepository accountRepository,
                              TransactionRepository transactionRepository,
@@ -44,7 +45,8 @@ public class SavingsController {
                              PendingApprovalRepository pendingApprovalRepository,
                              com.hmcs.savings.service.InterestCalculationService interestCalculationService,
                              com.hmcs.savings.repository.SchedulerLogRepository schedulerLogRepository,
-                             LedgerEntryRepository ledgerEntryRepository) {
+                             LedgerEntryRepository ledgerEntryRepository,
+                             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.branchContext = branchContext;
@@ -55,6 +57,7 @@ public class SavingsController {
         this.interestCalculationService = interestCalculationService;
         this.schedulerLogRepository = schedulerLogRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @GetMapping("/savings")
@@ -214,6 +217,7 @@ public class SavingsController {
 
             if (!Boolean.TRUE.equals(body.migrationAccount)) {
                 LedgerEntry le = new LedgerEntry();
+                le.setTransactionId(tx.getTransactionId());
                 le.setEntryDate(LocalDate.now());
                 le.setDescription("Initial Deposit: " + savedAccount.getAccountNumber());
                 le.setDebitAccount("CASH_IN_VAULT");
@@ -291,6 +295,7 @@ public class SavingsController {
         transactionRepository.save(tx);
 
         LedgerEntry le = new LedgerEntry();
+        le.setTransactionId(tx.getTransactionId());
         le.setEntryDate(LocalDate.now());
         le.setDescription("Savings Deposit: " + account.getAccountNumber());
         le.setDebitAccount("CASH_IN_VAULT");
@@ -364,6 +369,7 @@ public class SavingsController {
         transactionRepository.save(tx);
 
         LedgerEntry le = new LedgerEntry();
+        le.setTransactionId(tx.getTransactionId());
         le.setEntryDate(LocalDate.now());
         le.setDescription("Savings Withdrawal: " + account.getAccountNumber());
         le.setDebitAccount("SAVINGS_DEPOSITS");
@@ -510,5 +516,96 @@ public class SavingsController {
         pendingApprovalRepository.save(pa);
 
         return ResponseEntity.ok(Map.of("message", "Transaction Rejected"));
+    }
+    public static class EditTransactionRequest {
+        public java.math.BigDecimal newAmount;
+        public String reason;
+    }
+
+    // 10. POST /api/v1/savings/transactions/{id}/edit - Edit (Overwrite) transaction & Recalculate
+    @PostMapping("/transactions/{id}/edit")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'ADMIN', 'SYSTEM_ADMIN')")
+    public ResponseEntity<?> editTransaction(@PathVariable java.util.UUID id, @RequestBody EditTransactionRequest body, jakarta.servlet.http.HttpServletRequest request) {
+        java.util.Optional<com.hmcs.savings.entity.Transaction> txOpt = transactionRepository.findById(id);
+        if (txOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        com.hmcs.savings.entity.Transaction txToEdit = txOpt.get();
+        java.math.BigDecimal oldAmount = txToEdit.getAmount();
+        java.math.BigDecimal newAmount = body.newAmount;
+
+        if (newAmount == null || newAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+            return ResponseEntity.badRequest().body("Invalid new amount");
+        }
+
+        // Determine difference
+        java.math.BigDecimal difference = newAmount.subtract(oldAmount);
+
+        // Update the specific transaction amount
+        txToEdit.setAmount(newAmount);
+        transactionRepository.save(txToEdit);
+        
+        // Update the corresponding LedgerEntry amount
+        java.util.Optional<com.hmcs.savings.entity.LedgerEntry> leOpt = ledgerEntryRepository.findByTransactionId(id);
+        if (leOpt.isPresent()) {
+            com.hmcs.savings.entity.LedgerEntry le = leOpt.get();
+            le.setAmount(newAmount);
+            ledgerEntryRepository.save(le);
+        }
+
+        // Fetch all transactions for this account ordered by time
+        com.hmcs.savings.entity.Account account = txToEdit.getAccount();
+        java.util.List<com.hmcs.savings.entity.Transaction> allTx = transactionRepository.findByAccountAccountIdOrderByTransactionTimestampAsc(account.getAccountId());
+        
+        // Recalculate running balances from scratch for safety
+        java.math.BigDecimal runningBalance = account.getInitialDeposit() != null ? account.getInitialDeposit() : java.math.BigDecimal.ZERO;
+        
+        for (com.hmcs.savings.entity.Transaction t : allTx) {
+            if ("DEPOSIT".equals(t.getTransactionType()) || "INITIAL_DEPOSIT".equals(t.getTransactionType()) || "BROUGHT_FORWARD".equals(t.getTransactionType()) || "INTEREST_CREDIT".equals(t.getTransactionType())) {
+                runningBalance = runningBalance.add(t.getAmount());
+            } else if ("WITHDRAWAL".equals(t.getTransactionType())) {
+                runningBalance = runningBalance.subtract(t.getAmount());
+            }
+            t.setBalanceAfter(runningBalance);
+        }
+        transactionRepository.saveAll(allTx);
+
+        // Update the account balance to the final running balance
+        account.setBalance(runningBalance);
+        accountRepository.save(account);
+
+        // Update the DailyBalances if needed
+        java.time.LocalDate txDate = txToEdit.getTransactionTimestamp().toLocalDate();
+        java.util.List<com.hmcs.savings.entity.DailyBalance> dailyBalances = dailyBalanceRepository.findAll().stream()
+                .filter(db -> db.getAccountId().equals(account.getAccountId()) && !db.getRecordDate().isBefore(txDate))
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (com.hmcs.savings.entity.DailyBalance db : dailyBalances) {
+            if ("DEPOSIT".equals(txToEdit.getTransactionType()) || "INITIAL_DEPOSIT".equals(txToEdit.getTransactionType()) || "INTEREST_CREDIT".equals(txToEdit.getTransactionType())) {
+                db.setClosingBalance(db.getClosingBalance().add(difference));
+            } else if ("WITHDRAWAL".equals(txToEdit.getTransactionType())) {
+                db.setClosingBalance(db.getClosingBalance().subtract(difference));
+            }
+        }
+        dailyBalanceRepository.saveAll(dailyBalances);
+
+        // --- ADD AUDIT LOG ---
+        try {
+            Integer tenantId = branchContext.extractBranchId(request);
+            String managerId = "SYSTEM";
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                managerId = auth.getName();
+            }
+            String modType = "SAVINGS_" + (txToEdit.getTransactionType() != null ? txToEdit.getTransactionType() : "GENERAL");
+            String sql = "INSERT INTO audit_service.audit_corrections (correction_id, transaction_id, old_amount, new_amount, module_type, manager_id, reason, timestamp, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+            jdbcTemplate.update(sql, java.util.UUID.randomUUID(), txToEdit.getTransactionId(), oldAmount, newAmount, modType, managerId, body.reason, tenantId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to insert audit log: " + e.getMessage());
+        }
+        // ---------------------
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Transaction overwritten and balances recalculated successfully"));
     }
 }

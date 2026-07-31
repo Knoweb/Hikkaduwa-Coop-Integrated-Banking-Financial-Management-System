@@ -271,6 +271,30 @@ public class LoanController {
         }
     }
 
+    public static class EditRepaymentRequest {
+        public BigDecimal newAmount;
+        public String reason;
+    }
+
+    // ── Edit Transaction ─────────────────────────────────────────────────────
+    @PostMapping("/transactions/{id}/edit")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'SYSTEM_ADMIN')")
+    public ResponseEntity<?> editTransaction(
+            @PathVariable UUID id,
+            @RequestBody EditRepaymentRequest body,
+            jakarta.servlet.http.HttpServletRequest request) {
+        try {
+            String actorUsername = "mgr_hkw";
+            if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null) {
+                actorUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            }
+            loanService.editRepaymentAndRebuildLedger(id, body.newAmount, body.reason, actorUsername);
+            return ResponseEntity.ok(Map.of("message", "Loan transaction updated and ledger rebuilt successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ── Field Collection ─────────────────────────────────────────────────────
     @PostMapping("/field-collection/collect")
     public ResponseEntity<?> recordFieldCollection(@RequestBody Map<String, Object> body) {

@@ -1205,6 +1205,7 @@ export default function SystemAdminDashboard() {
                   { key: 'handovers', label: 'ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම්', icon: Briefcase },
                   { key: 'summary-ledger', label: 'Summary Ledger', icon: ClipboardList },
                   { key: 'vault-cash', label: 'Cash Balances', icon: Banknote },
+                  { key: 'audit_logs', label: 'Audit Logs', icon: Shield },
                   { key: 'staff', label: 'Branch Staff', icon: Users },
                   { key: 'config', label: 'Branch Config', icon: Settings }
                 ].map(item => (
@@ -1220,7 +1221,7 @@ export default function SystemAdminDashboard() {
                         : 'bg-slate-800/20 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-600'
                     }`}>
                     <item.icon size={16} className={`mr-2.5 shrink-0 ${activeTab === item.key ? 'text-blue-400' : 'text-slate-500'}`} />
-                    <span className="flex-1 text-left tracking-wide line-clamp-1">{t(item.label)}</span>
+                    <span className="flex-1 text-left tracking-wide whitespace-normal break-words leading-tight">{t(item.label)}</span>
                   </button>
                   )
                 ))}

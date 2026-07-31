@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, ArrowDownLeft, ArrowUpRight, Lock, FileText, CheckCircle, Printer, Fingerprint, KeyRound, Search } from 'lucide-react';
+import { X, AlertTriangle, ArrowDownLeft, ArrowUpRight, Lock, FileText, CheckCircle, Fingerprint, KeyRound, Search } from 'lucide-react';
 import * as AccountService from '../services/account.service';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -171,7 +171,6 @@ export default function TransactionModal({ accountId, accountNumber, accountType
             balanceAfter: currentBalance // Unchanged until approved
           });
           setIsSuccess(true);
-          onSuccess();
           setLoading(false);
           return;
         }
@@ -195,7 +194,6 @@ export default function TransactionModal({ accountId, accountNumber, accountType
           balanceAfter: 0
         });
         setIsSuccess(true);
-        onSuccess();
         setLoading(false);
         return;
       }
@@ -212,7 +210,6 @@ export default function TransactionModal({ accountId, accountNumber, accountType
       });
       
       setIsSuccess(true);
-      onSuccess();
     } catch (err: any) {
       const errMsg = err.response?.data
         ? (typeof err.response.data === 'object'
@@ -274,7 +271,9 @@ export default function TransactionModal({ accountId, accountNumber, accountType
         ? `රු. ${Number(receiptData.amount).toLocaleString()} ක් ලබා ගැනීමට කළමනාකරු වෙත අනුමැතිය ඉල්ලා යවන ලදී.` 
         : receiptData.type === 'CLOSE_FD'
         ? `ස්ථාවර තැන්පතුව සාර්ථකව වසා දමන ලදී. රු. ${Number(receiptData.amount).toLocaleString()} ක් ඉතුරුම් ගිණුමට බැර කරන ලදී.`
-        : `රු. ${Number(receiptData.amount).toLocaleString()} ක් සාර්ථකව ගිණුමට ${action === 'DEPOSIT' ? 'තැන්පත් කරන ලදී' : 'ලබා ගන්නා ලදී'}.`)
+        : action === 'DEPOSIT' 
+          ? `රු. ${Number(receiptData.amount).toLocaleString()} ක් සාර්ථකව ගිණුමට තැන්පත් කරන ලදී.`
+          : `රු. ${Number(receiptData.amount).toLocaleString()} ක් සාර්ථකව ගිණුමෙන් ලබා ගන්නා ලදී.`)
       : (receiptData.type === 'PENDING_APPROVAL' 
         ? `Request sent to Branch Manager to withdraw Rs. ${Number(receiptData.amount).toLocaleString()} from the account.` 
         : receiptData.type === 'CLOSE_FD'
@@ -307,11 +306,8 @@ export default function TransactionModal({ accountId, accountNumber, accountType
           </div>
 
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">
+            <button onClick={() => { onSuccess(); onClose(); }} className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">
               {t('Close')}
-            </button>
-            <button onClick={() => window.print()} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2">
-              <Printer size={18} /> {t('Print Receipt')}
             </button>
           </div>
         </div>

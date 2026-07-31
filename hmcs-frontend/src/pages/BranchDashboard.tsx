@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List
+  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List, Edit3, Save
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -18,6 +18,7 @@ import { printAccountStatement, printLoanAgreement, printDisbursementReceipt, pr
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { FdViewModal } from '../components/FdViewModal';
+import AuditLogsView from '../components/AuditLogsView';
 import FdMonitorModal from '../components/FdMonitorModal';
 import OpenAccountForm from '../components/OpenAccountForm';
 import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
@@ -34,6 +35,69 @@ import BranchOverviewView from '../components/BranchOverviewView';
 import TransactionModal, { type TransactionAction } from '../components/TransactionModal';
 import PawningModule from '../components/PawningModule';
 import ConfirmDialog from '../components/ConfirmDialog';
+
+export const formatDescriptionBilingual = (desc?: string) => {
+  if (!desc) return '-';
+  let formatted = desc.split(/—|\|/)[0].trim();
+  if (formatted.includes('Loan Repayment (Cash In)')) {
+    return 'ණය වාරිකය අයකර ගැනීම (Loan Repayment - Cash In)';
+  } else if (formatted.includes('Loan Repayment')) {
+    return 'ණය වාරිකය අයකර ගැනීම (Loan Repayment)';
+  }
+  if (formatted.includes('Loan Principal Deduction')) {
+    return 'ණය මූලික මුදල් අඩුකිරීම (Loan Principal Deduction)';
+  }
+  if (formatted.includes('Loan Interest Income')) {
+    return 'ණය පොලී ආදායම (Loan Interest Income)';
+  }
+  if (formatted.includes('Loan Disbursement')) {
+    return 'ණය මුදല නිකුත් කිරීම (Loan Disbursement)';
+  }
+  if (formatted.includes('Cash Deposit')) {
+    return 'මුදල් තැන්පතුවක් (Cash Deposit)';
+  }
+  if (formatted.includes('Cash Withdrawal')) {
+    return 'මුදල් ආපසු ගැනීමක් (Cash Withdrawal)';
+  }
+  if (formatted.includes('Savings Deposit')) {
+    return 'ඉතිරිකිරීම් තැන්පතුවක් (Savings Deposit)';
+  }
+  if (formatted.includes('Savings Withdrawal')) {
+    return 'ඉතිරිකිරීම් ආපසු ගැනීමක් (Savings Withdrawal)';
+  }
+  if (formatted.includes('Pawning Advance')) {
+    return 'උකස් අත්තිකාරම් නිකුතුවක් (Pawning Advance)';
+  }
+  if (formatted.includes('Pawning Repayment') || formatted.includes('Pawning Installment')) {
+    return 'උකස් වාරිකය අයකර ගැනීම (Pawning Repayment)';
+  }
+  if (formatted.includes('Pawning Redemption')) {
+    return 'උකස් බේරා ගැනීමක් (Pawning Redemption)';
+  }
+  if (formatted.includes('Fixed Deposit Open')) {
+    return 'නව ස්ථාවර තැන්පතුවක් (Fixed Deposit Open)';
+  }
+  if (formatted.includes('Field Cash Handover')) {
+    return 'ක්ෂේත්‍ර මුදල් භාරදීමක් (Field Cash Handover)';
+  }
+  return formatted;
+};
+
+export const extractAccountRef = (refVal?: string, desc?: string) => {
+  const description = desc || '';
+  const labelMatch = description.match(/(?:Ticket|Acc|Account|FD|Loan|Ref):\s*([A-Za-z0-9._-]+)/i);
+  if (labelMatch) return labelMatch[1];
+
+  const codeMatch = description.match(/\b(PW\d+|ACC-[A-Za-z0-9-]+|LN-[A-Za-z0-9-]+|FD-[A-Za-z0-9-]+|RCPT-[A-Za-z0-9-]+)\b/i);
+  if (codeMatch) return codeMatch[1];
+
+  const ref = refVal || '-';
+  if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}/.test(ref) || ref.length > 25) {
+    const anyMatch = description.match(/([A-Z]{2,4}-[A-Z0-9-]+)/);
+    return anyMatch ? anyMatch[1] : ref.slice(0, 8) + '...';
+  }
+  return ref;
+};
 
 export const getBranchName = (branchId: number) => {
   const { t } = useLanguage();
@@ -95,6 +159,7 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     // { icon: BookOpen, label: 'General Ledger', key: 'gl' },
     { icon: ClipboardList, label: 'Summary Ledger', key: 'summary-ledger' },
     { icon: Banknote, label: 'Cash Balances', key: 'vault-cash' },
+    { icon: Shield, label: 'Audit Logs', key: 'audit_logs' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
@@ -1739,10 +1804,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
 
       if (act.type === 'LOAN_DISBURSEMENT' || act.type === 'LOAN_REPAYMENT') {
         const loansList = await LoanService.getLoans();
-        const loan = loansList.find((l: any) => l.loanNumber === act.reference || l.loanId === act.reference);
+        const loan = loansList.find((l: any) => l.accountNumber === act.reference || l.applicationNumber === act.reference || l.loanNumber === act.reference || l.loanId === act.reference);
         if (loan) {
           details.transactionId = act.id;
-          details.accountNumber = (loan as any).loanNumber || loan.loanId;
+          details.accountNumber = loan.accountNumber || loan.applicationNumber || (loan as any).loanNumber || loan.loanId;
           details.amount = act.amount;
           details.balanceAfter = act.balanceAfter;
           details.memberId = loan.memberId;
@@ -1985,6 +2050,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   <option value="ACTIVE">{t(`ක්‍රියාත්මක`)}</option>
                   <option value="MATURING_SOON">{t(`කල් පිරීමට නියමිත`)}</option>
                   <option value="MATURED">{t(`කල් පිරුණු`)}</option>
+                  <option value="CLOSED">{t(`වසා ඇති / නිදහස් කළ`)}</option>
                 </select>
               </div>
 
@@ -2949,7 +3015,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <p className="text-xs text-slate-500 mt-1 font-mono">{passbookData.account?.accountNumber}</p>
                   )}
                 </div>
-                <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors"><X size={18} /></button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => printAccountStatement(passbookData)} className="flex items-center gap-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer border border-indigo-700" title="Print Passbook">
+                    <Printer size={17} />
+                    <span>මුද්‍රණය (Print)</span>
+                  </button>
+                  <button onClick={() => setShowPassbook(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition-colors"><X size={18} /></button>
+                </div>
               </div>
               <div className="p-0 overflow-y-auto flex-1">
                 {passbookLoading ? (
@@ -2963,7 +3035,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                         <p className="text-2xl font-black text-slate-800 font-mono">Rs. {passbookData.account?.balance?.toLocaleString()}</p>
                       </div>
                       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interest Rate</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">වා.පො.</p>
                         <p className="text-2xl font-black text-indigo-600 font-mono">{(passbookData.account?.annualInterestRate * 100).toFixed(2)}%</p>
                       </div>
                       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
@@ -3440,20 +3512,28 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                       <div>
                         <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><FileText size={16} className="text-red-600"/> {t('Loan Accounts')}</h4>
                         <div className="space-y-2">
-                          {memberLoans.map(l => (
-                            <div key={l.id} onClick={() => { 
-                                setLoanSearch(l.loanNumber || l.memberId); 
-                                setShowMemberAccountsModal(false); 
-                                if(onTabChange) onTabChange('loans'); 
-                              }} 
-                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
-                              <div>
-                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{l.loanNumber || 'Pending Loan'}</p>
-                                <p className="text-xs text-slate-500">{l.loanType?.name || 'Loan'}</p>
+                          {memberLoans.map(l => {
+                            const refNum = l.accountNumber || l.applicationNumber || (l as any).loanNumber || (l.loanId ? 'REF-' + String(l.loanId).slice(0,8).toUpperCase() : 'Pending Loan');
+                            const amt = Number(l.approvedAmount || l.requestedAmount || l.disbursedAmount || 0);
+                            const statusLbl = l.currentStage === 'DISBURSED' || l.accountNumber ? 'නිකුත් කර ඇත (Active)' : (l.status === 'PENDING' || !l.accountNumber ? 'අනුමැතිය අපේක්ෂාවෙන් (Pending)' : l.status);
+                            const typeName = typeof l.loanType === 'string' ? l.loanType : (l.loanType?.name || (l as any).loanTypeStr || 'Loan');
+                            return (
+                              <div key={l.id || l.loanId} onClick={() => { 
+                                  setLoanSearch(refNum || l.memberId); 
+                                  setShowMemberAccountsModal(false); 
+                                  if(onTabChange) onTabChange('loans'); 
+                                }} 
+                                className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                                <div>
+                                  <p className="font-bold text-slate-800 group-hover:text-blue-700">{refNum}</p>
+                                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                                    {typeName} {amt > 0 ? `• Rs. ${amt.toLocaleString()}` : ''} <span className="text-blue-600 font-semibold">({statusLbl})</span>
+                                  </p>
+                                </div>
+                                <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
                               </div>
-                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -3463,20 +3543,21 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                       <div>
                         <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><Scale size={16} className="text-purple-600"/> {t('Pawning')}</h4>
                         <div className="space-y-2">
-                          {memberPawning.map(p => (
-                            <div key={p.id} onClick={() => { 
-                                // setPawningSearch(p.pawningNumber); 
-                                setShowMemberAccountsModal(false); 
-                                // if(onTabChange) onTabChange('pawning'); 
-                              }} 
-                              className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
-                              <div>
-                                <p className="font-bold text-slate-800 group-hover:text-blue-700">{p.pawningNumber || 'Pending Pawning'}</p>
-                                <p className="text-xs text-slate-500">{p.type || 'Pawning'}</p>
+                          {memberPawning.map(p => {
+                            const pNum = (p as any).ticketNumber || p.pawningNumber || (p as any).ticketId || (p.id ? 'PW-' + String(p.id).slice(0,8).toUpperCase() : 'Pawning Account');
+                            return (
+                              <div key={p.id} onClick={() => { 
+                                  setShowMemberAccountsModal(false); 
+                                }} 
+                                className="p-3 border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center group">
+                                <div>
+                                  <p className="font-bold text-slate-800 group-hover:text-blue-700">{pNum}</p>
+                                  <p className="text-xs text-slate-500">{p.type || (p as any).itemName || 'Pawning'}</p>
+                                </div>
+                                <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
                               </div>
-                              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -4843,9 +4924,11 @@ function LedgerView({ branchId }: { branchId?: number }) {
                 {filtered.map(entry => (
                   <tr key={entry.entryId} className="hover:bg-slate-50 transition">
                     <td className="px-5 py-3 font-mono text-xs text-slate-600 whitespace-nowrap">{entry.entryDate}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-blue-700 font-bold whitespace-nowrap">{entry.referenceNumber || '—'}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-blue-700 font-bold whitespace-nowrap">
+                      {extractAccountRef(entry.referenceNumber, entry.description)}
+                    </td>
                     <td className="px-5 py-3 text-slate-700 max-w-xs">
-                      <p className="text-xs leading-snug">{entry.description}</p>
+                      <p className="text-xs leading-snug">{formatDescriptionBilingual(entry.description)}</p>
                     </td>
                     <td className="px-5 py-3">
                       <span className={`text-xs font-bold px-2 py-1 rounded-full ${accountColor(entry.debitAccount)}`}>
@@ -4957,8 +5040,10 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
       const filteredSavings = savings.filter((a: any) => isBeforeDate(a.openedDate));
       const filteredFds = fds.filter((f: any) => f.status === 'ACTIVE' && isBeforeDate(f.openedDate));
       
+      const overdueSavedIds = new Set<string>(JSON.parse(localStorage.getItem('hmcs_overdue_loans') || '[]'));
       const filteredLoans = loansList.filter((l: any) => {
-        if (l.status !== 'ACTIVE' && l.status !== 'DISBURSED') return false;
+        if (overdueSavedIds.has(l.loanId)) l.status = 'OVERDUE';
+        if (l.status !== 'ACTIVE' && l.status !== 'DISBURSED' && l.status !== 'OVERDUE') return false;
         const lDate = l.disbursementDate || l.createdAt || l.appliedDate;
         return isBeforeDate(lDate);
       });
@@ -5057,19 +5142,25 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
       // 3. Group Loans by type
       const loanGroups: { [key: string]: { count: number; balance: number } } = {};
       filteredLoans.forEach((l: any) => {
-        const type = l.loanType?.name || l.loanTypeStr || 'Normal Loan';
+        const type = l.status === 'OVERDUE' 
+          ? 'කල්පසු වූ ණය (Overdue Loans)' 
+          : (l.loanType?.name || l.loanTypeStr || 'Normal Loan');
         if (!loanGroups[type]) {
           loanGroups[type] = { count: 0, balance: 0 };
         }
         loanGroups[type].count += 1;
-        loanGroups[type].balance += Number(l.outstandingBalance || l.amount || 0);
+        loanGroups[type].balance += Number(l.outstandingBalance || l.disbursedAmount || l.requestedAmount || 0);
       });
 
       const loanList = Object.keys(loanGroups).map(name => ({
         name,
         count: loanGroups[name].count,
         balance: loanGroups[name].balance
-      }));
+      })).sort((a, b) => {
+        if (a.name.includes('Overdue')) return 1;
+        if (b.name.includes('Overdue')) return -1;
+        return 0;
+      });
 
       // 4. Pawning
       const totalPawnLoan = filteredPawn.reduce((sum: number, t: any) => sum + (Number(t.advanceAmount) || 0), 0);
@@ -5537,26 +5628,164 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 // ── Vault Cash View (මුදල් ශේෂය සහ ගනුදෙනු) ──────────────────────────────
 function VaultCashView({ branchId }: { branchId?: number }) {
   const { t } = useLanguage();
+  const user = AuthService.getCurrentUser();
+  const role = user?.role?.replace('ROLE_', '') || 'TELLER';
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<'MONTH' | 'DAY'>('MONTH');
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [membersMap, setMembersMap] = useState<Record<string, { memberNo: string, name: string }>>({});
   
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const handleEditClick = (rawEntry: any) => {
+    setEditingTx(rawEntry);
+    setEditAmount(rawEntry.amount.toString());
+    setEditReason('');
+    setEditError('');
+    setEditModalOpen(true);
+  };
+
+  const submitEdit = async () => {
+    if (!editReason.trim()) {
+      setEditError('හේතුව (Reason) ඇතුලත් කිරීම අනිවාර්යයි.');
+      return;
+    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'ගනුදෙනුව සංස්කරණය තහවුරු කරන්න (Confirm Edit)',
+      message: 'ඔබට මෙම ගනුදෙනුවෙහි මුදල වෙනස් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද? මෙමගින් පසුගිය සියලු ශේෂයන් ස්වයංක්‍රීයව වෙනස් වනු ඇත.',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setEditLoading(true);
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const token = user?.token || '';
+          const authHeader = {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          };
+          let url = '';
+          const isSavings = editingTx.creditAccount?.includes('SAVINGS') || editingTx.debitAccount?.includes('SAVINGS');
+          const isLoan = editingTx.creditAccount?.includes('LOAN') || editingTx.debitAccount?.includes('LOAN');
+          
+          let idToEdit = editingTx.transactionId; // for savings
+          if (isLoan) {
+            idToEdit = editingTx.entryId || editingTx.transactionId || editingTx.referenceNumber; // for loans
+            url = `http://localhost:8080/api/v1/loans/transactions/${idToEdit}/edit`;
+          } else if (editingTx.creditAccount?.includes('PAWN') || editingTx.debitAccount?.includes('PAWN')) {
+            idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
+            url = `http://localhost:8080/api/v1/pawning/tickets/transactions/${idToEdit}/edit`;
+          } else if (editingTx.creditAccount?.includes('FIXED_DEPOSIT') || editingTx.debitAccount?.includes('FIXED_DEPOSIT')) {
+            idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
+            url = `http://localhost:8080/api/v1/fixed-deposits/transactions/${idToEdit}/edit`;
+          } else {
+            url = `http://localhost:8080/api/v1/transactions/${idToEdit}/edit`;
+          }
+
+          if (!idToEdit) {
+            throw new Error('මෙම ගනුදෙනුව සංස්කරණය කළ නොහැක. (Transaction ID missing)');
+          }
+
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: authHeader,
+            body: JSON.stringify({ newAmount: Number(editAmount), reason: editReason })
+          });
+          
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || errData.message || 'Error editing transaction');
+          }
+          
+          setEditModalOpen(false);
+          (window as any).showToast?.('ගණුදෙනුව සාර්ථකව සංස්කරණය කරන ලදී! (Transaction Edited Successfully!)', 'success');
+          fetchCashData(); // Refresh list
+        } catch (err: any) {
+          setEditError(err.message);
+        } finally {
+          setEditLoading(false);
+        }
+      }
+    });
+  };
+  
+  const [ticketsMap, setTicketsMap] = useState<Record<string, { memberNo: string, name: string, typeStr?: string }>>({});
+
   useEffect(() => {
     AccountService.getBranchMembers().then(members => {
       const map: Record<string, { memberNo: string, name: string }> = {};
-      members.forEach(m => {
-        if (m.memberId) {
-          map[m.memberId] = {
-            memberNo: m.membershipNumber || '',
+      if (Array.isArray(members)) {
+        members.forEach(m => {
+          const info = {
+            memberNo: m.membershipNumber || m.memberId || '',
             name: m.nameWithInitials || m.fullName || 'Unknown'
           };
-        }
-      });
+          if (m.memberId) map[String(m.memberId)] = info;
+          if (m.membershipNumber) map[String(m.membershipNumber)] = info;
+          if (m.id) map[String(m.id)] = info;
+        });
+      }
       setMembersMap(map);
+
+      Promise.all([
+        PawningService.getTicketsByBranch(branchId || 1).catch(() => []),
+        LoanService.getLoans().catch(() => []),
+        AccountService.getBranchAccounts().catch(() => [])
+      ]).then(([tickets, loans, accounts]) => {
+        const tMap: Record<string, { memberNo: string, name: string, typeStr?: string }> = {};
+        if (Array.isArray(tickets)) {
+          tickets.forEach(t => {
+            if (t.ticketNumber && t.memberId) {
+              tMap[String(t.ticketNumber)] = map[String(t.memberId)] || { memberNo: String(t.memberId), name: t.memberName || t.member?.nameWithInitials || 'සාමාජික' };
+            }
+          });
+        }
+        if (Array.isArray(loans)) {
+          loans.forEach((l: any) => {
+            const minfo = map[String(l.memberId)] || { 
+              memberNo: String(l.memberId || ''), 
+              name: l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || l.applicantDetail?.applicantName || 'සාමාජික (Member)' 
+            };
+            const enrichedInfo = { ...minfo, typeStr: l.loanType?.name || l.loanTypeStr };
+            if (l.accountNumber) tMap[String(l.accountNumber)] = enrichedInfo;
+            if (l.applicationNumber) tMap[String(l.applicationNumber)] = enrichedInfo;
+            if (l.loanId) tMap[String(l.loanId)] = enrichedInfo;
+          });
+        }
+        if (Array.isArray(accounts)) {
+          accounts.forEach((a: any) => {
+            if (a.accountNumber && a.memberId) {
+              tMap[String(a.accountNumber)] = map[String(a.memberId)] || { memberNo: String(a.memberId), name: 'සාමාජික (Member)' };
+            }
+          });
+        }
+        setTicketsMap(tMap);
+      });
     }).catch(console.error);
   }, [branchId]);
+
+  const getTransactionOwner = (tx: any) => {
+    if (!tx) return null;
+    const ref = extractAccountRef(tx.referenceNumber, tx.description);
+    if (ref && ticketsMap[ref]) return ticketsMap[ref];
+    const desc = tx.description || '';
+    const mMatch = desc.match(/(?:Member|සාමාජික අංකය|සාමාජික):s*([A-Za-z0-9._-]+)/i);
+    if (mMatch) {
+      const key = mMatch[1].trim();
+      return membersMap[key] || { memberNo: key, name: 'සාමාජික (Member)' };
+    }
+    if (tx.memberId && membersMap[String(tx.memberId)]) return membersMap[String(tx.memberId)];
+    return null;
+  };
 
   const [cashData, setCashData] = useState<{
     inflow: { parsed: { title: string; details: string[]; account: string }; amount: number }[];
@@ -5609,30 +5838,56 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     }
     
     const details: string[] = [];
+    let foundMember = false;
     
     if (parts.length > 1) {
       for (let i = 1; i < parts.length; i++) {
         let detail = parts[i];
         if (detail.startsWith('Member:')) {
+          foundMember = true;
           const uuid = detail.replace('Member:', '').trim();
-          const memberInfo = mMap[uuid];
+          const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික අංකය: ${memberInfo.memberNo} - ${memberInfo.name}`;
+            detail = `සාමාජික (Member): ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           } else {
-            detail = `සාමාජික අංකය: ${uuid}`;
+            detail = `සාමාජික (Member): ${uuid}`;
           }
-        } else if (detail.startsWith('සාමාජික අංකය:')) {
-          const uuid = detail.replace('සාමාජික අංකය:', '').trim();
-          const memberInfo = mMap[uuid];
+        } else if (detail.startsWith('සාමාජික අංකය:') || detail.startsWith('සාමාජික:')) {
+          foundMember = true;
+          const uuid = detail.replace(/සාමාජික අංකය:|සාමාජික:/, '').trim();
+          const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික අංකය: ${memberInfo.memberNo} - ${memberInfo.name}`;
+            detail = `සාමාජික (Member): ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           }
+        } else if (ticketsMap[detail]) {
+          foundMember = true;
+          const minfo = ticketsMap[detail];
+          details.push(detail);
+          details.push(`සාමාජික (Member): ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+          if (minfo.typeStr) details.push(`ණය වර්ගය (Loan Type): ${minfo.typeStr}`);
+          continue;
         }
         if (detail.startsWith('Method:')) detail = detail.replace('Method:', 'ක්‍රමය:');
         details.push(detail);
       }
     }
-    return { title, details, account: relatedAccount };
+    
+    if (!foundMember) {
+      const ref = extractAccountRef('', raw);
+      if (ref && ticketsMap[ref]) {
+        const minfo = ticketsMap[ref];
+        details.push(`සාමාජික (Member): ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+      }
+    }
+    
+    // Always try to attach Loan/Ticket Type if available
+    const refForType = extractAccountRef('', raw);
+    if (refForType && ticketsMap[refForType] && ticketsMap[refForType].typeStr) {
+      details.push(`ණය වර්ගය (Loan Type): ${ticketsMap[refForType].typeStr}`);
+    }
+
+    const uniqueDetails = Array.from(new Set(details));
+    return { title, details: uniqueDetails, account: relatedAccount };
   };
 
   const fetchCashData = async () => {
@@ -5710,15 +5965,19 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           const parsed = parseLedgerDescription(e.description || 'Cash Inflow', e.creditAccount || 'Other', membersMap);
           const timeStamp = e.createdAt || e.entryDate;
           if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
-          inflowList.push({ parsed, amount: amt });
+          inflowList.push({ parsed, amount: amt, raw: e });
         }
         if (e.creditAccount === 'CASH_IN_VAULT') {
           const parsed = parseLedgerDescription(e.description || 'Cash Outflow', e.debitAccount || 'Other', membersMap);
           const timeStamp = e.createdAt || e.entryDate;
           if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
-          outflowList.push({ parsed, amount: amt });
+          outflowList.push({ parsed, amount: amt, raw: e });
         }
       });
+
+      const getTxTime = (item: any) => new Date(item.raw?.createdAt || item.raw?.entryDate || 0).getTime();
+      inflowList.sort((a, b) => getTxTime(b) - getTxTime(a));
+      outflowList.sort((a, b) => getTxTime(b) - getTxTime(a));
 
       const totalIn = inflowList.reduce((sum, item) => sum + item.amount, 0);
       const totalOut = outflowList.reduce((sum, item) => sum + item.amount, 0);
@@ -5739,7 +5998,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
 
   useEffect(() => {
     fetchCashData();
-  }, [branchId, selectedMonth, selectedDate, filterMode, membersMap]);
+  }, [branchId, selectedMonth, selectedDate, filterMode, membersMap, ticketsMap]);
 
   const splitBalance = (val: number) => {
     const parts = Number(val || 0).toFixed(2).split('.');
@@ -5825,11 +6084,12 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                     <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
                       <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">{t(`විස්තරය (Description)`)}</th>
                       <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>{t(`මුදල (Amount)`)}</th>
+                      <th className="px-1 py-2 w-8"></th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-indigo-900">
                     {cashData.inflow.length === 0 && (
-                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ලැබීම් නොමැත (No inflows)`)}</td></tr>
+                      <tr><td colSpan={4} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ලැබීම් නොමැත (No inflows)`)}</td></tr>
                     )}
                     {cashData.inflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
@@ -5845,7 +6105,14 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right font-mono border-r border-indigo-600/20 align-top pt-3">{sb.rupees}</td>
-                          <td className="px-1.5 py-2 text-center font-mono text-[10px] w-8 align-top pt-3.5">{sb.cents}</td>
+                          <td className="px-1.5 py-2 text-center font-mono text-[10px] align-top pt-3.5 w-8 border-r border-indigo-600/20">{sb.cents}</td>
+                          <td className="px-1 py-2 align-middle text-center w-8">
+                            {role === 'BRANCH_MANAGER' && (
+                              <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
+                                සංස්කරණය (Edit)
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -5862,11 +6129,12 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                     <tr className="border-b-2 border-indigo-600 text-indigo-700 font-bold bg-indigo-50/30">
                       <th className="px-3 py-2 border-r border-indigo-600/40 w-[70%]">{t(`විස්තරය (Description)`)}</th>
                       <th className="px-3 py-2 text-right w-[30%]" colSpan={2}>{t(`මුදල (Amount)`)}</th>
+                      <th className="px-1 py-2 w-8"></th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-indigo-900">
                     {cashData.outflow.length === 0 && (
-                      <tr><td colSpan={3} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ගෙවීම් නොමැත (No outflows)`)}</td></tr>
+                      <tr><td colSpan={4} className="px-3 py-4 text-center text-indigo-400 font-normal">{t(`ගෙවීම් නොමැත (No outflows)`)}</td></tr>
                     )}
                     {cashData.outflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
@@ -5882,7 +6150,14 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right font-mono border-r border-indigo-600/20 align-top pt-3">{sb.rupees}</td>
-                          <td className="px-1.5 py-2 text-center font-mono text-[10px] w-8 align-top pt-3.5">{sb.cents}</td>
+                          <td className="px-1.5 py-2 text-center font-mono text-[10px] align-top pt-3.5 w-8 border-r border-indigo-600/20">{sb.cents}</td>
+                          <td className="px-1 py-2 align-middle text-center w-8">
+                            {role === 'BRANCH_MANAGER' && (
+                              <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
+                                සංස්කරණය (Edit)
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -5896,6 +6171,127 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           </div>
         )}
       </div>
+
+      {/* Edit Transaction Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Edit3 size={18} className="text-blue-600" />
+                {t(`සංස්කරණය (Edit Transaction)`)}
+              </h3>
+              <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {editError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 font-medium">
+                  {editError}
+                </div>
+              )}
+              
+              {editingTx && (
+                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-sm space-y-2 mb-2">
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="text-slate-500 font-medium whitespace-nowrap">{t(`විස්තරය (Description):`)}</span>
+                    <span className="font-bold text-slate-700 text-right text-xs leading-snug">{formatDescriptionBilingual(editingTx.description)}</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="text-slate-500 font-medium whitespace-nowrap">{t(`ගිණුම/යොමුව (Ref/Account):`)}</span>
+                    <span className="font-bold text-slate-700 text-right font-mono">
+                      {extractAccountRef(editingTx.referenceNumber, editingTx.description)}
+                    </span>
+                  </div>
+                  {(editingTx.createdAt || editingTx.entryDate) && (
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-slate-500 font-medium whitespace-nowrap">{t(`දිනය හා වේලාව (Date/Time):`)}</span>
+                      <span className="font-bold text-slate-700 text-right font-mono text-xs">
+                        {new Date(editingTx.createdAt || editingTx.entryDate).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                  )}
+                  {(() => {
+                    const owner = getTransactionOwner(editingTx);
+                    return owner ? (
+                      <div className="flex justify-between items-center gap-4 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200 mt-1">
+                        <span className="text-emerald-800 font-bold whitespace-nowrap text-xs">{t(`සාමාජික (Member/Owner):`)}</span>
+                        <span className="font-extrabold text-emerald-900 text-right text-xs">
+                          {owner.memberNo ? `${owner.memberNo} - ` : ''}{owner.name}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+                  <div className="flex justify-between items-center border-t border-blue-100/60 pt-2 mt-2">
+                    <span className="text-slate-500 font-medium whitespace-nowrap">{t(`පවතින මුදල (Current Amount):`)}</span>
+                    <span className="font-bold text-blue-700 font-mono text-base">Rs. {Number(editingTx.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  {t(`නව මුදල (New Amount)`)}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 font-bold">Rs.</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={editAmount}
+                    onChange={e => setEditAmount(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-bold text-slate-800"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  {t(`හේතුව (Reason for Edit)`)}
+                </label>
+                <textarea
+                  value={editReason}
+                  onChange={e => setEditReason(e.target.value)}
+                  className="w-full p-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 text-sm"
+                  rows={3}
+                  placeholder={t(`සංස්කරණය කිරීමට හේතුව ඇතුලත් කරන්න...`)}
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setEditModalOpen(false)}
+                className="px-4 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50"
+              >
+                {t(`අවලංගු කරන්න (Cancel)`)}
+              </button>
+              <button 
+                onClick={submitEdit}
+                disabled={editLoading}
+                className="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              >
+                {editLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {t(`සුරකින්න (Save Changes)`)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
+      />
     </div>
   );
 }
@@ -6057,6 +6453,9 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
   const renderContent = () => {
     if (tab === 'rates') {
       return <div className="mt-4"><GlobalSettings currentTab='rates' readOnly={true} /></div>;
+    }
+    if (tab === 'audit_logs') {
+      return <div className="p-8"><AuditLogsView /></div>;
     }
 
     switch (role) {

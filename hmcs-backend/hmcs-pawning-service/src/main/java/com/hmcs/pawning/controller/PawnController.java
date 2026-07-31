@@ -76,6 +76,25 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.makePayment(ticketId, amount, date));
     }
 
+    @PostMapping("/transactions/{id}/edit")
+    public ResponseEntity<?> editTransaction(
+            @PathVariable UUID id,
+            @RequestBody java.util.Map<String, Object> request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        java.math.BigDecimal newAmount = new java.math.BigDecimal(request.get("newAmount").toString());
+        String reason = request.get("reason").toString();
+        
+        String managerId = "SYSTEM";
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null && !auth.getName().equals("anonymousUser")) {
+            managerId = auth.getName();
+        }
+        
+        pawnService.editTransactionAndRebuildLedger(id, newAmount, reason, managerId);
+        return ResponseEntity.ok(java.util.Collections.singletonMap("success", true));
+    }
+
     @GetMapping("/transactions/branch/{branchId}")
     public ResponseEntity<?> getTransactionsByBranch(@PathVariable Integer branchId) {
         List<com.hmcs.pawning.entity.PawnTicket> tickets = pawnTicketRepository.findByBranchIdOrderByIssueDateDesc(branchId);

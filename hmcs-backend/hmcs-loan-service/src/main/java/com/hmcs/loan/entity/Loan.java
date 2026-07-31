@@ -74,6 +74,9 @@ public class Loan {
     @Column(name = "account_number", length = 50, unique = true)
     private String accountNumber;
 
+    @org.hibernate.annotations.Formula("(COALESCE(disbursed_amount, requested_amount, 0) - COALESCE((SELECT SUM(r.principal_portion) FROM loan_service.loan_repayments r WHERE r.loan_id = loan_id), 0))")
+    private BigDecimal outstandingBalance;
+
     @Column(name = "disbursement_date")
     private LocalDateTime disbursementDate;
 

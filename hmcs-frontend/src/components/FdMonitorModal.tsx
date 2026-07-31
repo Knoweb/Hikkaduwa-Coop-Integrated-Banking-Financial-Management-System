@@ -139,8 +139,8 @@ export default function FdMonitorModal({ fd, memberName, onClose, onRelease }: {
             </div>
             <button 
               onClick={() => {
-                const penalty = isMatured ? 0 : (principal * 0.05);
-                const releaseAmt = isMatured ? totalMaturityValue : (principal + accInterest - penalty);
+                const penalty = isMatured ? 0 : (fd.interestPayoutMethod === 'MONTHLY' ? paidOutInterest : 0);
+                const releaseAmt = isMatured ? totalMaturityValue : Math.max(0, principal - penalty);
                 onRelease(isMatured, releaseAmt, penalty, principal);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm whitespace-nowrap shrink-0"
