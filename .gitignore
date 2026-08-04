@@ -25,3 +25,15 @@ Thumbs.db
 
 # Logs
 *.log
+hmcs_logs.txt
+
+# Scratch scripts and new DB
+postgres-data-new/
+node_modules/
+node_modules_win/
+hmcs-backend/node_modules/
+hmcs-frontend/node_modules_win/
+*.sql
+*.js
+*.py
+*.json

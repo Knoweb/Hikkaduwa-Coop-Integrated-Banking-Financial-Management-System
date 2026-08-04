@@ -1,1 +1,0 @@
-SELECT loan_id, applied_date, disbursement_date, created_at, status FROM loan_service.loans WHERE branch_id = 4 AND (applied_date  OR disbursement_date  OR created_at ; 

@@ -1,1 +1,0 @@
-SELECT ticket_number, issue_date FROM pawning_service.pawn_tickets WHERE branch_id = 4 AND issue_date ; 

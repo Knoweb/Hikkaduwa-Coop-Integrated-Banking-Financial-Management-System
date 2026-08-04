@@ -1,1 +1,0 @@
-SELECT count(*) FROM account_service.savings_accounts WHERE branch_id = 4 AND opened_date ; 
