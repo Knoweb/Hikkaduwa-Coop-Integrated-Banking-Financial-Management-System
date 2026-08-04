@@ -3,7 +3,6 @@ import Login from './pages/Login';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import Members from './pages/Members';
 import Accounts from './pages/Accounts';
-import GeneralManagerDashboard from './pages/GeneralManagerDashboard';
 import BranchDashboard from './pages/BranchDashboard';
 import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -18,15 +17,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          {/* System Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['ORGANIZATION_ADMIN', 'PLATFORM_ADMIN']} />}>
+          {/* System Admin & Auditor Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'AUDITOR']} />}>
             <Route path="/dashboard" element={<SystemAdminDashboard />} />
             <Route path="/admin/branch/:id" element={<BranchDashboard />} />
-          </Route>
-
-          {/* General Manager Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['GENERAL_MANAGER']} />}>
-            <Route path="/manager/dashboard" element={<GeneralManagerDashboard />} />
           </Route>
 
           {/* Shared Branch Roles Routes */}

@@ -68,7 +68,7 @@ public class FixedDepositInterestService {
      * Runs every day at 23:59 to accrue FD interest, process monthly payouts, and handle maturities.
      * Runs for ALL tenants.
      */
-    @Scheduled(cron = "0 59 23 * * ?")
+    @Scheduled(cron = "0 59 23 * * ?", zone = "Asia/Colombo")
     public void scheduledProcessFixedDeposits() {
         List<Integer> tenantIds = getAllTenantIds();
         System.out.println("[FixedDepositInterestService] EOD running for tenants: " + tenantIds);

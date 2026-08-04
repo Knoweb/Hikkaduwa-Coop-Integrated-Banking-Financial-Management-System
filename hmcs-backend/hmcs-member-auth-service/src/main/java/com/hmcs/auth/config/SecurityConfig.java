@@ -25,7 +25,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 // Allow branch staff to view users for assignment purposes
-                .requestMatchers(HttpMethod.GET, "/api/v1/auth/users").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_BRANCH_MANAGER", "ROLE_GENERAL_MANAGER", "ROLE_SENIOR_OFFICER", "ROLE_PLATFORM_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/auth/users", "/api/v1/auth/users/").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_BRANCH_MANAGER", "ROLE_SENIOR_OFFICER", "ROLE_PLATFORM_ADMIN", "ROLE_AUDITOR")
+                
                 // Strictly lock the user management APIs to ORGANIZATION_ADMIN and PLATFORM_ADMIN
                 .requestMatchers("/api/v1/auth/users/**").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_PLATFORM_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/branches", "/api/v1/auth/branches/**").authenticated()

@@ -1,0 +1,1 @@
+SELECT loan_id, applied_date, disbursement_date FROM loan_service.loans WHERE branch_id = 4 AND (applied_date  OR disbursement_date ; SELECT account_id, opened_date FROM account_service.savings_accounts WHERE branch_id = 4 AND opened_date ; 

@@ -112,16 +112,16 @@ public class AuthController {
         Branch mainBranch = branchRepository.findByBranchName("Main Branch - Hikkaduwa").orElseThrow();
         Branch dodBranch  = branchRepository.findByBranchName("Dodanduwa Branch").orElseThrow();
 
-        Role gmRole      = roleRepository.findByRoleName("GENERAL_MANAGER").orElseThrow();
+
         Role mgrRole     = roleRepository.findByRoleName("BRANCH_MANAGER").orElseThrow();
         Role tellerRole  = roleRepository.findByRoleName("TELLER").orElseThrow();
         Role valuerRole  = roleRepository.findByRoleName("VALUER").orElseThrow();
         Role fieldRole   = roleRepository.findByRoleName("FIELD_OFFICER").orElseThrow();
         Role soRole      = roleRepository.findByRoleName("SENIOR_OFFICER").orElseThrow();
-        Role sysAdminRole = roleRepository.findByRoleName("SYSTEM_ADMIN").orElseThrow();
+        Role sysAdminRole = roleRepository.findByRoleName("SYSTEM_ADMIN").orElseGet(() -> { Role r = new Role(); r.setRoleName("SYSTEM_ADMIN"); r.setDescription("Super admin"); r.setTenantId(0); return roleRepository.save(r); });
+        Role auditorRole = roleRepository.findByRoleName("AUDITOR").orElseGet(() -> { Role r = new Role(); r.setRoleName("AUDITOR"); r.setDescription("Internal Auditor"); r.setTenantId(1); return roleRepository.save(r); });
 
         createIfNotExists("Knoweb", "knowebsolutions@gmail.com", "Knoweb@099901", sysAdminRole, null);
-        createIfNotExists("gm_perera",  "D.P. Perera",     "password", gmRole,     mainBranch);
         createIfNotExists("mgr_hkw",    "R.M. Silva",      "password", mgrRole,    mainBranch);
         createIfNotExists("mgr_dod",    "S.M. Fernando",   "password", mgrRole,    dodBranch);
         createIfNotExists("teller_hkw", "K.D. Jayasinghe", "password", tellerRole, mainBranch);
@@ -133,7 +133,7 @@ public class AuthController {
             "message", "All test users seeded!",
             "logins", java.util.List.of(
                 "SYSTEM_ADMIN   → admin      / password → /dashboard",
-                "GENERAL_MANAGER→ gm_perera  / password → /manager/dashboard",
+
                 "BRANCH_MANAGER → mgr_hkw    / password → /branch/dashboard  (Hikkaduwa)",
                 "BRANCH_MANAGER → mgr_dod    / password → /branch/dashboard  (Dodanduwa)",
                 "TELLER         → teller_hkw / password → /teller/dashboard",

@@ -186,7 +186,7 @@ public class InterestCalculationService {
      * and calculate/credit interest if it's the last day of the month.
      * Runs for ALL tenants.
      */
-    @Scheduled(cron = "0 59 23 * * ?")
+    @Scheduled(cron = "0 59 23 * * ?", zone = "Asia/Colombo")
     public void processDailyBalancesAndMonthlyInterest() {
         List<Integer> tenantIds = getAllTenantIds();
         System.out.println("[InterestCalculationService] EOD running for tenants: " + tenantIds);

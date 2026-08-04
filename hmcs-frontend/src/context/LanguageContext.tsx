@@ -317,6 +317,41 @@ const translations: Translations = {
   'Peraliya': { en: 'Peraliya', si: 'පේරලිය' },
   'Kalupe': { en: 'Kalupe', si: 'කළුපේ' },
   'Gonapinuwala': { en: 'Gonapinuwala', si: 'ගොනාපීනුවල' },
+  'Are you sure?': {
+    en: 'Are you sure?',
+    si: 'Are you sure? / ඔබට විශ්වාසද?',
+    ta: 'நீங்கள் உறுதியாக இருக்கிறீர்களா?'
+  },
+  'You want to mark this comment as resolved?': {
+    en: 'You want to mark this comment as resolved?',
+    si: 'You want to mark this comment as resolved? / ඔබට මෙම සටහන විසඳුවා ලෙස සලකුණු කිරීමට අවශ්‍යද?',
+    ta: 'இந்தக் கருத்தைத் தீர்க்கப்பட்டதாகக் குறிக்க விரும்புகிறீர்களா?'
+  },
+  'Yes, mark as resolved': {
+    en: 'Yes, mark as resolved',
+    si: 'Yes, mark as resolved / ඔව්',
+    ta: 'ஆம், குறிக்கவும்'
+  },
+  'Resolved!': {
+    en: 'Resolved!',
+    si: 'Resolved! / විසඳුවා!',
+    ta: 'தீர்க்கப்பட்டது!'
+  },
+  'Comment successfully marked as resolved!': {
+    en: 'Comment successfully marked as resolved!',
+    si: 'Comment successfully marked as resolved! / සටහන සාර්ථකව විසඳුවා ලෙස සලකුණු කරන ලදී!',
+    ta: 'கருத்து வெற்றிகரமாகத் தீர்க்கப்பட்டதாகக் குறிக்கப்பட்டது!'
+  },
+  'Error!': {
+    en: 'Error!',
+    si: 'Error! / දෝෂයක්!',
+    ta: 'பிழை!'
+  },
+  'Failed to resolve comment. Please try again.': {
+    en: 'Failed to resolve comment. Please try again.',
+    si: 'Failed to resolve comment. / සටහන විසඳුවා ලෙස සලකුණු කිරීමට නොහැකි විය.',
+    ta: 'கருத்தைத் தீர்ப்பதில் தோல்வி. மீண்டும் முயற்சிக்கவும்.'
+  },
 };
 
 

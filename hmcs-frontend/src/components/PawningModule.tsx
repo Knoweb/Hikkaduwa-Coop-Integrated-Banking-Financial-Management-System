@@ -10,7 +10,7 @@ import { Snackbar, Alert } from '@mui/material';
 import { useLanguage } from '../context/LanguageContext';
 
 
-export default function PawningModule({ branchId }: { branchId: number }) {
+export default function PawningModule({ branchId, readOnly }: { branchId: number, readOnly?: boolean }) {
   const { t } = useLanguage();
   if ((window as any).__isAdminView) return <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center"><h3 className="text-xl font-bold text-red-600 mb-2">Access Denied</h3><p className="text-slate-600 mb-6">System Administrators are in Read-Only mode and cannot perform transactions or open accounts.</p><button onClick={() => {}} className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold hover:bg-slate-700">Close</button></div></div>;
   const [tickets, setTickets] = useState<any[]>([]);
@@ -145,16 +145,20 @@ export default function PawningModule({ branchId }: { branchId: number }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button 
-            onClick={() => setShowPaymentSearchModal(true)}
-            className="flex items-center gap-2 bg-amber-900 hover:bg-amber-950 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap border border-amber-800/50"
-          >
-            <Banknote size={14} /> {t(`වාරික ගෙවීම`)}</button>
-          <button 
-            onClick={() => setShowIssueModal(true)}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
-          >
-            <Plus size={14} /> {t(`නව උකස් පත්‍රිකාවක් නිකුත් කිරීම`)}</button>
+          {!readOnly && (
+            <>
+              <button 
+                onClick={() => setShowPaymentSearchModal(true)}
+                className="flex items-center gap-2 bg-amber-900 hover:bg-amber-950 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap border border-amber-800/50"
+              >
+                <Banknote size={14} /> {t(`වාරික ගෙවීම`)}</button>
+              <button 
+                onClick={() => setShowIssueModal(true)}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+              >
+                <Plus size={14} /> {t(`නව උකස් පත්‍රිකාවක් නිකුත් කිරීම`)}</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -304,7 +308,7 @@ export default function PawningModule({ branchId }: { branchId: number }) {
                         className="px-2.5 py-1.5 rounded-lg text-[#025a4e] bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center border border-emerald-200/50 shadow-sm whitespace-nowrap gap-1 text-[11px] font-bold"
                       >
                         <Eye size={12} /> {t(`බලන්න`)}</button>
-                      {ticket.status === 'APPROVED' && (
+                      {ticket.status === 'APPROVED' && !readOnly && (
                         <button 
                           onClick={() => setDisburseTicket(enrichTicketWithMember(ticket))}
                           className="px-2.5 py-1.5 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center shadow-sm whitespace-nowrap gap-1 text-[11px] font-bold"

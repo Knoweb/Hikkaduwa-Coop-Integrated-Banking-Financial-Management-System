@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List, Edit3, Save
+  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List, Edit3, Save, MessageSquare
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -14,6 +14,7 @@ import * as PawningService from '../services/pawning.service';
 import * as LedgerService from '../services/ledger.service';
 import * as BranchService from '../services/branch.service';
 import PawningApprovalsView from '../components/PawningApprovalsView';
+import AuditorCommentsView from '../components/AuditorCommentsView';
 import { printAccountStatement, printLoanAgreement, printDisbursementReceipt, printPawnTicket } from '../utils/print';
 import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
@@ -146,6 +147,7 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     { icon: FileText, label: 'කළමනාකාර අනුමැතිය', key: 'loans' },
     { icon: CheckCircle, label: 'කමිටුව අනුමත කළ ණය', key: 'committee-approved' },
     { icon: Briefcase, label: 'Pawning Approvals', key: 'pawning_approvals' },
+    { icon: MessageSquare, label: 'Auditor Comments', key: 'auditor-comments' },
     { isSection: true, label: 'Customer Relations' },
     { icon: UserPlus, label: 'Members', key: 'members' },
     { isSection: true, label: 'Core Banking Facilities' },
@@ -159,7 +161,6 @@ const ROLE_NAV: Record<string, { icon?: any; label: string; key?: string; isSect
     // { icon: BookOpen, label: 'General Ledger', key: 'gl' },
     { icon: ClipboardList, label: 'Summary Ledger', key: 'summary-ledger' },
     { icon: Banknote, label: 'Cash Balances', key: 'vault-cash' },
-    { icon: Shield, label: 'Audit Logs', key: 'audit_logs' },
     { isSection: true, label: 'Information' },
     { icon: Percent, label: 'Interest Rates', key: 'rates' }
   ],
@@ -467,6 +468,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
             <Field label={t(`ඉල්ලූ ණය මුදල`)} value={`Rs. ${loan.requestedAmount?.toLocaleString()}`} />
             <Field label={t(`ණය අරමුණ`)} value={ad.loanPurpose} />
             <Field label={t(`ණය ගෙවීමේ කාලය`)} value={`${loan.termMonths} months`} />
+            <Field label={t(`වාර්ෂික පොලී අනුපාතය`)} value={loan.interestRate ? `${loan.interestRate}%` : '—'} />
             <Field label={t(`ණය ප්‍රමාණය (ද්‍රව්‍ය)`)} value={ad.requiredLoanGoods} />
           </div>
 
@@ -732,7 +734,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   );
 }
 
-function BranchManagerView({ activeTab, setTab }: { activeTab: string; setTab: (tab: string) => void }) {
+function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string; setTab: (tab: string) => void; readOnly?: boolean }) {
   const { t } = useLanguage();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
@@ -780,7 +782,7 @@ function BranchManagerView({ activeTab, setTab }: { activeTab: string; setTab: (
 
 
   if (activeTab === 'pawning') {
-    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
+    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} readOnly={readOnly} />;
   }
 
   if (activeTab === 'overview') {
@@ -1065,10 +1067,6 @@ function BranchManagerView({ activeTab, setTab }: { activeTab: string; setTab: (
 
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const { t } = useLanguage();
-  if (activeTab === 'pawning_approvals') {
-    return <PawningApprovalsView />;
-  }
-
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
@@ -1078,6 +1076,10 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  if (activeTab === 'pawning_approvals') {
+    return <PawningApprovalsView />;
+  }
 
   const pendingLoans = loans.filter(l => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' && l.status === 'PENDING');
   const approvedLoans = loans.filter(l => l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED' || l.status === 'ACTIVE' || l.currentStage === 'DISBURSED');
@@ -1489,6 +1491,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [accounts, setAccounts] = useState<AccountService.AccountData[]>([]);
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
   const [loanSearch, setLoanSearch] = useState('');
+  const [loanTypeFilterDropdown, setLoanTypeFilterDropdown] = useState<string>('ALL');
   const [loanFilter, setLoanFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'COMPLETED'>('ACTIVE');
   const [viewLoan, setViewLoan] = useState<LoanService.Loan | null>(null);
   const [openNoticeOnModal, setOpenNoticeOnModal] = useState(false);
@@ -1872,7 +1875,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   };
 
   const filteredAccounts = accounts.filter(a => {
-    const matchesSearch = a.accountNumber.toLowerCase().includes(search.toLowerCase());
+    const normalize = (str: string) => (str || '').replace(/\s+/g, '').toLowerCase();
+    const searchNorm = normalize(search);
+    
+    const accNoNorm = normalize(a.accountNumber);
+    const nameNorm = normalize(getMemberName(a.memberId, a.accountNumber));
+    
+    const matchesSearch = accNoNorm.includes(searchNorm) || nameNorm.includes(searchNorm);
+
     const member = members.find(m => m.memberId === a.memberId);
     // If member not found, default to false (treat as non-member)
     const isSociety = member ? member.isMember !== false : false; 
@@ -1917,7 +1927,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     thirtyDaysLater.setDate(today.getDate() + 30);
 
     const getMemberName = (memberId: string) => {
-  const { t } = useLanguage();
       const m = members.find(mem => mem.memberId === memberId);
       return m ? (m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
     };
@@ -2261,7 +2270,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
 
 
   if (activeTab === 'pawning') {
-    return <PawningModule branchId={user?.branchId || 1} />;
+    return <PawningModule branchId={user?.branchId || 1} readOnly={readOnly} />;
   }
 
   if (activeTab === 'loans' || activeTab === 'customer-loans') {
@@ -2284,14 +2293,29 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       if (loanFilter === 'PENDING' && l.status !== 'PENDING' && !(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED')) return false;
       if (loanFilter === 'OVERDUE' && !(l.status === 'OVERDUE' || l.isOverdue || isSavedOverdue || (l.overdueAmount && Number(l.overdueAmount) > 0))) return false;
       if (loanFilter === 'COMPLETED' && l.status !== 'COMPLETED') return false;
-      const term = loanSearch.toLowerCase();
+      if (loanTypeFilterDropdown !== 'ALL') {
+        const tStr = l.loanType?.name || l.loanTypeStr || '';
+        if (tStr !== loanTypeFilterDropdown) return false;
+      }
+
+      const normalize = (str: string) => (str || '').replace(/\s+/g, '').toLowerCase();
+      const termNorm = normalize(loanSearch);
+
       const member = members.find(m => m.memberId === l.memberId);
-      const nameMatch = member ? (member.fullName || member.fullNameSinhala || '').toLowerCase().includes(term) : false;
-      const typeMatch = (l.loanType?.name || '').toLowerCase().includes(term);
-      const accMatch = (l.accountNumber || '').toLowerCase().includes(term);
-      const appMatch = (l.applicationNumber || (l.applicationData as any)?.applicationNumber || '').toLowerCase().includes(term);
-      return nameMatch || typeMatch || accMatch || appMatch;
+      const nameStr = member ? (member.nameWithInitials || member.fullName || member.fullNameSinhala || '') : '';
+      const nameMatch = normalize(nameStr).includes(termNorm);
+      
+      const typeStr = l.loanType?.name || l.loanTypeStr || '';
+      const typeMatch = normalize(typeStr).includes(termNorm) || normalize(t(typeStr)).includes(termNorm);
+      
+      const accMatch = normalize(l.accountNumber).includes(termNorm);
+      const appMatch = normalize(l.applicationNumber || (l.applicationData as any)?.applicationNumber).includes(termNorm);
+      const loanIdMatch = normalize(l.loanId).includes(termNorm);
+      
+      return nameMatch || typeMatch || accMatch || appMatch || loanIdMatch;
     });
+
+    const uniqueLoanTypes = Array.from(new Set(loans.map(l => l.loanType?.name || l.loanTypeStr).filter(Boolean)));
 
     return (
       <div className="space-y-4">
@@ -2400,6 +2424,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   }`}>
                   {t(`අවසන් කළ ණය`)}</button>
               </div>
+
+              <select 
+                value={loanTypeFilterDropdown} 
+                onChange={(e) => setLoanTypeFilterDropdown(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">සියලුම ණය වර්ග</option>
+                {uniqueLoanTypes.map(type => (
+                  <option key={type as string} value={type as string}>{t(type as string)}</option>
+                ))}
+              </select>
+
               <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
             </div>
           </div>
@@ -3320,7 +3356,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
 
 
   if (activeTab === 'pawning') {
-    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} />;
+    return <PawningModule branchId={AuthService.getCurrentUser()?.branchId || 1} readOnly={readOnly} />;
   }
 
   return (
@@ -4973,7 +5009,10 @@ function LedgerView({ branchId }: { branchId?: number }) {
 function SummaryLedgerView({ branchId, members }: { branchId?: number; members: AccountService.MemberData[] }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
+  const [filterMode, setFilterMode] = useState<'MONTH' | 'PERIOD'>('MONTH');
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
+  const [startDate, setStartDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [endDate, setEndDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [branches, setBranches] = useState<any[]>([]);
 
   useEffect(() => {
@@ -5026,14 +5065,23 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
         AccountService.getFixedDepositTypes().catch(() => [])
       ]);
 
-      const year = new Date().getFullYear();
-      const endDay = new Date(year, selectedMonth, 0).getDate();
-      const toDateStr = `${year}-${String(selectedMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
-      const toDateVal = new Date(toDateStr);
+      let toDateVal: Date;
+      let fromDateVal: Date | null = null;
+      if (filterMode === 'MONTH') {
+        const year = new Date().getFullYear();
+        const endDay = new Date(year, selectedMonth, 0).getDate();
+        const toDateStr = `${year}-${String(selectedMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+        toDateVal = new Date(toDateStr);
+      } else {
+        fromDateVal = new Date(startDate);
+        toDateVal = new Date(endDate);
+      }
 
       const isBeforeDate = (dateVal: any) => {
         if (!dateVal) return true;
-        return new Date(dateVal) <= toDateVal;
+        const d = new Date(dateVal);
+        if (fromDateVal && d < fromDateVal) return false;
+        return d <= toDateVal;
       };
 
       // Filter by selected month
@@ -5208,7 +5256,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
 
   useEffect(() => {
     fetchSummary();
-  }, [branchId, selectedMonth]);
+  }, [branchId, selectedMonth, filterMode, startDate, endDate]);
 
   const splitBalance = (val: number) => {
     const parts = Number(val || 0).toFixed(2).split('.');
@@ -5299,18 +5347,51 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
         
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600">{t(`මාසය තෝරන්න (Select Month):`)}</span>
-            <select
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm min-w-[150px]"
-            >
-              {MONTHS.map(m => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+            <span className="text-xs font-bold text-slate-600">{t(`පෙරහන් කරන්න (Filter By):`)}</span>
+            <div className="flex border border-slate-200 rounded-lg overflow-hidden shrink-0">
+              <button
+                className={`px-3 py-1.5 text-xs font-bold transition-colors ${filterMode === 'MONTH' ? 'bg-[#1E40AF] text-white shadow-inner' : 'bg-white text-slate-700 hover:bg-slate-50'}`}
+                onClick={() => setFilterMode('MONTH')}
+              >
+                {t(`මාසික (Monthly)`)}
+              </button>
+              <button
+                className={`px-3 py-1.5 text-xs font-bold transition-colors ${filterMode === 'PERIOD' ? 'bg-[#1E40AF] text-white shadow-inner' : 'bg-white text-slate-700 hover:bg-slate-50'}`}
+                onClick={() => setFilterMode('PERIOD')}
+              >
+                {t(`කාලය (Period)`)}
+              </button>
+            </div>
+            
+            {filterMode === 'MONTH' ? (
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(Number(e.target.value))}
+                className="border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm min-w-[150px]"
+              >
+                {MONTHS.map(m => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="flex items-center gap-1 border border-slate-200 bg-slate-50 rounded-xl px-2 py-1 shadow-sm">
+                <input 
+                  type="date" 
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="bg-transparent text-slate-700 font-bold text-xs focus:outline-none cursor-pointer"
+                />
+                <span className="text-slate-400 font-bold px-1">-</span>
+                <input 
+                  type="date" 
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="bg-transparent text-slate-700 font-bold text-xs focus:outline-none cursor-pointer"
+                />
+              </div>
+            )}
           </div>
           
           <button
@@ -5333,7 +5414,11 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
         <div className="flex justify-between items-center mb-6 border-b-2 border-blue-500/40 pb-3 shrink-0">
           <div className="text-xs font-bold text-blue-600 font-mono">ශාඛාව (Branch): {t(getDynamicBranchName())}</div>
           <div className="text-xs font-bold text-blue-600 font-mono">
-            මාසය (Month): {MONTHS.find(m => m.value === selectedMonth)?.label}
+            {filterMode === 'MONTH' ? (
+              <>මාසය (Month): {MONTHS.find(m => m.value === selectedMonth)?.label}</>
+            ) : (
+              <>කාලය (Period): {startDate} සිට {endDate} දක්වා</>
+            )}
           </div>
         </div>
 
@@ -5631,9 +5716,12 @@ function VaultCashView({ branchId }: { branchId?: number }) {
   const user = AuthService.getCurrentUser();
   const role = user?.role?.replace('ROLE_', '') || 'TELLER';
   const [loading, setLoading] = useState(true);
-  const [filterMode, setFilterMode] = useState<'MONTH' | 'DAY'>('MONTH');
+  const [filterMode, setFilterMode] = useState<'MONTH' | 'DAY' | 'PERIOD'>('MONTH');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [startDate, setStartDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [endDate, setEndDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [membersMap, setMembersMap] = useState<Record<string, { memberNo: string, name: string }>>({});
   
   // Edit Modal State
@@ -5895,7 +5983,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     try {
       const ledgerData = await LedgerService.getBranchLedger(branchId || 1).catch(() => []);
 
-      const year = new Date().getFullYear();
+      const year = filterMode === 'MONTH' ? selectedYear : new Date().getFullYear();
       let targetDateEnd: Date;
       let isDisplayMatch: (d: any) => boolean;
 
@@ -5915,6 +6003,23 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                 m = d.getMonth() + 1;
              }
              return y === year && m === selectedMonth;
+          } catch(e) { return false; }
+        };
+      } else if (filterMode === 'PERIOD') {
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        const [ey, em, ed] = endDate.split('-').map(Number);
+        const targetDateStart = new Date(sy, sm - 1, sd, 0, 0, 0);
+        targetDateEnd = new Date(ey, em - 1, ed, 23, 59, 59);
+        isDisplayMatch = (dateVal: any) => {
+          if (!dateVal) return false;
+          try {
+             let dObj: Date;
+             if (Array.isArray(dateVal)) {
+                dObj = new Date(Number(dateVal[0]), Number(dateVal[1]) - 1, Number(dateVal[2]));
+             } else {
+                dObj = new Date(dateVal);
+             }
+             return dObj >= targetDateStart && dObj <= targetDateEnd;
           } catch(e) { return false; }
         };
       } else {
@@ -5998,7 +6103,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
 
   useEffect(() => {
     fetchCashData();
-  }, [branchId, selectedMonth, selectedDate, filterMode, membersMap, ticketsMap]);
+  }, [branchId, selectedYear, selectedMonth, selectedDate, filterMode, startDate, endDate, membersMap, ticketsMap]);
 
   const splitBalance = (val: number) => {
     const parts = Number(val || 0).toFixed(2).split('.');
@@ -6035,34 +6140,72 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                 onClick={() => setFilterMode('DAY')}
               >
                 {t(`දෛනික (Daily)`)}</button>
+              <button
+                className={`px-4 py-1.5 text-xs font-bold transition-colors ${filterMode === 'PERIOD' ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}
+                onClick={() => setFilterMode('PERIOD')}
+              >
+                {t(`කාලය (Period)`)}</button>
             </div>
             
             <div className="h-8 w-px bg-indigo-200 mx-1"></div>
             
             {filterMode === 'MONTH' ? (
-              <div className="relative">
-                <select
-                  value={selectedMonth}
-                  onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="appearance-none border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
-                >
-                  {MONTHS.map(m => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-700">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <select
+                    value={selectedYear}
+                    onChange={e => setSelectedYear(Number(e.target.value))}
+                    className="appearance-none border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg pl-4 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+                  >
+                    {[0, 1, 2, 3, 4, 5].map(offset => {
+                      const y = new Date().getFullYear() - offset;
+                      return <option key={y} value={y}>{y}</option>;
+                    })}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-700">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  </div>
+                </div>
+                <div className="relative">
+                  <select
+                    value={selectedMonth}
+                    onChange={e => setSelectedMonth(Number(e.target.value))}
+                    className="appearance-none border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg pl-4 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+                  >
+                    {MONTHS.map(m => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-700">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  </div>
                 </div>
               </div>
-            ) : (
+            ) : filterMode === 'DAY' ? (
               <input 
                 type="date" 
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
                 className="border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
               />
+            ) : (
+              <div className="flex items-center gap-2">
+                <input 
+                  type="date" 
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+                />
+                <span className="text-indigo-400 font-bold"> - </span>
+                <input 
+                  type="date" 
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="border-2 border-indigo-500 bg-white text-indigo-700 font-bold rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm cursor-pointer"
+                />
+              </div>
             )}
           </div>
         </div>
@@ -6315,6 +6458,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
   const [pendingPawnCount, setPendingPawnCount] = useState(0);
   const [pendingEvaluationsCount, setPendingEvaluationsCount] = useState(0);
   const [pendingHandoversCount, setPendingHandoversCount] = useState(0);
+  const [pendingAuditorCommentsCount, setPendingAuditorCommentsCount] = useState(0);
 
   useEffect(() => {
     const currentRole = user?.role?.replace('ROLE_', '');
@@ -6401,6 +6545,25 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
   }, [user]);
 
   useEffect(() => {
+    let intervalId: any;
+    const fetchAudits = () => {
+      import('../services/audit.service').then(m => {
+        m.default.getComments().then(comments => {
+          setPendingAuditorCommentsCount(comments.filter((c: any) => c.status !== 'RESOLVED').length);
+        }).catch(() => {});
+      });
+    };
+    
+    // Fetch immediately and set up polling
+    fetchAudits();
+    intervalId = setInterval(fetchAudits, 5000);
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
     AccountService.getBranchNotifications().then(async (notifs) => {
       // Fetch Pawning Tickets to check for nearing maturity
       try {
@@ -6457,11 +6620,14 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     if (tab === 'audit_logs') {
       return <div className="p-8"><AuditLogsView /></div>;
     }
+    if (tab === 'auditor-comments') {
+      return <div className="flex-1 min-h-0 flex flex-col"><AuditorCommentsView /></div>;
+    }
 
     switch (role) {
       case 'BRANCH_MANAGER':
         if (['overview', 'approvals', 'loans', 'manager-approved', 'committee-approved', 'pawning_approvals'].includes(tab)) {
-          return <BranchManagerView activeTab={tab} setTab={setTabState} />;
+          return <BranchManagerView activeTab={tab} setTab={setTabState} readOnly={readOnly} />;
         }
         return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
@@ -6470,11 +6636,11 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
       case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} />;
       case 'SENIOR_OFFICER':
         if (tab === 'overview') {
-          return <BranchManagerView activeTab="overview" setTab={setTabState} />;
+          return <BranchManagerView activeTab="overview" setTab={setTabState} readOnly={readOnly} />;
         }
         return <CustomerServiceView activeTab={tab} onTabChange={setTab} readOnly={readOnly} confirmDialog={confirmDialog} setConfirmDialog={setConfirmDialog} />;
       case 'BANK_SERVICE_MANAGER': return <BankServiceManagerView />;
-      default:                     return <BranchManagerView activeTab={tab} setTab={setTabState} />;
+      default:                     return <BranchManagerView activeTab={tab} setTab={setTabState} readOnly={readOnly} />;
     }
   };
 
@@ -6586,6 +6752,11 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
                 {item.key === 'handovers' && pendingHandoversCount > 0 && (
                   <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                     {pendingHandoversCount}
+                  </span>
+                )}
+                {item.key === 'auditor-comments' && pendingAuditorCommentsCount > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                    {pendingAuditorCommentsCount}
                   </span>
                 )}
               </button>

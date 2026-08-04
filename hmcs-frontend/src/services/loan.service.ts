@@ -103,7 +103,7 @@ export const getLoans = async (): Promise<Loan[]> => {
   }
 
   const overrideBranchId = localStorage.getItem('overrideBranchId');
-  const bId = (user?.role === 'ORGANIZATION_ADMIN' && overrideBranchId) ? overrideBranchId : user?.branchId;
+  const bId = ((user?.role === 'ORGANIZATION_ADMIN' || user?.role === 'AUDITOR') && overrideBranchId) ? overrideBranchId : user?.branchId;
   const url = bId ? `${API_URL}?branchId=${bId}` : API_URL;
   const response = await axios.get(url, { headers: authHeader() });
   return response.data;

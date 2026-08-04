@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users, UserMinus,
   Settings, ChevronRight, ChevronDown, ChevronUp, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
-  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote, ClipboardList
+  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote, ClipboardList, MapPin, MessageSquare, Search, MoreVertical
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
@@ -19,7 +19,7 @@ import logo from '../assets/logo.jpg';
 
 
 const ROLE_COLORS: Record<string, string> = {
-  GENERAL_MANAGER:      'bg-purple-100 text-purple-700 border border-purple-200',
+  AUDITOR:              'bg-slate-100 text-slate-700 border border-slate-200',
   BRANCH_MANAGER:       'bg-blue-100 text-blue-700 border border-blue-200',
   BANK_SERVICE_MANAGER: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
   LOAN_COMMITTEE:       'bg-amber-100 text-amber-700 border border-amber-200',
@@ -30,7 +30,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const ROLE_AVATARS: Record<string, string> = {
-  GENERAL_MANAGER:      'bg-gradient-to-tr from-purple-500 to-indigo-500 text-white',
+  AUDITOR:              'bg-gradient-to-tr from-slate-500 to-gray-500 text-white',
   BRANCH_MANAGER:       'bg-gradient-to-tr from-blue-500 to-cyan-500 text-white',
   BANK_SERVICE_MANAGER: 'bg-gradient-to-tr from-indigo-500 to-purple-500 text-white',
   LOAN_COMMITTEE:       'bg-gradient-to-tr from-amber-500 to-orange-500 text-white',
@@ -42,7 +42,6 @@ const ROLE_AVATARS: Record<string, string> = {
 
 const DEMO_USERS = [
   { id: 1, username: 'admin',       fullName: 'System Administrator', role: 'ORGANIZATION_ADMIN',      branchId: 1, status: 'ACTIVE' },
-  { id: 2, username: 'gm_perera',   fullName: 'D.P. Perera',          role: 'GENERAL_MANAGER',   branchId: 1, status: 'ACTIVE' },
   { id: 3, username: 'mgr_hkw',     fullName: 'R.M. Silva',           role: 'BRANCH_MANAGER',    branchId: 1, status: 'ACTIVE' },
   { id: 4, username: 'teller_hkw',  fullName: 'K.D. Jayasinghe',      role: 'TELLER',            branchId: 1, status: 'ACTIVE' },
   { id: 5, username: 'valuer_hkw',  fullName: 'A.B. Bandara',         role: 'VALUER',            branchId: 1, status: 'ACTIVE' },
@@ -112,6 +111,7 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
       }, tenantId);
       setShowAddUser(false);
       setUserForm({ fullName: '', username: '', password: '', role: '', branchId: '' });
+      alert('User added successfully!');
       fetchInsights();
     } catch (err: any) {
       setError(err.response?.data || 'Failed to add user');
@@ -204,15 +204,17 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
               <Users size={18} className="text-blue-600" />
               Users
             </h3>
-            <button onClick={() => setShowAddUser(true)} className="text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg flex items-center gap-1 transition">
-              <Plus size={14} /> Add User
-            </button>
+            {AuthService.getCurrentUser()?.role !== 'AUDITOR' && (
+              <button onClick={() => setShowAddUser(true)} className="text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg flex items-center gap-1 transition">
+                <Plus size={14} /> Add User
+              </button>
+            )}
           </div>
           {loading ? <p className="text-slate-500 text-sm">Loading users...</p> : (
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(u.role)).length === 0 && <p className="text-slate-400 text-sm italic">No users found.</p>}
-              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(u.role)).map(u => (
-                <div key={u.userId} onClick={() => handleEditClick(u)} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-blue-300 transition">
+              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN', 'AUDITOR'].includes(u.role)).length === 0 && <p className="text-slate-400 text-sm italic">No users found.</p>}
+              {users.filter(u => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN', 'AUDITOR'].includes(u.role)).map(u => (
+                <div key={u.userId} onClick={() => { if(AuthService.getCurrentUser()?.role !== 'AUDITOR') handleEditClick(u); }} className={`flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 transition ${AuthService.getCurrentUser()?.role !== 'AUDITOR' ? 'cursor-pointer hover:border-blue-300' : ''}`}>
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_AVATARS[u.role] || 'bg-slate-200 text-slate-600'}`}>
                       {u.fullName.charAt(0)}
@@ -227,7 +229,7 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                       {u.role.replace(/_/g, ' ')}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">
-                      {branches.find(b => b.branchId === u.branchId)?.branchName || 'Head Office'}
+                      Head Office / All Branches
                     </span>
                   </div>
                 </div>
@@ -273,7 +275,7 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Role</label>
                   <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
                     <option value="">Select Role</option>
-                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(r.roleName)).map(r => (
+                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN', 'AUDITOR'].includes(r.roleName)).map(r => (
                       <option key={r.roleId} value={r.roleName}>{r.roleName.replace(/_/g, ' ')}</option>
                     ))}
                   </select>
@@ -335,7 +337,7 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Role</label>
                   <select value={editUserForm.role} onChange={e => setEditUserForm({...editUserForm, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
-                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN'].includes(r.roleName)).map(r => (
+                    {roles.filter(r => ['LOAN_COMMITTEE', 'ORGANIZATION_ADMIN', 'AUDITOR'].includes(r.roleName)).map(r => (
                       <option key={r.roleId} value={r.roleName}>{r.roleName.replace(/_/g, ' ')}</option>
                     ))}
                   </select>
@@ -620,7 +622,7 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {branches.map((branch, idx) => {
             const g = BRANCH_GLOWS[idx % BRANCH_GLOWS.length];
-            const count = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'GENERAL_MANAGER').length;
+            const count = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'AUDITOR').length;
             return (
               <button key={branch.branchId} onClick={() => onSelectBranch(branch)}
                 style={{
@@ -657,7 +659,8 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
               </button>
             );
           })}
-          <button onClick={onAddBranch}
+          {AuthService.getCurrentUser()?.role !== 'AUDITOR' && (
+            <button onClick={onAddBranch}
             style={{
               background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
               border: `1.5px dashed #cbd5e1`,
@@ -683,6 +686,7 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
             </div>
             <p className="font-semibold text-slate-600 group-hover:text-slate-800 transition-colors">{t('Add Branch')}</p>
           </button>
+          )}
         </div>
       </div>
 
@@ -757,10 +761,10 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
   useEffect(() => {
     AuthService.getRoles()
       .then(data => setRoles(data.map(r => r.roleName)))
-      .catch(() => setRoles(['GENERAL_MANAGER','BRANCH_MANAGER','BANK_SERVICE_MANAGER','LOAN_COMMITTEE','FIELD_OFFICER','TELLER','VALUER','SENIOR_OFFICER']));
+      .catch(() => setRoles(['AUDITOR','BRANCH_MANAGER','BANK_SERVICE_MANAGER','LOAN_COMMITTEE','FIELD_OFFICER','TELLER','VALUER','SENIOR_OFFICER']));
   }, []);
 
-  const branchUsers = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'GENERAL_MANAGER');
+  const branchUsers = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'AUDITOR');
 
   const startEdit = (u: AuthService.UserDTO) => {
     setEditingUser(u);
@@ -797,6 +801,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
       setEditingUser(null);
       setShowPassword(false);
       setShowForm(false);
+      alert(editingUser ? 'User updated successfully!' : 'User created successfully!');
       onRefresh();
     } catch (err: any) {
       setError(err.response?.data || 'Operation failed');
@@ -807,6 +812,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
     if (confirm('Are you sure you want to delete this user?')) {
       try {
         await AuthService.deleteUser(userId);
+        alert('User deleted successfully!');
         onRefresh();
       } catch (err) {
         (window as any).showToast('Failed to delete user');
@@ -911,7 +917,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition">
                       {roles.length === 0 ? (
                         <option disabled>Loading roles...</option>
-                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'GENERAL_MANAGER', 'BANK_SERVICE_MANAGER', 'LOAN_COMMITTEE'].includes(r)).map(r => {
+                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'AUDITOR', 'BANK_SERVICE_MANAGER', 'LOAN_COMMITTEE'].includes(r)).map(r => {
                         let label = r.replace(/_/g, ' ');
                         if (r === 'BRANCH_MANAGER') label = 'BRANCH MANAGER (ශාඛා කළමනාකරු)';
                         if (r === 'SENIOR_OFFICER') label = 'SENIOR OFFICER (ලිපිකරු)';
@@ -1031,9 +1037,12 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
 
 import GlobalSettings from '../components/GlobalSettings';
 import BranchDashboard from './BranchDashboard';
+import AuditCommentModal from '../components/AuditCommentModal';
+import AuditorCommentsView from '../components/AuditorCommentsView';
 
 export default function SystemAdminDashboard() {
-  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings' | 'tenants'>(
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings' | 'tenants' | 'auditor_comments'>(
     () => {
       const saved = sessionStorage.getItem('sa_mainTab');
       if (saved) return saved as any;
@@ -1050,6 +1059,7 @@ export default function SystemAdminDashboard() {
   const [addBranchForm, setAddBranchForm] = useState({ branchName: '', location: '', status: 'ACTIVE' });
   const [addingBranch, setAddingBranch] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
+  const [pendingAuditorCommentsCount, setPendingAuditorCommentsCount] = useState(0);
 
   const handleCreateBranch = async () => {
     if(!addBranchForm.branchName) return;
@@ -1058,6 +1068,7 @@ export default function SystemAdminDashboard() {
       await BranchService.createBranch(addBranchForm);
       setShowAddBranch(false);
       setAddBranchForm({ branchName: '', location: '', status: 'ACTIVE' });
+      alert('Branch created successfully!');
       fetchBranches();
     } catch(e) {
       console.error(e);
@@ -1081,10 +1092,26 @@ export default function SystemAdminDashboard() {
   };
 
   useEffect(() => {
+    let intervalId: any;
     if (user && user.tenantId !== 0) {
       fetchBranches();
       AccountService.getBranchActivities().then(setActivities).catch(console.error);
+      
+      const fetchAudits = () => {
+        import('../services/audit.service').then(m => {
+          m.default.getComments().then(comments => {
+            setPendingAuditorCommentsCount(comments.filter((c: any) => c.status !== 'RESOLVED').length);
+          }).catch(() => {});
+        });
+      };
+      
+      fetchAudits(); // Initial fetch
+      intervalId = setInterval(fetchAudits, 5000); // Poll every 5 seconds
     }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [user?.token]);
   const [activeBranch, setActiveBranch] = useState<BranchService.BranchDTO | null>(() => {
     const saved = sessionStorage.getItem('sa_activeBranch');
@@ -1181,6 +1208,15 @@ export default function SystemAdminDashboard() {
                     className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'settings' ? 'bg-slate-600/10 text-slate-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
                     <Settings size={18} className="mr-3" />{t('Settings')}
                   </button>
+                  <button onClick={() => { handleClearBranch(); setMainTab('auditor_comments'); }}
+                    className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'auditor_comments' ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                    <MessageSquare size={18} className="mr-3" />{t('Auditor Comments')}
+                    {pendingAuditorCommentsCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm shadow-red-500/20">
+                        {pendingAuditorCommentsCount}
+                      </span>
+                    )}
+                  </button>
                 </>
               )}
             </div>
@@ -1245,7 +1281,7 @@ export default function SystemAdminDashboard() {
               <div className="truncate">
                 <p className="text-slate-200 text-sm font-semibold truncate leading-tight">{user.username}</p>
                 <p className="text-slate-500 text-[10px] uppercase tracking-wider truncate mt-0.5">
-                  {user.tenantId === 0 ? t('SaaS Platform Admin') : t('Society Admin')}
+                  {user?.role === 'AUDITOR' ? t('Internal Auditor') : (user?.tenantId === 0 ? t('SaaS Platform Admin') : t('Society Admin'))}
                 </p>
               </div>
             </div>
@@ -1276,9 +1312,20 @@ export default function SystemAdminDashboard() {
               <div className="w-px h-3.5 bg-slate-300 mx-0.5"></div>
               <button onClick={() => setLanguage('ta')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition ${language === 'ta' ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>தமிழ்</button>
             </div>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {`${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length} ${t('Branches')} Online`}
-            </span>
+            {user?.role !== 'AUDITOR' && (
+              <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {`${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length} ${t('Branches')} Online`}
+              </span>
+            )}
+            {user?.role === 'AUDITOR' && (
+              <button
+                onClick={() => setShowCommentModal(true)}
+                className="text-sm bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white px-5 py-2 rounded-full font-black flex items-center gap-2 transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5 border-2 border-white/20"
+                title={t('Add Audit Comment')}
+              >
+                <MessageSquare size={16} className="animate-pulse" /> {t('විගණක අදහස් එක් කරන්න')}
+              </button>
+            )}
             <button
               onClick={() => { AuthService.logout(); navigate('/login'); }}
               className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
@@ -1294,6 +1341,7 @@ export default function SystemAdminDashboard() {
           {mainTab === 'rates' && <GlobalSettings currentTab='rates' />}
           {mainTab === 'account_types' && <GlobalSettings currentTab='account_types' />}
           {mainTab === 'settings' && <GlobalSettings currentTab='settings' />}
+          {mainTab === 'auditor_comments' && <AuditorCommentsView />}
           {mainTab === 'overview' && (
             activeBranch ? (
               (activeTab === 'staff' || activeTab === 'config') ? (
@@ -1348,6 +1396,17 @@ export default function SystemAdminDashboard() {
             </div>
           </div>
         </div>
+      )}
+      
+      {showCommentModal && (
+        <AuditCommentModal 
+          branchName={activeBranch?.branchName}
+          branchId={activeBranch?.branchId}
+          onClose={() => setShowCommentModal(false)}
+          onSuccess={() => {
+            setShowCommentModal(false);
+          }}
+        />
       )}
       </main>
     </div>

@@ -34,6 +34,7 @@
     "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.0",
-    "recharts": "^3.9.2"
+    "recharts": "^3.9.2",
+    "sweetalert2": "^11.26.25"
   }
 }

@@ -36,10 +36,8 @@ export default function Login() {
       
       // Redirect based on user role
       const role = response.role;
-      if (role === 'ORGANIZATION_ADMIN' || role === 'PLATFORM_ADMIN') {
+      if (role === 'ORGANIZATION_ADMIN' || role === 'PLATFORM_ADMIN' || role === 'AUDITOR') {
         navigate('/dashboard');
-      } else if (role === 'GENERAL_MANAGER') {
-        navigate('/manager/dashboard');
       } else if (role === 'BRANCH_MANAGER') {
         navigate('/branch/dashboard');
       } else if (role === 'BANK_SERVICE_MANAGER') {

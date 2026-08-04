@@ -511,6 +511,18 @@ public class LoanService {
                 } else {
                     System.err.println("[LoanService] WARNING: No tenant ID found for savings deposit! Account=" + savingsAccountNumber);
                 }
+                
+                org.springframework.web.context.request.RequestAttributes attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+                    String authHeader = ((org.springframework.web.context.request.ServletRequestAttributes) attrs).getRequest().getHeader("Authorization");
+                    System.out.println("[LoanService] Extracted Auth Header: " + (authHeader != null ? "Present (length: " + authHeader.length() + ")" : "NULL"));
+                    if (authHeader != null) {
+                        headers.set("Authorization", authHeader);
+                    }
+                } else {
+                    System.out.println("[LoanService] RequestContextHolder attrs is NULL or not ServletRequestAttributes");
+                }
+
                 org.springframework.http.HttpEntity<Map<String, Object>> requestEntity = new org.springframework.http.HttpEntity<>(depositRequest, headers);
                 
                 restTemplate.postForEntity(savingsServiceUrl, requestEntity, Object.class);
@@ -749,11 +761,6 @@ public class LoanService {
             }
         }
 
-        // Check if fully paid (if no pending schedules left or if principal covers full remaining)
-        if (loanScheduleRepository.findByLoanIdAndStatusOrderByInstallmentNumberAsc(loanId, LoanSchedule.ScheduleStatus.PENDING).isEmpty()) {
-            loan.setStatus("COMPLETED");
-            loanRepository.save(loan);
-        }
 
         return repayment;
     }
@@ -852,9 +859,35 @@ public class LoanService {
                     String method = repayment.getPaymentMethod() != null ? repayment.getPaymentMethod().name() : "CASH";
                     Integer payBranchId = repayment.getPaymentBranchId() != null ? Math.toIntExact(repayment.getPaymentBranchId()) : 1;
                     
+                    List<LoanRepayment> allRepayments = loanRepaymentRepository.findByLoanIdOrderByPaymentDateAsc(loanId);
+                    BigDecimal totalPrincipalPaidBefore = BigDecimal.ZERO;
+                    java.time.LocalDate lastDate = loan.getDisbursementDate() != null ? loan.getDisbursementDate().toLocalDate() : loan.getAppliedDate();
+                    for (LoanRepayment r : allRepayments) {
+                        if (r.getId().equals(repayment.getId())) break;
+                        totalPrincipalPaidBefore = totalPrincipalPaidBefore.add(r.getPrincipalPortion());
+                        lastDate = r.getPaymentDate().toLocalDate();
+                    }
+                    
+                    BigDecimal outstandingPrincipal = loan.getRequestedAmount().subtract(totalPrincipalPaidBefore);
+                    if (outstandingPrincipal.compareTo(BigDecimal.ZERO) < 0) outstandingPrincipal = BigDecimal.ZERO;
+                    
+                    long daysElapsed = java.time.temporal.ChronoUnit.DAYS.between(lastDate, repayment.getPaymentDate().toLocalDate());
+                    if (daysElapsed < 0) daysElapsed = 0;
+                    
+                    BigDecimal dailyRate = loan.getInterestRate().divide(BigDecimal.valueOf(36500), 10, java.math.RoundingMode.HALF_UP);
+                    BigDecimal interestPortion = outstandingPrincipal.multiply(BigDecimal.valueOf(daysElapsed)).multiply(dailyRate);
+                    BigDecimal principalPortion;
+                    
+                    if (newAmount.compareTo(interestPortion) <= 0) {
+                        interestPortion = newAmount;
+                        principalPortion = BigDecimal.ZERO;
+                    } else {
+                        principalPortion = newAmount.subtract(interestPortion);
+                    }
+
                     repayment.setTotalPaid(newAmount);
-                    repayment.setPrincipalPortion(newAmount);
-                    repayment.setInterestPortion(BigDecimal.ZERO);
+                    repayment.setPrincipalPortion(principalPortion);
+                    repayment.setInterestPortion(interestPortion);
                     loanRepaymentRepository.save(repayment);
                     
                     String debitAccount = "SAVINGS_TRANSFER".equalsIgnoreCase(method) ? "SAVINGS_DEPOSITS" : 
@@ -887,12 +920,29 @@ public class LoanService {
                     principalDeduction.setDescription("Loan Principal Deduction — " + loan.getAccountNumber());
                     principalDeduction.setDebitAccount("LOAN_REPAYMENT_CLEARING");
                     principalDeduction.setCreditAccount("LOAN_RECEIVABLE");
-                    principalDeduction.setAmount(newAmount);
+                    principalDeduction.setAmount(principalPortion);
                     principalDeduction.setEntryType("REPAYMENT_PRINCIPAL");
                     principalDeduction.setPaymentMethod(method);
                     principalDeduction.setBranchId(payBranchId);
                     principalDeduction.setCreatedBy(actorUsername);
                     ledgerEntryRepository.save(principalDeduction);
+
+                    if (interestPortion.compareTo(BigDecimal.ZERO) > 0) {
+                        LedgerEntry interestIncome = new LedgerEntry();
+                        interestIncome.setLoanId(loanId);
+                        interestIncome.setReferenceNumber(repayment.getId().toString());
+                        interestIncome.setEntryDate(entryDate);
+                        interestIncome.setCreatedAt(origTimestamp);
+                        interestIncome.setDescription("Loan Interest Income — " + loan.getAccountNumber());
+                        interestIncome.setDebitAccount("LOAN_REPAYMENT_CLEARING");
+                        interestIncome.setCreditAccount("INTEREST_INCOME");
+                        interestIncome.setAmount(interestPortion);
+                        interestIncome.setEntryType("REPAYMENT_INTEREST");
+                        interestIncome.setPaymentMethod(method);
+                        interestIncome.setBranchId(payBranchId);
+                        interestIncome.setCreatedBy(actorUsername);
+                        ledgerEntryRepository.save(interestIncome);
+                    }
                 } else {
                     initialEntry.setAmount(newAmount);
                     ledgerEntryRepository.save(initialEntry);
@@ -968,11 +1018,11 @@ public class LoanService {
 
         try {
             String sql = "INSERT INTO audit_service.audit_corrections (correction_id, transaction_id, old_amount, new_amount, module_type, manager_id, reason, timestamp, tenant_id) VALUES (gen_random_uuid(), ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
-            jdbcTemplate.update(sql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, tenantId);
+            jdbcTemplate.update(sql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, branchId);
         } catch (Exception e) {
             try {
                 String altSql = "INSERT INTO audit_service.audit_corrections (transaction_id, old_amount, new_amount, module_type, manager_id, reason, timestamp, tenant_id) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
-                jdbcTemplate.update(altSql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, tenantId);
+                jdbcTemplate.update(altSql, auditTxId, oldAmount, newAmount, dynamicModuleType, actorUsername, reason, branchId);
             } catch (Exception ex) {
                 System.err.println("Failed to insert into audit_corrections: " + ex.getMessage());
             }

@@ -59,7 +59,7 @@ export const getCurrentUser = () => {
   if (userStr) {
     const user = JSON.parse(userStr);
     const overrideBranchId = localStorage.getItem('overrideBranchId');
-    if (overrideBranchId && user.role === 'ORGANIZATION_ADMIN') {
+    if (overrideBranchId && (user.role === 'ORGANIZATION_ADMIN' || user.role === 'AUDITOR')) {
       user.branchId = overrideBranchId.includes(':') ? parseInt(overrideBranchId.split(':').pop() || '1', 10) : parseInt(overrideBranchId, 10);
     } else if (typeof user.branchId === 'string' && user.branchId.includes(':')) {
       user.branchId = parseInt(user.branchId.split(':').pop() || '1', 10);
@@ -76,7 +76,7 @@ export const filterByBranch = (data: any[]) => {
   const overrideBranchId = localStorage.getItem('overrideBranchId');
   if (userStr && overrideBranchId) {
     const user = JSON.parse(userStr);
-    if (user.role === 'ORGANIZATION_ADMIN') {
+    if (user.role === 'ORGANIZATION_ADMIN' || user.role === 'AUDITOR') {
       const bId = parseInt(overrideBranchId, 10);
       return data.filter(item => {
         const itemBranchId = item.branchId !== undefined ? item.branchId : item.registeredBranchId;
