@@ -1555,7 +1555,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [fdTypes, setFdTypes] = useState<any[]>([]);
   const [fdSearch, setFdSearch] = useState('');
   const [fdLoading, setFdLoading] = useState(false);
-  const [fdCategoryFilter, setFdCategoryFilter] = useState<'ALL'|'NORMAL'|'SENIOR'|'CHILD'>('ALL');
+  const [fdCategoryFilter, setFdCategoryFilter] = useState<string>('ALL');
   const [fdStatusFilter, setFdStatusFilter] = useState<'ALL'|'ACTIVE'|'MATURING_SOON'|'MATURED'>('ALL');
   const [alertConfig, setAlertConfig] = useState<{message: string, isSuccess?: boolean} | null>(null);
 
@@ -1931,12 +1931,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       return m ? (m.nameWithInitials || m.fullName || m.fullNameSinhala || 'Unknown') : 'Unknown';
     };
 
-    const getFdCategory = (fd: any): string => {
+    const getFdCategoryId = (fd: any): string => {
       const typeObj = fdTypes.find(t => t.id === fd.typeId || t.id === fd.fdTypeId);
       if (typeObj) {
-        if (typeObj.code?.startsWith('FD_SNR')) return 'SENIOR';
-        if (typeObj.code?.startsWith('FD_CHD')) return 'CHILD';
-        return 'NORMAL';
+        return typeObj.id.toString();
       }
       
       // Fallback
@@ -1945,6 +1943,28 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       if (rate >= 12) return 'SENIOR';
       if (num <= 3 && rate === 0) return 'CHILD';
       return 'NORMAL';
+    };
+    
+    const getBaseCategoryName = (rawName: string) => {
+      if (!rawName) return '';
+      return rawName.split(' - ')[0].trim();
+    };
+
+    const getShortCategoryName = (baseName: string) => {
+      if (!baseName) return '';
+      return baseName.replace(/ ස්ථාවර තැන්පතු$/, '').replace(/ තැන්පතු$/, '').trim();
+    };
+
+    const getFdCategoryName = (fd: any): string => {
+      const typeObj = fdTypes.find(t => t.id === fd.typeId || t.id === fd.fdTypeId);
+      if (typeObj) {
+        return typeObj.nameSinhala || typeObj.name;
+      }
+      const num = fd.termMonths || 0;
+      const rate = Number(fd.interestRate);
+      if (rate >= 12) return 'ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු';
+      if (num <= 3 && rate === 0) return 'ළමා ස්ථාවර තැන්පතු';
+      return 'සාමාන්‍ය ස්ථාවර තැන්පතු';
     };
 
     const getFdStatus = (fd: any): string => {
@@ -1958,17 +1978,22 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     const filteredFDs = fixedDeposits.filter(fd => {
       const name = getMemberName(fd.memberId);
       const status = getFdStatus(fd);
-      const category = getFdCategory(fd);
+      const rawCategoryLabel = getFdCategoryName(fd);
+      const baseCategoryName = getBaseCategoryName(rawCategoryLabel);
       const matchSearch = (fd.fdNumber || '').toLowerCase().includes(fdSearch.toLowerCase()) || name.toLowerCase().includes(fdSearch.toLowerCase());
-      const matchCategory = fdCategoryFilter === 'ALL' || category === fdCategoryFilter;
+      const matchCategory = fdCategoryFilter === 'ALL' || baseCategoryName === fdCategoryFilter;
       const matchStatus = fdStatusFilter === 'ALL' || status === fdStatusFilter;
       return matchSearch && matchCategory && matchStatus;
     });
 
     const totalPrincipal = fixedDeposits.reduce((sum, fd) => sum + Number(fd.principalAmount || 0), 0);
-    const activeCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'ACTIVE').length;
+    const activeCount = fixedDeposits.filter(fd => {
+      const status = getFdStatus(fd);
+      return status === 'ACTIVE' || status === 'MATURING_SOON';
+    }).length;
     const maturingSoonCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'MATURING_SOON').length;
     const maturedCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'MATURED').length;
+    const closedCount = fixedDeposits.filter(fd => getFdStatus(fd) === 'CLOSED').length;
 
     return (
       <div className="space-y-4">
@@ -1993,11 +2018,16 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`මුළු ගිණුම්`)}</p>
             <p className="text-2xl font-black text-slate-800">{fixedDeposits.length}</p>
             <p className="text-[10px] text-slate-400 mt-0.5">{t(`සියලු ගිණුම්`)}</p>
+          </div>
+          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 shadow-sm">
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">{t(`සක්‍රීය ගිණුම්`)}</p>
+            <p className="text-2xl font-black text-emerald-700">{activeCount}</p>
+            <p className="text-[10px] text-emerald-500 mt-0.5">{t(`දැනට ක්‍රියාකාරී`)}</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`තැන්පතු මුදල`)}</p>
@@ -2012,6 +2042,11 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-sm">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`කල් පිරුණු`)}</p>
             <p className="text-2xl font-black text-slate-600">{maturedCount}</p>
+          </div>
+          <div className="bg-rose-50 rounded-xl p-4 border border-rose-100 shadow-sm">
+            <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-0.5">{t(`වසා දැමූ`)}</p>
+            <p className="text-2xl font-black text-rose-600">{closedCount}</p>
+            <p className="text-[10px] text-rose-400 mt-0.5">{t(`වසා දැමූ ගිණුම්`)}</p>
           </div>
         </div>
 
@@ -2037,13 +2072,25 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{t(`වර්ගය:`)}</label>
                 <select
                   value={fdCategoryFilter}
-                  onChange={e => setFdCategoryFilter(e.target.value as any)}
+                  onChange={e => setFdCategoryFilter(e.target.value)}
                   className="px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#025a4e] transition-all cursor-pointer"
                 >
                   <option value="ALL">{t(`සියල්ල`)}</option>
-                  <option value="NORMAL">{t(`සාමාන්‍ය ස්ථාවර තැන්පතු`)}</option>
-                  <option value="SENIOR">{t(`ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු`)}</option>
-                  <option value="CHILD">{t(`ළමා ස්ථාවර තැන්පතු`)}</option>
+                  {Array.from(new Set([
+                    ...fdTypes.map((t: any) => getBaseCategoryName(t.nameSinhala || t.name || '')),
+                    ...fixedDeposits.map((fd: any) => getBaseCategoryName(getFdCategoryName(fd) || ''))
+                  ].filter(n => n))).sort((a, b) => a.localeCompare(b)).map((name: string) => (
+                    <option key={`cat-${name}`} value={name}>{name}</option>
+                  ))}
+                  
+                  {/* Fallback options if fdTypes is empty or missing these */}
+                  {fdTypes.length === 0 && (
+                    <>
+                      <option value="සාමාන්‍ය">{t(`සාමාන්‍ය ස්ථාවර තැන්පතු`)}</option>
+                      <option value="ජ්‍යෙෂ්ඨ">{t(`ජ්‍යෙෂ්ඨ පුරවැසි තැන්පතු`)}</option>
+                      <option value="ළමා">{t(`ළමා ස්ථාවර තැන්පතු`)}</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -2093,9 +2140,19 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 const status = getFdStatus(fd);
                 const maturityDate = new Date(fd.maturityDate);
                 const daysLeft = Math.ceil((maturityDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const category = getFdCategory(fd);
-                const categoryLabel = category === 'NORMAL' ? 'සාමාන්‍ය' : category === 'SENIOR' ? 'ජ්‍යෙෂ්ඨ' : 'ළමා';
-                const categoryStyle = category === 'NORMAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : category === 'SENIOR' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-pink-50 text-pink-700 border-pink-200';
+                const categoryId = getFdCategoryId(fd);
+                const rawCategoryLabel = getFdCategoryName(fd);
+                const baseCategoryName = getBaseCategoryName(rawCategoryLabel);
+                const categoryLabel = getShortCategoryName(baseCategoryName);
+                
+                let categoryStyle = 'bg-blue-50 text-blue-700 border-blue-200';
+                if (categoryId === 'SENIOR' || categoryLabel?.includes('ජ්‍යෙෂ්ඨ')) {
+                  categoryStyle = 'bg-violet-50 text-violet-700 border-violet-200';
+                } else if (categoryId === 'CHILD' || categoryLabel?.includes('ළමා')) {
+                  categoryStyle = 'bg-pink-50 text-pink-700 border-pink-200';
+                } else if (categoryLabel?.includes('සමරුම්') || categoryLabel?.includes('Centenary')) {
+                  categoryStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+                }
                 return (
                   <tr key={i} className="hover:bg-emerald-50/30 transition-colors group">
                     <td className="px-3 py-3 border-r border-slate-100">
@@ -2109,8 +2166,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                         <span className="font-bold text-slate-800 text-sm whitespace-normal">{getMemberName(fd.memberId)}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
-                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold border ${categoryStyle}`}>{categoryLabel}</span>
+                    <td className="px-3 py-3 text-center border-r border-slate-100 max-w-[200px]">
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold border inline-block leading-tight ${categoryStyle}`}>{categoryLabel}</span>
                     </td>
                     <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100">
                       <span className="font-mono font-black text-slate-800 text-sm">Rs. {Number(fd.principalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
