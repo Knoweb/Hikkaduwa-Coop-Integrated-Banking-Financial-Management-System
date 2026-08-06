@@ -69,10 +69,10 @@ export default function Layout({ children }: LayoutProps) {
         <div className="p-4 border-t border-slate-200">
           <div className="flex items-center gap-3 mb-4 px-2">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-bold shrink-0">
-              {user.username.charAt(0).toUpperCase()}
+              { (user.fullName || user.username)?.charAt(0).toUpperCase() }
             </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium text-slate-900 truncate">{user.username}</p>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-slate-900 truncate">{user.fullName || user.username}</p>
               <p className="text-xs text-slate-500 truncate">{user.role}</p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col md:ml-64 relative min-h-screen">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
-          <h1 className="text-xl font-semibold text-slate-800">Welcome back, {user.username}!</h1>
+          <h1 className="text-xl font-semibold text-slate-800">Welcome back, {user.fullName || user.username}!</h1>
           <div className="flex items-center gap-4">
             <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>

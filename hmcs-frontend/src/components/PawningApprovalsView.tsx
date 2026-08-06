@@ -91,7 +91,7 @@ export default function PawningApprovalsView() {
           className={`pb-3 text-sm font-bold transition-all relative flex items-center gap-2 ${activeListTab === 'pending' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <Clock size={16} />
-          <span>අනුමැතිය ලැබිය යුතු ({pendingTickets.length})</span>
+          <span>{t('අනුමැතිය ලැබිය යුතු')} ({pendingTickets.length})</span>
           {activeListTab === 'pending' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
           )}
@@ -102,7 +102,7 @@ export default function PawningApprovalsView() {
           className={`pb-3 text-sm font-bold transition-all relative flex items-center gap-2 ${activeListTab === 'approved' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <CheckCircle size={16} />
-          <span>පෙර වාර්තා ({approvedTickets.length})</span>
+          <span>{t('පෙර වාර්තා')} ({approvedTickets.length})</span>
           {activeListTab === 'approved' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
           )}
@@ -111,9 +111,9 @@ export default function PawningApprovalsView() {
 
       {activeListTab === 'pending' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> අනුමැතිය ලැබිය යුතු උකස් අයදුම්පත්</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> {t('අනුමැතිය ලැබිය යුතු උකස් අයදුම්පත්')}</h3>
           {pendingTickets.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින උකස් අයදුම්පත් නොමැත.</p>
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t('අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින උකස් අයදුම්පත් නොමැත.')}</p>
           ) : pendingTickets.map(t => (
             <div key={t.ticketId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

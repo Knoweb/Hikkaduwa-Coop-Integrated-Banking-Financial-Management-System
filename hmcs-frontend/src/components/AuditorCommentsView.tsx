@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import AuditService, { type AuditComment } from '../services/audit.service';
 import { getCurrentUser } from '../services/auth.service';
 import { useLanguage } from '../context/LanguageContext';
+import * as BranchService from '../services/branch.service';
 
 export default function AuditorCommentsView() {
   const { t } = useLanguage();
@@ -11,28 +12,30 @@ export default function AuditorCommentsView() {
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('all');
   
+  const [branches, setBranches] = useState<BranchService.BranchDTO[]>([]);
   
   const getBranchNameStr = (branchId: number) => {
-    const branchMap: Record<number, string> = {
-      1: 'Main Branch',
-      2: 'Dodanduwa Branch',
-      3: 'Rathgama Branch',
-      4: 'Seenigama Branch',
-      5: 'Thiranagama Branch',
-      6: 'Peraliya Branch',
-      7: 'Kalupe Branch',
-      8: 'Gonapinuwala Branch',
-    };
-    return branchMap[branchId] || 'Main Branch';
+    if (!branchId) return 'Main Branch';
+    const branch = branches.find(b => b.branchId === branchId);
+    return branch ? branch.branchName : `Branch ${branchId}`;
   };
-
   const currentUser = getCurrentUser();
   const isAuditor = currentUser?.role === 'AUDITOR';
   const isBranchManager = currentUser?.role === 'BRANCH_MANAGER';
 
   useEffect(() => {
     fetchComments();
+    fetchBranches();
   }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const fetchedBranches = await BranchService.getBranches();
+      setBranches(fetchedBranches);
+    } catch (error) {
+      console.error('Failed to fetch branches', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
@@ -173,7 +176,7 @@ export default function AuditorCommentsView() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     <th className="p-4">{t('Date & Time')}</th>
-                    <th className="p-4">ගැටලුව පවතින ශාඛාව</th>
+                    <th className="p-4">{t('ගැටලුව පවතින ශාඛාව')}</th>
                     <th className="p-4">{t('Auditor')}</th>
                     <th className="p-4">{t('Problem / Remark')}</th>
                     <th className="p-4">{t('Status')}</th>
@@ -202,7 +205,7 @@ export default function AuditorCommentsView() {
                           {parsed.branch && (
                             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
                               <MapPin size={13} />
-                              {comment.branchId ? getBranchNameStr(comment.branchId) : parsed.branch}
+                              {t(comment.branchId ? getBranchNameStr(comment.branchId) : parsed.branch)}
                             </span>
                           )}
                         </td>

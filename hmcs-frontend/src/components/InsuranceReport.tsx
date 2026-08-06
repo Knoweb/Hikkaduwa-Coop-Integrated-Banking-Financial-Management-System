@@ -140,12 +140,12 @@ export default function InsuranceReport() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-slate-500 font-medium animate-pulse">Loading data...</div>
+          <div className="p-10 text-center text-slate-500 font-medium animate-pulse">{t(`Loading data...`)}</div>
         ) : reportLoans.length === 0 ? (
           <div className="p-10 text-center text-slate-500">
             <ShieldCheck size={48} className="mx-auto mb-4 text-slate-300 opacity-50" />
             <p className="font-semibold text-lg">{t(`කිසිදු දත්තයක් හමු නොවීය`)}</p>
-            <p className="text-sm mt-1">{selectedMonth} මාසය සඳහා මුදාහැර ඇති ණය නොමැත.</p>
+            <p className="text-sm mt-1">{selectedMonth} {t(`මාසය සඳහා මුදාහැර ඇති ණය නොමැත.`)}</p>
           </div>
         ) : (
           <div className="overflow-x-auto p-1">
@@ -153,13 +153,13 @@ export default function InsuranceReport() {
               <table className="w-full text-sm text-left border-collapse border border-slate-300">
                 <thead className="bg-slate-100 text-slate-700">
                   <tr>
-                    <th className="px-3 py-2 border border-slate-300 w-10 text-center">No</th>
-                    <th className="px-4 py-2 border border-slate-300">Member Full Name</th>
-                    <th className="px-3 py-2 border border-slate-300">Loan Period</th>
-                    <th className="px-3 py-2 border border-slate-300">Member Gender</th>
-                    <th className="px-3 py-2 border border-slate-300">Member NIC No</th>
-                    <th className="px-4 py-2 border border-slate-300 w-32 text-right">Life Cover</th>
-                    <th className="px-4 py-2 border border-slate-300 w-32 text-right">Premium</th>
+                    <th className="px-3 py-2 border border-slate-300 w-10 text-center">{t(`No`)}</th>
+                    <th className="px-4 py-2 border border-slate-300">{t(`Member Full Name`)}</th>
+                    <th className="px-3 py-2 border border-slate-300">{t(`Loan Period`)}</th>
+                    <th className="px-3 py-2 border border-slate-300">{t(`Member Gender`)}</th>
+                    <th className="px-3 py-2 border border-slate-300">{t(`Member NIC No`)}</th>
+                    <th className="px-4 py-2 border border-slate-300 w-32 text-right">{t(`Life Cover`)}</th>
+                    <th className="px-4 py-2 border border-slate-300 w-32 text-right">{t(`Premium`)}</th>
                   </tr>
                 </thead>
                 <tbody>

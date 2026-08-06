@@ -291,12 +291,12 @@ export default function PawningModule({ branchId, readOnly }: { branchId: number
                           displayStatus === 'NEARING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                           'bg-red-50 text-red-700 border border-red-200'
                         }`}>
-                          {ticket.status === 'PENDING' ? 'අනුමැතියට යවා ඇත' :
-                           ticket.status === 'APPROVED' ? 'අනුමත කර ඇත' :
-                           displayStatus === 'ACTIVE' ? 'ක්‍රියාකාරී' :
-                           displayStatus === 'INACTIVE' || ticket.status === 'OVERDUE' ? 'අක්‍රියයි' :
-                           displayStatus === 'NEARING' ? 'කල් පිරීමට ආසන්නයි' :
-                           displayStatus === 'REDEEMED' ? 'නිදහස් කළ' : displayStatus}
+                           {ticket.status === 'PENDING' ? t('අනුමැතියට යවා ඇත') :
+                            ticket.status === 'APPROVED' ? t('අනුමත කර ඇත') :
+                            displayStatus === 'ACTIVE' ? t('ක්‍රියාකාරී') :
+                            displayStatus === 'INACTIVE' || ticket.status === 'OVERDUE' ? t('අක්‍රියයි') :
+                            displayStatus === 'NEARING' ? t('කල් පිරීමට ආසන්නයි') :
+                            displayStatus === 'REDEEMED' ? t('නිදහස් කළ') : displayStatus}
                         </span>
                       );
                     })()}

@@ -759,8 +759,10 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
 
   const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
   const filteredMembers = members.filter(m =>
-    m.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    m.nic.toLowerCase().includes(search.toLowerCase())
+    (m.fullName && m.fullName.toLowerCase().includes(search.toLowerCase())) ||
+    (m.nameWithInitials && m.nameWithInitials.toLowerCase().includes(search.toLowerCase())) ||
+    (m.fullNameSinhala && m.fullNameSinhala.toLowerCase().includes(search.toLowerCase())) ||
+    (m.nic && m.nic.toLowerCase().includes(search.toLowerCase()))
   );
   const filteredAccounts = accounts.filter(a =>
     a.accountNumber.toLowerCase().includes(search.toLowerCase())
@@ -929,7 +931,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
               onClick={() => setViewMode('pending')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'pending' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              අනුමැතිය සඳහා පොරොත්තු (Pending)
+              {t('අනුමැතිය සඳහා පොරොත්තු')}
               {pendingCount > 0 && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] ${viewMode === 'pending' ? 'bg-blue-200 text-blue-800' : 'bg-slate-200 text-slate-600'}`}>{pendingCount}</span>
               )}
@@ -938,7 +940,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
               onClick={() => setViewMode('history')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              {t(`පෙර වාර්තා (History)`)}</button>
+              {t(`පෙර වාර්තා`)}</button>
           </div>
         )}
 
@@ -948,7 +950,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
               onClick={() => setViewMode('pending')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'pending' ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              මුදාහැරිය යුතු (To Disburse)
+              {t('මුදාහැරිය යුතු')}
               {pendingCount > 0 && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] ${viewMode === 'pending' ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>{pendingCount}</span>
               )}
@@ -957,7 +959,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
               onClick={() => setViewMode('history')}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
             >
-              {t(`නිකුත් කළ ණය (Disbursed)`)}</button>
+              {t(`නිකුත් කළ ණය`)}</button>
           </div>
         )}
 
@@ -966,11 +968,11 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <FileText size={16} /> 
               {isCommitteeApprovedTab 
-                ? (viewMode === 'pending' ? 'මුදාහැරිය යුතු ණය' : 'නිකුත් කළ ණය') 
-                : (viewMode === 'pending' ? 'ණය නිර්දේශ පෝලිම' : 'පෙර සමාලෝචනය කළ ණය')}
+                ? (viewMode === 'pending' ? t('මුදාහැරිය යුතු ණය') : t('නිකුත් කළ ණය')) 
+                : (viewMode === 'pending' ? t('ණය නිර්දේශ පෝලිම') : t('පෙර සමාලෝචනය කළ ණය'))}
             </h3>
             <span className={`text-xs px-3 py-1 rounded-full font-semibold ${viewMode === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-              {displayedLoans.length} වාර්තා
+              {displayedLoans.length} {t('වාර්තා')}
             </span>
           </div>
           {displayedLoans.length === 0 ? (
@@ -984,8 +986,8 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
                   <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t(`ණය වර්ගය`)}</th>
                   <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">{t(`ඉල්ලූ මුදල`)}</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`කාලය`)}</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{(viewMode === 'history' || isCommitteeApprovedTab) ? 'අනුමත කළ දිනය/වේලාව' : 'ඉල්ලුම් කළ දිනය'}</th>
-                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`අදියර (STAGE)`)}</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{(viewMode === 'history' || isCommitteeApprovedTab) ? t('අනුමත කළ දිනය/වේලාව') : t('ඉල්ලුම් කළ දිනය')}</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`අදියර`)}</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`තත්ත්වය`)}</th>
                   <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">{t(`ක්‍රියාව`)}</th>
                 </tr>
@@ -997,9 +999,9 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
                       <p className="font-semibold text-slate-800">{l.applicationData?.applicantName || l.applicationData?.name || '—'}</p>
                       <p className="text-xs text-slate-400">{l.applicationData?.nic || l.memberId?.slice(0,12)}</p>
                     </td>
-                    <td className="px-5 py-3 text-slate-600">{l.loanType?.name || '—'}</td>
-                    <td className="px-5 py-3 text-right font-semibold text-slate-800">Rs. {l.requestedAmount?.toLocaleString()}</td>
-                    <td className="px-5 py-3 text-center text-slate-600">මාස {l.termMonths}</td>
+                    <td className="px-5 py-3 text-slate-600">{t(l.loanType?.name || '—')}</td>
+                    <td className="px-5 py-3 text-right font-semibold text-slate-800">{t('රු.')} {l.requestedAmount?.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-center text-slate-600">{t('මාස')} {l.termMonths}</td>
                     <td className="px-5 py-3 text-center text-slate-400 text-xs">
                       {(viewMode === 'history' || isCommitteeApprovedTab) && l.updatedAt ? (
                         <>
@@ -1012,8 +1014,8 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
                     </td>
                     <td className="px-5 py-3 text-center text-xs font-semibold text-indigo-600">
                       {l.currentStage === 'STAGE_3_APPROVED' && !((l.loanType?.name || (l as any).loanTypeStr || '').toLowerCase().includes('සේවක') || (l.loanType?.name || (l as any).loanTypeStr || '').toLowerCase().includes('කෙටි'))
-                        ? 'අවසාන අනුමැතිය ලබා දෙන ලදී'
-                        : LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage)}
+                        ? t('අවසාන අනුමැතිය ලබා දෙන ලදී')
+                        : t(LoanService.STAGE_LABELS[l.currentStage]?.labelSi || (l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' : l.currentStage))}
                     </td>
                     <td className="px-5 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
@@ -1024,17 +1026,17 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
                         l.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                         'bg-red-100 text-red-700'
                       }`}>
-                        {l.status === 'ACTIVE' ? '✓ නිකුත් කර ඇත' : 
-                         l.currentStage === 'DISBURSED' ? 'නිකුත් කර ඇත' :
-                         l.status === 'COMPLETED' ? 'අවසන්' :
-                         l.status === 'PENDING' ? 'PENDING' :
-                         l.status === 'APPROVED' ? (isCommitteeApprovedTab && viewMode === 'pending' ? 'අනුමතයි (මුදාහැරිය යුතු)' : 'අනුමතයි') :
-                         l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපයි' : l.status}
+                        {l.status === 'ACTIVE' ? t('✓ නිකුත් කර ඇත') : 
+                         l.currentStage === 'DISBURSED' ? t('නිකුත් කර ඇත') :
+                         l.status === 'COMPLETED' ? t('අවසන්') :
+                         l.status === 'PENDING' ? t('PENDING') :
+                         l.status === 'APPROVED' ? (isCommitteeApprovedTab && viewMode === 'pending' ? t('අනුමතයි (මුදාහැරිය යුතු)') : t('අනුමතයි')) :
+                         l.status === 'REJECTED' ? t('ප්‍රතික්ෂේපයි') : t(l.status)}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-center">
                       <button onClick={() => setSelectedLoan(l)} className="text-xs px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center gap-1 mx-auto">
-                        <Eye size={12}/> {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? 'මුදාහරින්න' : 'බලන්න'}
+                        <Eye size={12}/> {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? t('මුදාහරින්න') : t('බලන්න')}
                       </button>
                     </td>
                   </tr>
@@ -1149,16 +1151,16 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {l.loanType?.name || '—'}
+                      <FileText size={14} /> {t(l.loanType?.name || '—')}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> මාස {l.termMonths}
+                      <Clock size={14} /> {t('මාස')} {l.termMonths}
                     </span>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -1200,16 +1202,16 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {l.loanType?.name || '—'}
+                      <FileText size={14} /> {t(l.loanType?.name || '—')}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> මාස {l.termMonths}
+                      <Clock size={14} /> {t('මාස')} {l.termMonths}
                     </span>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -1251,16 +1253,16 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     )}
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {l.loanType?.name || '—'}
+                      <FileText size={14} /> {t(l.loanType?.name || '—')}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {getBranchName(l.branchId)}
+                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> මාස {l.termMonths}
+                      <Clock size={14} /> {t('මාස')} {l.termMonths}
                     </span>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> Rs. {l.requestedAmount?.toLocaleString()}
+                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -1676,8 +1678,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       return;
     }
     const res = members.filter(m => 
-      m.nic.toLowerCase().includes(q.toLowerCase()) || 
-      m.fullName.toLowerCase().includes(q.toLowerCase()) || 
+      (m.nic && m.nic.toLowerCase().includes(q.toLowerCase())) || 
+      (m.fullName && m.fullName.toLowerCase().includes(q.toLowerCase())) || 
+      (m.nameWithInitials && m.nameWithInitials.toLowerCase().includes(q.toLowerCase())) ||
+      (m.fullNameSinhala && m.fullNameSinhala.toLowerCase().includes(q.toLowerCase())) ||
       (m.membershipNumber && m.membershipNumber.toLowerCase().includes(q.toLowerCase()))
     );
     setGuardianSearchResults(res);
@@ -1700,8 +1704,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   });
   const filtered = members.filter(m => {
     const matchesSearch = search ? (
-      m.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      m.nic.toLowerCase().includes(search.toLowerCase()) ||
+      (m.fullName && m.fullName.toLowerCase().includes(search.toLowerCase())) ||
+      (m.nameWithInitials && m.nameWithInitials.toLowerCase().includes(search.toLowerCase())) ||
+      (m.fullNameSinhala && m.fullNameSinhala.toLowerCase().includes(search.toLowerCase())) ||
+      (m.nic && m.nic.toLowerCase().includes(search.toLowerCase())) ||
       (m.membershipNumber && m.membershipNumber.toLowerCase().includes(search.toLowerCase()))
     ) : true;
     
@@ -2110,7 +2116,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 </select>
               </div>
 
-              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredFDs.length}</span> / {fixedDeposits.length} ගිණුම්</p>
+              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredFDs.length}</span> / {fixedDeposits.length} {t(`ගිණුම්`)}</p>
             </div>
           </div>
 
@@ -2167,19 +2173,19 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                       </div>
                     </td>
                     <td className="px-3 py-3 text-center border-r border-slate-100 max-w-[200px]">
-                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold border inline-block leading-tight ${categoryStyle}`}>{categoryLabel}</span>
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold border inline-block leading-tight ${categoryStyle}`}>{t(categoryLabel)}</span>
                     </td>
                     <td className="px-3 py-3 text-right whitespace-nowrap border-r border-slate-100">
                       <span className="font-mono font-black text-slate-800 text-sm">Rs. {Number(fd.principalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
-                      <span className="block font-bold text-slate-700 text-xs">{fd.termMonths} මාස</span>
-                      <span className="text-[10px] font-bold text-indigo-500">{Number(fd.interestRate).toFixed(2)}% (වා.පො.)</span>
+                      <span className="block font-bold text-slate-700 text-xs">{fd.termMonths} {t(`මාස`)}</span>
+                      <span className="text-[10px] font-bold text-indigo-500">{Number(fd.interestRate).toFixed(2)}% {t(`(වා.පො.)`)}</span>
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
                       <span className="block font-medium text-slate-700 text-xs">{fd.maturityDate}</span>
                       {daysLeft > 0 && daysLeft <= 60 && (
-                        <span className="text-[10px] font-bold text-amber-500">දින {daysLeft}කින් කල්පිරේ</span>
+                        <span className="text-[10px] font-bold text-amber-500">{t(`දින`)} {daysLeft} {t(`කින් කල්පිරේ`)}</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
@@ -2190,7 +2196,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                         status === 'CLOSED' ? 'bg-red-50 text-red-700 border-red-200' :
                         'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        {status === 'ACTIVE' ? 'ක්‍රියාකාරී' : status === 'MATURING_SOON' ? 'කල් පිරීමට ආසන්නයි' : status === 'INACTIVE' ? 'අක්‍රියයි' : status === 'CLOSED' ? 'වසා ඇත' : 'කල් පිරී ඇත'}
+                        {status === 'ACTIVE' ? t('ක්‍රියාකාරී') : status === 'MATURING_SOON' ? t('කල් පිරීමට ආසන්නයි') : status === 'INACTIVE' ? t('අක්‍රියයි') : status === 'CLOSED' ? t('වසා ඇත') : t('කල් පිරී ඇත')}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
@@ -2455,7 +2461,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   className={`relative px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     loanFilter === 'PENDING' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}>
-                  අනුමැතිය ලැබිය යුතු ණය
+                  {t(`අනුමැතිය ලැබිය යුතු ණය`)}
                   {loans.some(l => l.status === 'PENDING' || (l.status === 'APPROVED' && l.currentStage !== 'DISBURSED')) && (
                     <span className="flex h-2 w-2 relative -mt-3 -ml-0.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -2487,13 +2493,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 onChange={(e) => setLoanTypeFilterDropdown(e.target.value)}
                 className="px-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="ALL">සියලුම ණය වර්ග</option>
+                <option value="ALL">{t(`සියලුම ණය වර්ග`)}</option>
                 {uniqueLoanTypes.map(type => (
                   <option key={type as string} value={type as string}>{t(type as string)}</option>
                 ))}
               </select>
 
-              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} ණය</p>
+              <p className="ml-auto text-xs text-slate-400">{t(`පෙන්වන්නේ`)}<span className="font-bold text-slate-700">{filteredLoans.length}</span> / {loans.length} {t(`ණය`)}</p>
             </div>
           </div>
 
@@ -2547,23 +2553,23 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap border-r border-slate-100">
                       <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider border ${l.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : l.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                        {l.status === 'PENDING' ? 'විනිශ්චය වෙමින් පවතී' : 
-                         l.status === 'APPROVED' ? 'අනුමතයි' : 
-                         l.status === 'REJECTED' ? 'ප්‍රතික්ෂේපිතයි' : 
-                         l.status === 'DISBURSED' ? 'මුදා හැර ඇත' : 
-                         l.status === 'ACTIVE' ? 'සක්‍රීයයි' : 
-                         l.status === 'COMPLETED' ? 'සම්පූර්ණයි' : 
+                        {l.status === 'PENDING' ? t('විනිශ්චය වෙමින් පවතී') : 
+                         l.status === 'APPROVED' ? t('අනුමතයි') : 
+                         l.status === 'REJECTED' ? t('ප්‍රතික්ෂේපිතයි') : 
+                         l.status === 'DISBURSED' ? t('මුදා හැර ඇත') : 
+                         l.status === 'ACTIVE' ? t('සක්‍රීයයි') : 
+                         l.status === 'COMPLETED' ? t('සම්පූර්ණයි') : 
                          l.status}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => { setViewLoan(l); setOpenNoticeOnModal(false); }} className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm" title={t('View Loan')}>
-                          {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? 'මුදා හරින්න' : 'බලන්න'}
+                          {(l.status === 'APPROVED' && l.currentStage !== 'DISBURSED' && l.status !== 'ACTIVE' && l.status !== 'COMPLETED') ? t('මුදා හරින්න') : t('බලන්න')}
                         </button>
                         {l.status === 'OVERDUE' && (
                           <button onClick={() => { setViewLoan(l); setOpenNoticeOnModal(true); }} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm flex items-center gap-1" title="දැනුම්දීමේ ලිපිය">
-                            <FileText size={13} className="text-amber-600" /> ලිපිය
+                            <FileText size={13} className="text-amber-600" /> {t(`ලිපිය`)}
                           </button>
                         )}
                         {!readOnly && (
@@ -2949,7 +2955,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                       {t('View')}
                     </button>
                     <button onClick={() => handleViewPassbook(a.accountId!)} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition flex items-center gap-1" title={t('View Passbook')}>
-                      <BookOpen size={14} /> Passbook
+                      <BookOpen size={14} /> {t('Passbook')}
                     </button>
                     <button
                       onClick={() => {
@@ -3419,18 +3425,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   return (
     <div className="flex flex-col gap-6 flex-1 min-h-0">
       <div className="grid grid-cols-3 gap-4 shrink-0">
-        <StatCard icon={Users}        label="මුළු සාමාජිකයින් (Total Members)"    value={members.filter(m => m.isMember !== false).length.toString()} color="text-green-600" />
+        <StatCard icon={Users}        label={t('මුළු සාමාජිකයින්')}    value={members.filter(m => m.isMember !== false).length.toString()} color="text-green-600" />
         <StatCard icon={CreditCard}   label={t('Total Accounts')}   value={accounts.length.toString()} color="text-blue-600" />
-        <StatCard icon={UserPlus}     label="සාමාජික නොවන අය (Non-Members)"   value={members.filter(m => m.isMember === false).length.toString()} color="text-purple-600" />
+        <StatCard icon={UserPlus}     label={t('සාමාජික නොවන අය')}   value={members.filter(m => m.isMember === false).length.toString()} color="text-purple-600" />
       </div>
 
       <div className="bg-white rounded-2xl p-6 pb-4 shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between mb-4 shrink-0">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> සාමාජිකයින් සහ ගනුදෙනුකරුවන් (Members & Customers)</h3>
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2"><Users size={16} /> {t('සාමාජිකයින් සහ ගනුදෙනුකරුවන්')}</h3>
           {!readOnly && (
             <button onClick={() => setShowMemberChoiceModal(true)}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow-sm">
-              <UserPlus size={14} /> ලියාපදිංචි කරන්න (Register)
+              <UserPlus size={14} /> {t('ලියාපදිංචි කරන්න')}
             </button>
           )}
         </div>
@@ -3442,9 +3448,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
           </div>
           <select value={memberTypeFilter} onChange={e => setMemberTypeFilter(e.target.value as any)}
             className="w-48 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white text-slate-600 font-medium">
-            <option value="ALL">සියල්ල (All Customers)</option>
-            <option value="MEMBERS">සාමාජිකයින් (Members)</option>
-            <option value="NON_MEMBERS">සාමාජික නොවන අය (Non-members)</option>
+            <option value="ALL">{t('සියල්ල')}</option>
+            <option value="MEMBERS">{t('සාමාජිකයින්')}</option>
+            <option value="NON_MEMBERS">{t('සාමාජික නොවන අය')}</option>
           </select>
           <select value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
             className="w-40 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white text-slate-600 font-medium">
@@ -3457,18 +3463,18 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3">සාමාජිකයා / ගනුදෙනුකරු (Name)</th>
-                <th className="px-4 py-3">සාමාජික / සේවාලාභී අංකය (ID / No.)</th>
+                <th className="px-4 py-3">{t('සාමාජිකයා / ගනුදෙනුකරු')}</th>
+                <th className="px-4 py-3">{t('සාමාජික / සේවාලාභී අංකය')}</th>
                 <th className="px-4 py-3">{t('NIC / Birth Cert. No.')}</th>
                 <th className="px-4 py-3">{t('Accounts')}</th>
-                <th className="px-4 py-3">වර්ගය (Type)</th>
+                <th className="px-4 py-3">{t('වර්ගය')}</th>
                 <th className="px-4 py-3">{t('Status')}</th>
                 <th className="px-4 py-3 text-right">{t('Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-slate-400">කිසිදු සාමාජිකයෙකු හෝ ගනුදෙනුකරුවෙකු හමු නොවීය. (No records found.)</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('කිසිදු සාමාජිකයෙකු හෝ ගනුදෙනුකරුවෙකු හමු නොවීය.')}</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.memberId} className="hover:bg-slate-50 transition">
                   <td className="px-4 py-3 flex items-center gap-3">
@@ -3482,7 +3488,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   <td className="px-4 py-3">{getAccountCount(m.memberId)}</td>
                   <td className="px-4 py-3">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.isMember !== false ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {m.isMember !== false ? 'සාමාජික (Member)' : 'සාමාජික නොවන (Non-member)'}
+                      {m.isMember !== false ? t('සාමාජික') : t('සාමාජික නොවන')}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -3669,7 +3675,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             <div className="bg-slate-800 px-6 py-4 flex items-center justify-between text-white border-b-4 border-green-600">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <UserPlus size={16} />
-                ලියාපදිංචි කිරීම් වර්ගය තෝරන්න (Select Type)
+                {t('ලියාපදිංචි කිරීම් වර්ගය තෝරන්න (Select Type)')}
               </h3>
               <button 
                 onClick={() => setShowMemberChoiceModal(false)} 
@@ -3680,7 +3686,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             </div>
             <div className="p-6 space-y-4">
               <p className="text-slate-600 text-center mb-6 text-sm font-semibold">
-                ලියාපදිංචි කරනු ලබන්නේ සමිතියේ සාමාජිකයෙක්ද? නැතහොත් සාමාජික නොවන අයෙක්ද?
+                {t('ලියාපදිංචි කරනු ලබන්නේ සමිතියේ සාමාජිකයෙක්ද? නැතහොත් සාමාජික නොවන අයෙක්ද?')}
               </p>
               
               <button 
@@ -3693,7 +3699,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 className="w-full flex items-center justify-center gap-3 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 py-3.5 rounded-xl font-bold text-sm transition-all"
               >
                 <UserPlus size={18} />
-                ඔව්, සාමාජිකයෙක් (Yes, Member)
+                {t('ඔව්, සාමාජිකයෙක් (Yes, Member)')}
               </button>
 
               <button 
@@ -3706,7 +3712,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 className="w-full flex items-center justify-center gap-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-slate-200 py-3.5 rounded-xl font-bold text-sm transition-all"
               >
                 <Users size={18} />
-                නැත, සාමාජික නොවන අයෙක් (No, Non-Member)
+                {t('නැත, සාමාජික නොවන අයෙක් (No, Non-Member)')}
               </button>
             </div>
           </div>
@@ -4228,8 +4234,8 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
           isOpen={true}
           title={t(`මුදල් භාරගැනීම තහවුරු කරන්න`)}
           message={`ඔබට විශ්වාසද ${confirmState.officer} වෙතින් Rs. ${confirmState.total.toLocaleString()} ක මුදලක් භාරගැනීමට අවශ්‍ය බව?`}
-          confirmText="ඔව්, භාරගන්න"
-          cancelText="අවලංගු කරන්න"
+          confirmText={t(`ඔව්, භාරගන්න`)}
+          cancelText={t(`අවලංගු කරන්න`)}
           variant="info"
           onConfirm={executeAccept}
           onCancel={() => setConfirmState(null)}
@@ -4492,7 +4498,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
             onClick={() => { setEvalTab('pending'); setSelectedLoan(null); }}
             className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all ${evalTab === 'pending' ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
           >
-            පවරා ඇති ණය පරීක්ෂණ (Pending)
+            {t('පවරා ඇති ණය පරීක්ෂණ (Pending)')}
             {assignedLoans.length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] ${evalTab === 'pending' ? 'bg-amber-200 text-amber-800' : 'bg-slate-200 text-slate-600'}`}>{assignedLoans.length}</span>
             )}
@@ -4573,7 +4579,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">{loanName.charAt(0)}</div>
                              <div>
                                <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                               <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
+                               <p className="text-xs text-slate-500">{t(l.loanType?.name || 'ණය')} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
                              </div>
                            </div>
                            <button onClick={() => { setSelectedLoan(l); setEvaluationNotes(''); setEvaluationStatus('RECOMMENDED'); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">{t(`වාර්තාව ඇතුලත් කරන්න`)}</button>
@@ -4602,7 +4608,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{loanName.charAt(0)}</div>
                          <div>
                            <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                           <p className="text-xs text-slate-500">{l.loanType?.name || 'ණය'} - {l.evaluationStatus}</p>
+                           <p className="text-xs text-slate-500">{t(l.loanType?.name || 'ණය')} - {l.evaluationStatus}</p>
                          </div>
                        </div>
                        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">{t(`යවා ඇත`)}</span>
@@ -4690,7 +4696,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                         </span>
                         {(matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo || matchedLoan?.applicationData?.nic) && (
                           <span className="text-[12px] font-bold bg-slate-50 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
-                            <span className="text-slate-500 font-semibold mr-1">{matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo ? 'සාමාජික අංකය:' : 'ජා.හැ.ප අංකය:'}</span>
+                            <span className="text-slate-500 font-semibold mr-1">{matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo ? t('සාමාජික අංකය:') : t('ජා.හැ.ප අංකය:')}</span>
                             {matchedLoan?.applicationData?.membershipNumber || matchedLoan?.applicationData?.memberNo || matchedLoan?.applicationData?.nic}
                           </span>
                         )}
@@ -4708,7 +4714,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                     <p className={`text-lg font-black tracking-tight ${isHandedOver ? 'text-blue-700' : 'text-emerald-700'}`}>Rs. {c.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg mt-1.5 border ${isHandedOver ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
                       {isHandedOver ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{isHandedOver ? 'Handed Over' : 'Pending Handover'}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{isHandedOver ? t('Handed Over') : t('Pending Handover')}</span>
                     </div>
                   </div>
                 </div>
@@ -5428,7 +5434,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
               >
                 {MONTHS.map(m => (
                   <option key={m.value} value={m.value}>
-                    {m.label}
+                    {t(m.label)}
                   </option>
                 ))}
               </select>
@@ -5472,7 +5478,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
           <div className="text-xs font-bold text-blue-600 font-mono">ශාඛාව (Branch): {t(getDynamicBranchName())}</div>
           <div className="text-xs font-bold text-blue-600 font-mono">
             {filterMode === 'MONTH' ? (
-              <>මාසය (Month): {MONTHS.find(m => m.value === selectedMonth)?.label}</>
+              <>{t(`මාසය (Month):`)} {t(MONTHS.find(m => m.value === selectedMonth)?.label || '')}</>
             ) : (
               <>කාලය (Period): {startDate} සිට {endDate} දක්වා</>
             )}
@@ -5898,7 +5904,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           loans.forEach((l: any) => {
             const minfo = map[String(l.memberId)] || { 
               memberNo: String(l.memberId || ''), 
-              name: l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || l.applicantDetail?.applicantName || 'සාමාජික (Member)' 
+              name: l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || l.applicantDetail?.applicantName || 'සාමාජික' 
             };
             const enrichedInfo = { ...minfo, typeStr: l.loanType?.name || l.loanTypeStr };
             if (l.accountNumber) tMap[String(l.accountNumber)] = enrichedInfo;
@@ -5909,7 +5915,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         if (Array.isArray(accounts)) {
           accounts.forEach((a: any) => {
             if (a.accountNumber && a.memberId) {
-              tMap[String(a.accountNumber)] = map[String(a.memberId)] || { memberNo: String(a.memberId), name: 'සාමාජික (Member)' };
+              tMap[String(a.accountNumber)] = map[String(a.memberId)] || { memberNo: String(a.memberId), name: 'සාමාජික' };
             }
           });
         }
@@ -5926,7 +5932,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     const mMatch = desc.match(/(?:Member|සාමාජික අංකය|සාමාජික):s*([A-Za-z0-9._-]+)/i);
     if (mMatch) {
       const key = mMatch[1].trim();
-      return membersMap[key] || { memberNo: key, name: 'සාමාජික (Member)' };
+      return membersMap[key] || { memberNo: key, name: 'සාමාජික' };
     }
     if (tx.memberId && membersMap[String(tx.memberId)]) return membersMap[String(tx.memberId)];
     return null;
@@ -5993,22 +5999,22 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           const uuid = detail.replace('Member:', '').trim();
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික (Member): ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            detail = `සාමාජික: ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           } else {
-            detail = `සාමාජික (Member): ${uuid}`;
+            detail = `සාමාජික: ${uuid}`;
           }
         } else if (detail.startsWith('සාමාජික අංකය:') || detail.startsWith('සාමාජික:')) {
           foundMember = true;
           const uuid = detail.replace(/සාමාජික අංකය:|සාමාජික:/, '').trim();
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික (Member): ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            detail = `සාමාජික: ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           }
         } else if (ticketsMap[detail]) {
           foundMember = true;
           const minfo = ticketsMap[detail];
           details.push(detail);
-          details.push(`සාමාජික (Member): ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+          details.push(`සාමාජික: ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
           if (minfo.typeStr) details.push(`ණය වර්ගය (Loan Type): ${minfo.typeStr}`);
           continue;
         }
@@ -6021,7 +6027,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
       const ref = extractAccountRef('', raw);
       if (ref && ticketsMap[ref]) {
         const minfo = ticketsMap[ref];
-        details.push(`සාමාජික (Member): ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+        details.push(`සාමාජික: ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
       }
     }
     
@@ -6231,7 +6237,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                   >
                     {MONTHS.map(m => (
                       <option key={m.value} value={m.value}>
-                        {m.label}
+                        {t(m.label)}
                       </option>
                     ))}
                   </select>
@@ -6309,7 +6315,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                           <td className="px-1 py-2 align-middle text-center w-8">
                             {role === 'BRANCH_MANAGER' && (
                               <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
-                                සංස්කරණය (Edit)
+                                {t(`සංස්කරණය (Edit)`)}
                               </button>
                             )}
                           </td>
@@ -6354,7 +6360,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                           <td className="px-1 py-2 align-middle text-center w-8">
                             {role === 'BRANCH_MANAGER' && (
                               <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
-                                සංස්කරණය (Edit)
+                                {t(`සංස්කරණය (Edit)`)}
                               </button>
                             )}
                           </td>
@@ -6721,10 +6727,10 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
         <div className="px-3 py-2.5 border-b border-white/10">
           <div className={`${config.bg} bg-opacity-30 rounded-lg px-2.5 py-1.5 flex items-center gap-2`}>
             <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs">
-              {user.username?.charAt(0).toUpperCase()}
+              {(user.fullName || user.username)?.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="text-white text-[13px] font-semibold leading-tight">{user.username}</p>
+              <p className="text-white text-[13px] font-semibold leading-tight">{user.fullName || user.username}</p>
               <p className="text-white/60 text-[10px] leading-tight">{t(config.label)}</p>
             </div>
           </div>
@@ -6921,7 +6927,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
               <h2 className="text-xl font-bold text-slate-800">
                 {t(navItems.find(n => n.key === tab)?.label || 'Overview')}
               </h2>
-              <p className="text-sm text-slate-500">{t('Welcome back')}, {user.username}. {t("Here's your work summary.")}</p>
+              <p className="text-sm text-slate-500">{t('Welcome back')}, {user.fullName || user.username}. {t("Here's your work summary.")}</p>
             </div>
           )}
           <div className="flex-1 min-h-0 flex flex-col">{renderContent()}</div>

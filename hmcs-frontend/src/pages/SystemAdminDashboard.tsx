@@ -1314,7 +1314,7 @@ export default function SystemAdminDashboard() {
             </div>
             {user?.role !== 'AUDITOR' && (
               <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {`${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length} ${t('Branches')} Online`}
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {`${branches.filter(b => b.status === 'ACTIVE').length} / ${branches.length} ${t('Branches')} ${t('Online')}`}
               </span>
             )}
             {user?.role === 'AUDITOR' && (

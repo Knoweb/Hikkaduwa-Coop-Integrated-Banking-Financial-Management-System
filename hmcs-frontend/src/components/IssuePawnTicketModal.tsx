@@ -74,9 +74,11 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
   };
 
   const filteredMembers = search ? members.filter(m => 
-    m.fullName?.toLowerCase().includes(search.toLowerCase()) || 
-    m.nic?.toLowerCase().includes(search.toLowerCase()) ||
-    m.membershipNumber?.toLowerCase().includes(search.toLowerCase())
+    (m.fullName && m.fullName.toLowerCase().includes(search.toLowerCase())) || 
+    (m.nameWithInitials && m.nameWithInitials.toLowerCase().includes(search.toLowerCase())) ||
+    (m.fullNameSinhala && m.fullNameSinhala.toLowerCase().includes(search.toLowerCase())) ||
+    (m.nic && m.nic.toLowerCase().includes(search.toLowerCase())) ||
+    (m.membershipNumber && m.membershipNumber.toLowerCase().includes(search.toLowerCase()))
   ) : [];
 
   return (

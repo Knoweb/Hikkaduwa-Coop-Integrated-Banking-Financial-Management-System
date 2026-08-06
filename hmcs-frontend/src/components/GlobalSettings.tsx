@@ -424,8 +424,8 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                   {rateCategory === 'fd' ? (
                     <tr>
                       <th className="px-8 py-5 w-2/5">{t('Product / Type')}</th>
-                      <th className="px-8 py-5 w-1/5 text-center">{t('Maturity Rate')} (කල් පිරුණම)</th>
-                      <th className="px-8 py-5 w-1/5 text-center">{t('Monthly Rate')} (මාසිකව)</th>
+                      <th className="px-8 py-5 w-1/5 text-center">{t('Maturity Rate (කල් පිරුණම)')}</th>
+                      <th className="px-8 py-5 w-1/5 text-center">{t('Monthly Rate (මාසිකව)')}</th>
                       <th className="px-8 py-5 w-1/5 text-right">{t('Actions')}</th>
                     </tr>
                   ) : (
@@ -447,9 +447,9 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                       <tr key={id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-slate-800">{name}</span>
+                            <span className="font-bold text-slate-800">{t(name)}</span>
                             <span className={`px-2 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-widest ${st.isChildAccount ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {st.isChildAccount ? 'ළමා' : 'වැඩිහිටි'}
+                              {st.isChildAccount ? t('ළමා') : t('වැඩිහිටි')}
                             </span>
                           </div>
                         </td>
@@ -461,7 +461,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                               <span className="text-slate-400 font-bold">%</span>
                             </div>
                           ) : (
-                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(currentValue).toFixed(4))}% (වා.පො.)</span>
+                            <span className="font-mono font-bold text-slate-700 text-base">{Number(Number(currentValue).toFixed(4))}% {t('(වා.පො.)')}</span>
                           )}
                         </td>
                         <td className="px-8 py-5 text-right">
@@ -505,7 +505,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                 <div className="font-bold text-slate-800 flex items-center gap-2">
                                   {isExpanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
                                   <Lock size={16} className="text-emerald-500 ml-1" />
-                                  {catName}
+                                  {t(catName)}
                                 </div>
                               </td>
                             </tr>
@@ -526,7 +526,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                       <td className="px-8 py-4">
                                         <div className="flex flex-col gap-1">
                                           <div className="font-bold text-slate-700 text-sm">
-                                            {st.termMonths >= 12 && st.termMonths % 12 === 0 ? `අවුරුදු ${st.termMonths / 12}` : `මාස ${st.termMonths}`}
+                                            {st.termMonths >= 12 && st.termMonths % 12 === 0 ? `${t('අවුරුදු')} ${st.termMonths / 12}` : `${t('මාස')} ${st.termMonths}`}
                                           </div>
                                           <div className="font-mono text-[11px] text-slate-400 font-bold">{st.code}</div>
                                         </div>
@@ -539,7 +539,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                             <span className="text-slate-400 font-bold">%</span>
                                           </div>
                                         ) : (
-                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMaturity).toFixed(4))}% (වා.පො.)</span>
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMaturity).toFixed(4))}% {t('(වා.පො.)')}</span>
                                         )}
                                       </td>
                                       <td className="px-8 py-4 text-center">
@@ -550,7 +550,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                             <span className="text-slate-400 font-bold">%</span>
                                           </div>
                                         ) : (
-                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMonthly).toFixed(4))}% (වා.පො.)</span>
+                                          <span className="font-mono font-bold text-slate-700 text-sm bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-100/50">{Number(Number(st.interestRateMonthly).toFixed(4))}% {t('(වා.පො.)')}</span>
                                         )}
                                       </td>
                                       <td className="px-8 py-4 text-right">
@@ -594,7 +594,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                             <td className="px-8 py-5">
                               <div className="flex items-center gap-3">
                                 <div>
-                                  <p className="font-bold text-slate-800">{lt.name}</p>
+                                  <p className="font-bold text-slate-800">{t(lt.name)}</p>
                                   {nameSi && <p className="text-xs text-slate-400 mt-0.5">{nameSi}</p>}
                                 </div>
                               </div>
@@ -608,7 +608,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                                   <span className="text-slate-400 font-bold">%</span>
                                 </div>
                               ) : (
-                                <span className="font-mono font-bold text-slate-700 text-base">{lt.interestRate}% (වා.පො.)</span>
+                                <span className="font-mono font-bold text-slate-700 text-base">{lt.interestRate}% {t('(වා.පො.)')}</span>
                               )}
                             </td>
                             <td className="px-8 py-5 text-right">
@@ -637,7 +637,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                     
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-8 py-5 font-bold text-slate-800">{name}</td>
+                        <td className="px-8 py-5 font-bold text-slate-800">{t(name)}</td>
                         <td className="px-8 py-5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end items-center gap-2">

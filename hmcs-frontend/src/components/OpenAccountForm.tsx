@@ -4,9 +4,10 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import * as AccountService from '../services/account.service';
-
+import { useLanguage } from '../context/LanguageContext';
 
 const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?: boolean, onClose?: () => void }) => {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [accountMode, setAccountMode] = useState('single');
   const [clientType, setClientType] = useState('adult');
@@ -192,7 +193,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       return;
     }
     if (step === 2 && !formData.memberId1) {
-      setAlertConfig({ message: 'කරුණාකර ඉහළින් ඇති සෙවුම භාවිතයෙන් සාමාජිකයෙකු තෝරන්න (Please search and select a member first).' });
+      setAlertConfig({ message: t('කරුණාකර ඉහළින් ඇති සෙවුම භාවිතයෙන් සාමාජිකයෙකු තෝරන්න (Please search and select a member first).') });
       return;
     }
     setStep((prev) => Math.min(prev + 1, 4));
@@ -216,7 +217,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!formData.memberId1) {
-      setAlertConfig({ message: 'කරුණාකර පළමුව අයදුම්කරු තෝරන්න (Please search and select the applicant first).' });
+      setAlertConfig({ message: t('කරුණාකර පළමුව අයදුම්කරු තෝරන්න (Please search and select the applicant first).') });
       return;
     }
     
@@ -264,14 +265,14 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       const schemeName = accountTypeNames[formData.accountType] || formData.accountType;
 
       setAlertConfig({ 
-        message: `ගිණුම සාර්ථකව පද්ධතියට ඇතුළත් කරන ලදී! ගිණුම් අංකය: ${formData.accountNumber} | ගිණුම් වර්ගය (Scheme): ${schemeName}`, 
+        message: t('ගිණුම සාර්ථකව පද්ධතියට ඇතුළත් කරන ලදී! ගිණුම් අංකය:') + ` ${formData.accountNumber} | ` + t('ගිණුම් වර්ගය (Scheme):') + ` ${schemeName}`, 
         isSuccess: true, 
         onCloseAction: () => { if (onClose) onClose(); } 
       });
       
     } catch (err: any) {
       console.error(err);
-      setAlertConfig({ message: 'ගිණුම විවෘත කිරීමේදී දෝෂයක් මතු විය (Error creating account): ' + (err.response?.data || err.message) });
+      setAlertConfig({ message: t('ගිණුම විවෘත කිරීමේදී දෝෂයක් මතු විය (Error creating account): ') + (err.response?.data || err.message) });
     } finally {
       setIsSubmitting(false);
     }
@@ -284,17 +285,17 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       <div className="bg-[#025a4e] text-white p-5 border-b-4 border-amber-500 shrink-0">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs text-emerald-200/80 mb-1 font-semibold">විවිධ සේවා සමුපකාර සමිතිය</p>
+            <p className="text-xs text-emerald-200/80 mb-1 font-semibold">{t('විවිධ සේවා සමුපකාර සමිතිය')}</p>
             <h2 className="text-xl font-bold tracking-wide flex items-center gap-4">
-              මුදල් ඉතිරිකිරීමේ තැන්පත් ගිණුම් පෝරමය<span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${isSocietyMember ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-amber-500 text-[#01443b] border border-amber-400'}`}>
-                {isSocietyMember ? 'සමාජික ගිණුමක්' : 'සමාජික නොවන ගිණුමක්'}
+              {t('මුදල් ඉතිරිකිරීමේ තැන්පත් ගිණුම් පෝරමය')}<span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${isSocietyMember ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-amber-500 text-[#01443b] border border-amber-400'}`}>
+                {isSocietyMember ? t('සමාජික ගිණුමක්') : t('සමාජික නොවන ගිණුමක්')}
               </span>
             </h2>
           </div>
           <div className="flex items-start gap-4">
             <div className="text-right bg-[#01443b] p-2 rounded-lg border border-emerald-700 text-xs shadow-inner">
               <div className="font-mono font-bold text-amber-400 text-[13px]">ආ. ප. 1108</div>
-              <div>දිනය: {formData.date}</div>
+              <div>{t('දිනය:')} {formData.date}</div>
             </div>
             {onClose && (
               <button onClick={onClose} className="p-2 bg-white/10 hover:bg-red-500/80 rounded-full transition-colors group">
@@ -309,25 +310,25 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-xs font-semibold text-gray-500 uppercase tracking-wider shrink-0 shadow-sm z-10 relative">
         <div className={`flex items-center whitespace-nowrap ${step >= 1 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 1 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>1</span>
-          ආයතනික</div>
+          {t('ආයතනික')}</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 1 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 2 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 2 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>2</span>
-          අයදුම්කරු</div>
+          {t('අයදුම්කරු')}</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 2 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 3 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 3 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>3</span>
-          සාක්ෂි</div>
+          {t('සාක්ෂි')}</div>
         <div className="flex-1 h-0.5 bg-gray-200 mx-2 hidden sm:block">
           <div className="h-full bg-[#025a4e] transition-all duration-500" style={{ width: step > 3 ? '100%' : '0%' }}></div>
         </div>
         <div className={`flex items-center whitespace-nowrap ${step >= 4 ? 'text-[#025a4e]' : ''}`}>
           <span className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mr-2 ${step >= 4 ? 'border-[#025a4e] bg-[#025a4e] text-white shadow-md' : 'border-gray-300'}`}>4</span>
-          තැන්පතු</div>
+          {t('තැන්පතු')}</div>
       </div>
 
       {/* Form Details with Scroll */}
@@ -337,38 +338,38 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         {/* ================= STEP 1 ================= */}
         {step === 1 && (
           <div className="space-y-6">
-            <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">ගිණුම් වර්ගීකරණය</h3>
+            <h3 className="text-base font-semibold text-gray-700 border-b pb-1.5">{t('ගිණුම් වර්ගීකරණය')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">අයදුම්කරුගේ වර්ගය (Client Type)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('අයදුම්කරුගේ වර්ගය (Client Type)')}</label>
                 <div className="flex gap-4">
                   <label className="flex items-center bg-gray-50 border p-3 rounded-lg w-full cursor-pointer hover:bg-gray-100">
                     <input type="radio" name="clientType" value="adult" checked={clientType === 'adult'} onChange={handleInputChange} className="text-[#025a4e] focus:ring-[#025a4e]" />
-                    <span className="ml-2 text-sm text-gray-700 font-medium">වැඩිහිටි (Adult)</span>
+                    <span className="ml-2 text-sm text-gray-700 font-medium">{t('වැඩිහිටි (Adult)')}</span>
                   </label>
                   <label className="flex items-center bg-gray-50 border p-3 rounded-lg w-full cursor-pointer hover:bg-gray-100">
                     <input type="radio" name="clientType" value="child" checked={clientType === 'child'} onChange={handleInputChange} className="text-[#025a4e] focus:ring-[#025a4e]" />
-                    <span className="ml-2 text-sm text-gray-700 font-medium">ළමා (Child)</span>
+                    <span className="ml-2 text-sm text-gray-700 font-medium">{t('ළමා (Child)')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම් ස්වභාවය (Account Mode)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('ගිණුම් ස්වභාවය (Account Mode)')}</label>
                 <select name="accountMode" value={formData.accountMode} onChange={(e) => { handleInputChange(e); setAccountMode(e.target.value); }} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" disabled={clientType === 'child'}>
-                  <option value="single">තනි ගිණුමක් (Single Account)</option>
-                  <option value="joint">හවුල් ගිණුමක් (Joint Account)</option>
+                  <option value="single">{t('තනි ගිණුමක් (Single Account)')}</option>
+                  <option value="joint">{t('හවුල් ගිණුමක් (Joint Account)')}</option>
                 </select>
-                {clientType === 'child' && <p className="text-xs text-amber-600 mt-1">ළමා ගිණුම් හවුල් ගිණුම් ලෙස විවෘත කළ නොහැක.</p>}
+                {clientType === 'child' && <p className="text-xs text-amber-600 mt-1">{t('ළමා ගිණුම් හවුල් ගිණුම් ලෙස විවෘත කළ නොහැක.')}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම් අංකය (Account Number)</label>
-                <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder="උදා: ACC-123456" className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('ගිණුම් අංකය (Account Number)')}</label>
+                <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder={t('උදා: ACC-123456')} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ගිණුම ආරම්භ කළ දිනය (Opened Date)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('ගිණුම ආරම්භ කළ දිනය (Opened Date)')}</label>
                 <DatePicker 
                   selected={formData.openedDate ? parseISO(formData.openedDate) : null} 
                   onChange={(date: Date | null) => {
@@ -384,9 +385,9 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 {formData.openedDate !== formData.date && (
                   <div className="mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
                     <p className="text-[11px] font-bold text-amber-800">
-                      මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)</p>
+                      {t('මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)')}</p>
                     <p className="text-[10px] text-amber-700 mt-1 italic">
-                      * එබැවින් 4 වන පියවරේදී ලබා ගන්නේ වර්තමාන ශේෂය පමණි.</p>
+                      {t('* එබැවින් 4 වන පියවරේදී ලබා ගන්නේ වර්තමාන ශේෂය පමණි.')}</p>
                   </div>
                 )}
               </div>
@@ -404,7 +405,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100 shadow-sm relative">
               <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
                 <Search size={16} /> 
-                {isSocietyMember ? 'සාමාජිකයෙකු සොයන්න (Search Member)' : 'පුද්ගලයෙකු සොයන්න (Search Non-Member)'}
+                {isSocietyMember ? t('සාමාජිකයෙකු සොයන්න (Search Member)') : t('පුද්ගලයෙකු සොයන්න (Search Non-Member)')}
               </h3>
               <div className="flex gap-3 relative">
                 <input 
@@ -412,7 +413,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
-                  placeholder={clientType === 'child' ? "උප්පැන්න සහතික අංකය / නම / සාමාජික අංකය..." : "ජා.හැ.අ (NIC) / නම / සාමාජික අංකය..."} 
+                  placeholder={clientType === 'child' ? t('උප්පැන්න සහතික අංකය / නම / සාමාජික අංකය...') : t('ජා.හැ.අ (NIC) / නම / සාමාජික අංකය...')} 
 
                   className="flex-1 border border-blue-200 rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                 />
@@ -421,15 +422,15 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   onClick={handleSearch}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
                 >
-                  {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} සොයන්න</button>
+                  {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} {t('සොයන්න')}</button>
               </div>
 
               {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-blue-100 z-50 max-h-60 overflow-y-auto overflow-hidden">
                   <div className="p-2 bg-slate-50 border-b border-gray-100 text-xs font-semibold text-gray-500 flex justify-between">
-                    <span>ප්‍රතිඵල {searchResults.filter(m => (clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD')).length} ක් හමුවිය</span>
-                    <button type="button" onClick={() => setSearchResults([])} className="text-red-500 hover:underline">වසන්න</button>
+                    <span>{t('ප්‍රතිඵල')} {searchResults.filter(m => (clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD')).length} {t('ක් හමුවිය')}</span>
+                    <button type="button" onClick={() => setSearchResults([])} className="text-red-500 hover:underline">{t('වසන්න')}</button>
                   </div>
                   {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').map((result) => (
                     <button 
@@ -448,7 +449,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   ))}
                   {searchResults.filter(m => clientType === 'child' ? m.ageCategory === 'CHILD' : m.ageCategory !== 'CHILD').length === 0 && (
                     <div className="p-4 text-center text-sm text-gray-500">
-                      {clientType === 'child' ? 'ළමා ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.' : 'වැඩිහිටි ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.'}
+                      {clientType === 'child' ? t('ළමා ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.') : t('වැඩිහිටි ගිණුම් සඳහා ගැලපෙන ප්‍රතිඵල නොමැත.')}
                     </div>
                   )}
                 </div>
@@ -458,35 +459,35 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             {/* 1 වන අයදුම්කරු */}
             <div className="border border-gray-200 p-4 rounded-xl space-y-4">
               <h3 className="text-sm font-bold text-[#025a4e] border-b pb-1 uppercase tracking-wider">
-                {clientType === 'adult' ? '1. පළමුවන අයදුම්කරුගේ විස්තර' : '1. දරුවාගේ (Minor) මූලික විස්තර'}
+                {clientType === 'adult' ? t('1. පළමුවන අයදුම්කරුගේ විස්තර') : t('1. දරුවාගේ (Minor) මූලික විස්තර')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">නම සම්පූර්ණයෙන් (Full Name)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('නම සම්පූර්ණයෙන් (Full Name)')}</label>
                   <input type="text" name="fullName1" value={formData.fullName1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                 </div>
                 {clientType === 'child' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">උපන් දිනය (DOB)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('උපන් දිනය (DOB)')}</label>
                     <input type="date" name="dob1" value={formData.dob1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">වයස (Age)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('වයස (Age)')}</label>
                   <input type="number" name="age1" value={formData.age1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    {clientType === 'adult' ? 'පුරවැසි හැඳුනුම්පත් අංකය (NIC No)' : 'උප්පැන්න සහතිකයේ ලියාපදිංචි අංකය'}
+                    {clientType === 'adult' ? t('පුරවැසි හැඳුනුම්පත් අංකය (NIC No)') : t('උප්පැන්න සහතිකයේ ලියාපදිංචි අංකය')}
                   </label>
                   <input type="text" name="idNumber1" value={formData.idNumber1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">රක්ෂාව (Occupation)</label>
-                  <input type="text" name="occupation1" value={formData.occupation1} onChange={handleInputChange} placeholder={clientType === 'child' ? 'ඉගෙනුම ලබයි' : ''} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('රක්ෂාව (Occupation)')}</label>
+                  <input type="text" name="occupation1" value={formData.occupation1} onChange={handleInputChange} placeholder={clientType === 'child' ? 'Student' : ''} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">ලිපිනය (Address)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('ලිපිනය (Address)')}</label>
                   <input type="text" name="address1" value={formData.address1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                 </div>
               </div>
@@ -496,26 +497,26 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             {(accountMode === 'joint' || clientType === 'child') && (
               <div className="border border-gray-200 p-4 rounded-xl space-y-4 bg-gray-50/50">
                 <h3 className="text-sm font-bold text-gray-700 border-b pb-1 uppercase tracking-wider">
-                  {clientType === 'child' ? '2. මව/පිය හෝ නීත්යානුකූල භාරකරුගේ විස්තර (Guardian)' : '2. දෙවන අයදුම්කරුගේ විස්තර'}
+                  {clientType === 'child' ? t('2. මව/පිය හෝ නීත්යානුකූල භාරකරුගේ විස්තර (Guardian)') : t('2. දෙවන අයදුම්කරුගේ විස්තර')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">නම සම්පූර්ණයෙන්</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('නම සම්පූර්ණයෙන්')}</label>
                     <input type="text" name="fullName2" value={formData.fullName2} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">පුරවැසි හැඳුනුම්පත් අංකය (NIC)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('පුරවැසි හැඳුනුම්පත් අංකය (NIC)')}</label>
                     <input type="text" name="idNumber2" value={formData.idNumber2} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">රක්ෂාව සහ වයස</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('රක්ෂාව සහ වයස')}</label>
                     <div className="flex gap-2">
-                      <input type="text" name="occupation2" placeholder="රක්ෂාව" value={formData.occupation2} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
-                      <input type="number" name="age2" placeholder="වයස" value={formData.age2} onChange={handleInputChange} className="w-24 border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                      <input type="text" name="occupation2" placeholder={t('රක්ෂාව')} value={formData.occupation2} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                      <input type="number" name="age2" placeholder={t('වයස')} value={formData.age2} onChange={handleInputChange} className="w-24 border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">ලිපිනය</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('ලිපිනය')}</label>
                     <input type="text" name="address2" value={formData.address2} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                 </div>
@@ -525,25 +526,25 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             {/* 3 වන අයදුම්කරු (පෙන්වන්නේ Joint නම් පමණි) */}
             {accountMode === 'joint' && (
               <div className="border border-gray-200 p-4 rounded-xl space-y-4">
-                <h3 className="text-sm font-bold text-gray-600 border-b pb-1 uppercase tracking-wider">3. තෙවන අයදුම්කරුගේ විස්තර (Optional)</h3>
+                <h3 className="text-sm font-bold text-gray-600 border-b pb-1 uppercase tracking-wider">{t('3. තෙවන අයදුම්කරුගේ විස්තර (Optional)')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">නම සම්පූර්ණයෙන්</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('නම සම්පූර්ණයෙන්')}</label>
                     <input type="text" name="fullName3" value={formData.fullName3} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">පුරවැසි හැඳුනුම්පත් අංකය (NIC)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('පුරවැසි හැඳුනුම්පත් අංකය (NIC)')}</label>
                     <input type="text" name="idNumber3" value={formData.idNumber3} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">රක්ෂාව සහ වයස</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('රක්ෂාව සහ වයස')}</label>
                     <div className="flex gap-2">
-                      <input type="text" name="occupation3" placeholder="රක්ෂාව" value={formData.occupation3} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
-                      <input type="number" name="age3" placeholder="වයස" value={formData.age3} onChange={handleInputChange} className="w-24 border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
+                      <input type="text" name="occupation3" placeholder={t('රක්ෂාව')} value={formData.occupation3} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
+                      <input type="number" name="age3" placeholder={t('වයස')} value={formData.age3} onChange={handleInputChange} className="w-24 border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">ලිපිනය</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('ලිපිනය')}</label>
                     <input type="text" name="address3" value={formData.address3} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" />
                   </div>
                 </div>
@@ -557,22 +558,22 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
           <div className="space-y-6">
             {/* මුදල් ආපසු ගැනීමේ කොන්දේසි */}
             <div className="border border-gray-200 p-4 rounded-xl bg-gray-50/50 space-y-4">
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">මුදල් ආපසු ලබාගැනීමේ රීති (Mode of Operation)</h3>
+              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">{t('මුදල් ආපසු ලබාගැනීමේ රීති (Mode of Operation)')}</h3>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">මුදල් ආපසු ලබාගන්නේ කවුරුන් විසින්ද?</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('මුදල් ආපසු ලබාගන්නේ කවුරුන් විසින්ද?')}</label>
                 <select name="modeOfOperation" value={formData.modeOfOperation} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]">
                   {accountMode === 'single' ? (
-                    <option value="self">තනිවම (ගිණුම්හිමියා / භාරකරු විසින් පමණි)</option>
+                    <option value="self">{t('තනිවම (ගිණුම්හිමියා / භාරකරු විසින් පමණි)')}</option>
                   ) : (
                     <>
-                      <option value="any_one">අපෙන් එක්කෙනෙකු (Anyone)</option>
-                      <option value="all_joint">අප (සියලු දෙනාම එක්ව අත්සන් තබා)</option>
-                      <option value="joint_three">අපෙන් තිදෙනෙකු (All Three Signatures)</option>
+                      <option value="any_one">{t('අපෙන් එක්කෙනෙකු (Anyone)')}</option>
+                      <option value="all_joint">{t('අප (සියලු දෙනාම එක්ව අත්සන් තබා)')}</option>
+                      <option value="joint_three">{t('අපෙන් තිදෙනෙකු (All Three Signatures)')}</option>
                     </>
                   )}
                 </select>
                 <p className="text-[11px] text-gray-500 mt-1.5 leading-tight">
-                  * අපෙන් කවරෙකු වුවද මිය ගිය විට ඒ මියගිය තැනැත්තාගේ නියෝජිතයන්ගෙන් කරුණු නොවිමසා ගිණුමෙහි ශේෂව ඇති මුදල ජීවත්ව සිටින අයට ගෙවීමට මෙයින් එකඟ වේ.</p>
+                  {t('* අපෙන් කවරෙකු වුවද මිය ගිය විට ඒ මියගිය තැනැත්තාගේ නියෝජිතයන්ගෙන් කරුණු නොවිමසා ගිණුමෙහි ශේෂව ඇති මුදල ජීවත්ව සිටින අයට ගෙවීමට මෙයින් එකඟ වේ.')}</p>
               </div>
             </div>
 
@@ -580,24 +581,24 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* සාක්ෂිකරුගේ කොටස (Witness Section) */}
               <div className="border border-gray-200 p-4 rounded-xl bg-gray-50/50 space-y-4">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">සාක්ෂිකරුගේ විස්තර (Witness)</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('සාක්ෂිකරුගේ විස්තර (Witness)')}</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-1">සාක්ෂිකරුගේ නම</label>
+                    <label className="block text-[11px] font-medium text-gray-600 mb-1">{t('සාක්ෂිකරුගේ නම')}</label>
                     <input type="text" name="witnessName" value={formData.witnessName || ''} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-1">ලිපිනය (හෝ සාමාජික අංකය)</label>
+                    <label className="block text-[11px] font-medium text-gray-600 mb-1">{t('ලිපිනය (හෝ සාමාජික අංකය)')}</label>
                     <input type="text" name="witnessAddress" value={formData.witnessAddress || ''} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-400 italic leading-tight">
-                  * (සාමදාන විනිශ්චයකාර / ශ්‍රේෂ්ඨාධිකරණයේ පෙරකදෝරු / ප්‍රසිද්ධ නොතාරිස් හෝ සමිතියේ සාමාජිකයෙක් විය යුතුය)</p>
+                  {t('* (සාමදාන විනිශ්චයකාර / ශ්‍රේෂ්ඨාධිකරණයේ පෙරකදෝරු / ප්‍රසිද්ධ නොතාරිස් හෝ සමිතියේ සාමාජිකයෙක් විය යුතුය)')}</p>
               </div>
 
               {/* අයදුම්කරුගේ අත්සන (Specimen Signature Section) */}
               <div className="border border-gray-200 p-4 rounded-xl bg-gray-50/50 flex flex-col space-y-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider w-full text-left">අයදුම්කරුගේ අත්සන (Specimen Signature)</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider w-full text-left">{t('අයදුම්කරුගේ අත්සන (Specimen Signature)')}</h3>
                 
                 <div className="w-full flex-1 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-white p-3 relative overflow-hidden">
                   {signaturePreview ? (
@@ -619,9 +620,9 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                       </div>
                       <div className="flex flex-wrap justify-center gap-2 mt-1">
                         <button type="button" className="px-3 py-1.5 bg-gray-200 text-gray-700 text-[10px] font-bold rounded hover:bg-gray-300 transition-colors">
-                          ස්කෑන් (Scan)</button>
+                          {t('ස්කෑන් (Scan)')}</button>
                         <label className="cursor-pointer px-3 py-1.5 bg-[#025a4e]/10 text-[#025a4e] text-[10px] font-bold rounded border border-[#025a4e]/20 hover:bg-[#025a4e]/20 transition-colors inline-block text-center">
-                          පින්තූරයක් (Upload)<input type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
+                          {t('පින්තූරයක් (Upload)')}<input type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
                         </label>
                       </div>
                     </>
@@ -641,14 +642,14 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
             <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 mb-6">
               {formData.openedDate !== formData.date && (
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4 flex items-center gap-2">
-                  <span className="text-sm font-bold text-amber-900">මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)</span>
+                  <span className="text-sm font-bold text-amber-900">{t('මෙය පැරණි ගිණුමක් පද්ධතියට ඇතුළත් කිරීමකි (Old Account Migration)')}</span>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    {formData.openedDate !== formData.date ? 'වර්තමාන ශේෂය (Current Available Balance - LKR)' : 'ප්‍රථම තැන්පතු මුදල (Initial Deposit - LKR)'}
+                    {formData.openedDate !== formData.date ? t('වර්තමාන ශේෂය (Current Available Balance - LKR)') : t('ප්‍රථම තැන්පතු මුදල (Initial Deposit - LKR)')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -658,7 +659,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                   </div>
                   {formData.openedDate !== formData.date && (
                     <p className="text-[10px] text-amber-700 mt-1 italic">
-                      * පැරණි ගිණුමේ අද දිනට පවතින සම්පූර්ණ ශේෂය මෙහි ඇතුළත් කරන්න.</p>
+                      {t('* පැරණි ගිණුමේ අද දිනට පවතින සම්පූර්ණ ශේෂය මෙහි ඇතුළත් කරන්න.')}</p>
                   )}
                 </div>
               </div>
@@ -666,19 +667,19 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
 
             {/* ඉතුරුම් ගිණුම් වර්ගය */}
             <div className="border border-gray-200 p-4 rounded-xl space-y-2 bg-emerald-50/30">
-              <label className="block text-sm font-medium text-gray-700 mb-2">ඉතුරුම් ගිණුම් වර්ගය (Savings Account Type)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('ඉතුරුම් ගිණුම් වර්ගය (Savings Account Type)')}</label>
               <select name="accountType" value={formData.accountType} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white text-sm focus:ring-[#025a4e] focus:border-[#025a4e]">
                 {clientType === 'adult' ? (
                   <>
-                    <option value="NORMAL">සාමාන්‍ය ඉතුරුම් (Normal Savings)</option>
-                    <option value="JANASETHA">ජනසෙත (Janasetha)</option>
-                    <option value="DHANA_YOJANA">ධන යෝජනා (Dhana Yojana)</option>
-                    <option value="VANDANA">වන්දනා (Vandana)</option>
+                    <option value="NORMAL">{t('සාමාන්‍ය ඉතුරුම් (Normal Savings)')}</option>
+                    <option value="JANASETHA">{t('ජනසෙත (Janasetha)')}</option>
+                    <option value="DHANA_YOJANA">{t('ධන යෝජනා (Dhana Yojana)')}</option>
+                    <option value="VANDANA">{t('වන්දනා (Vandana)')}</option>
                   </>
                 ) : (
                   <>
-                    <option value="ARUNALU">අරුණලු (Arunalu Minor Savings)</option>
-                    <option value="RANTHILINA">රන්තිලින (Ranthilina Minor Savings)</option>
+                    <option value="ARUNALU">{t('අරුණලු (Arunalu Minor Savings)')}</option>
+                    <option value="RANTHILINA">{t('රන්තිලින (Ranthilina Minor Savings)')}</option>
                   </>
                 )}
               </select>
@@ -689,14 +690,14 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         {/* Buttons */}
         <div className="flex justify-between items-center border-t border-gray-100 pt-5 mt-6">
           <button type="button" onClick={prevStep} disabled={step === 1} className={`px-4 py-2 text-xs font-semibold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}>
-            පසුපසට (Back)</button>
+            {t('පසුපසට (Back)')}</button>
 
           {step < 4 ? (
             <button type="button" onClick={nextStep} className="px-5 py-2 text-xs font-semibold rounded-lg text-white bg-[#025a4e] hover:bg-[#01443b] transition">
-              ඉදිරියට (Next)</button>
+              {t('ඉදිරියට (Next)')}</button>
           ) : (
             <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-xs font-bold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition disabled:bg-emerald-400">
-              {isSubmitting ? 'ගිණුම සකසමින් පවතී...' : 'ගිණුම විවෘත කරන්න (Open Account)'}
+              {isSubmitting ? t('ගිණුම සකසමින් පවතී...') : t('ගිණුම විවෘත කරන්න (Open Account)')}
             </button>
           )}
         </div>
@@ -716,7 +717,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 )}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{alertConfig.isSuccess ? 'සාර්ථකයි (Success)' : 'අවධානයට (Attention)'}</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{alertConfig.isSuccess ? t('සාර්ථකයි (Success)') : t('අවධානයට (Attention)')}</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{alertConfig.message}</p>
               </div>
             </div>
@@ -728,7 +729,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 }} 
                 className={`px-5 py-2 text-white text-sm font-semibold rounded-lg transition shadow-sm ${alertConfig.isSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-900 hover:bg-gray-800'}`}
               >
-                හරි (OK)</button>
+                {t('හරි (OK)')}</button>
             </div>
           </div>
         </div>

@@ -107,7 +107,7 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
             <h3 className="text-xl font-bold text-white flex items-center gap-3 tracking-tight">
               <FileText size={24} className="text-indigo-200" /> 
               {t(`ණය වර්ගය තෝරන්න`)}</h3>
-            <p className="text-indigo-100 text-xs mt-0.5 font-medium opacity-90">Select a loan type to proceed with your application</p>
+            <p className="text-indigo-100 text-xs mt-0.5 font-medium opacity-90">{t(`Select a loan type to proceed with your application`)}</p>
           </div>
           <button 
             onClick={onClose} 
@@ -135,12 +135,12 @@ const LoanApplicationModal = ({ onClose }: { onClose: () => void }) => {
                   </div>
                   
                   <div className="font-bold text-slate-800 text-[11px] leading-snug group-hover:text-indigo-600 transition-colors line-clamp-3 h-12 flex items-center justify-center w-full px-1">
-                    {type.name}
+                    {t(type.name)}
                   </div>
                   
                   <div className="mt-2 w-full pt-2 border-t border-slate-100 flex items-center justify-between">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Max Amount
+                      {t(`Max Amount`)}
                     </div>
                     <div className="text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-md">
                       {type.maxAmount ? `Rs. ${(type.maxAmount/1000).toFixed(0)}k` : 'N/A'}
