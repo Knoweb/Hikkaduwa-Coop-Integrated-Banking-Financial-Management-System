@@ -7,10 +7,16 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.security.Key;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Component
 public class JwtUtil {
-    private final Key key = Keys.hmacShaKeyFor("hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system".getBytes());
+    
+    private final Key key;
 
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    }
     // branchId and tenantId are embedded in the token
     public String generateToken(String username, String role, Integer branchId, Integer tenantId) {
         return Jwts.builder()
@@ -36,7 +42,11 @@ public class JwtUtil {
         return extractAllClaims(token).get("role", String.class);
     }
     public Integer extractTenantId(String token) {
-        return extractAllClaims(token).get("tenantId", Integer.class);
+        Object claim = extractAllClaims(token).get("tenantId");
+        if (claim instanceof Number) {
+            return ((Number) claim).intValue();
+        }
+        return null;
     }
 
 

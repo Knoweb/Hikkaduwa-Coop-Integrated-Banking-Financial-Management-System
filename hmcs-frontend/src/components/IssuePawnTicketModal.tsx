@@ -96,7 +96,7 @@ export default function IssuePawnTicketModal({ branchId, onClose, onSuccess }: {
             : 'bg-yellow-50/50 border-yellow-100/50'
           }`}>
             <label className="block text-xs font-bold text-yellow-800 mb-1">{t(`ගිණුම ආරම්භ කළ දිනය / නිකුත් කළ දිනය (Issue Date) *`)}</label>
-            <input required type="date" value={form.issueDate} onChange={e => setForm({...form, issueDate: e.target.value})} className="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white" />
+            <input required type="date" value={form.issueDate} onChange={e => setForm({...form, issueDate: e.target.value})} max={new Date().toLocaleDateString('en-CA')} className="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
             <div className="flex justify-between items-center mt-1">
               <p className="text-[10px] text-yellow-600">{t(`පරණ ගිණුම් සඳහා අදාළ දිනය තෝරන්න. (Select past date for historical records)`)}</p>
               {form.issueDate && form.issueDate < new Date().toLocaleDateString('en-CA') && (

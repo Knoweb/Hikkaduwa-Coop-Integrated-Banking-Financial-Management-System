@@ -198,7 +198,8 @@ export const disburseLoan = async (
 export const getMemberSavingsAccounts = async (memberId: string): Promise<any[]> => {
   const user = getCurrentUser();
   const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-  const res = await axios.get('http://localhost:8080/api/v1/savings', { headers });
+  const url = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/savings` : 'http://localhost:8080/api/v1/savings';
+  const res = await axios.get(url, { headers });
   return (res.data as any[]).filter(
     (acc: any) => acc.memberId === memberId && acc.status === 'ACTIVE'
   );
@@ -338,6 +339,10 @@ export const getFieldCollectionBalance = async (username: string): Promise<numbe
 
 export const handoverFieldCash = async (payload: { fieldOfficerUsername: string; amount: number; tellerUsername?: string; branchId?: number }): Promise<void> => {
   await axios.post(`${API_URL}/field-collection/handover`, payload, { headers: authHeader() });
+};
+
+export const handoverSingleFieldCash = async (id: string, payload: { tellerUsername?: string; branchId?: number }): Promise<void> => {
+  await axios.post(`${API_URL}/field-collection/handover/${id}`, payload, { headers: authHeader() });
 };
 
 export const updateLoanStatus = async (loanId: string, status: string): Promise<any> => {

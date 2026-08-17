@@ -38,6 +38,10 @@ public class OrganizationController {
             return ResponseEntity.badRequest().body("Subdomain is required");
         }
         
+        if (adminPassword == null || !adminPassword.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$#&*])[A-Za-z\\d@$#&*]{8,}$")) {
+            return ResponseEntity.badRequest().body("Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character (@$#&*)");
+        }
+
         Optional<Organization> existing = organizationRepository.findBySubdomain(subdomain.toLowerCase().trim());
         if (existing.isPresent()) {
             return ResponseEntity.badRequest().body("Subdomain already exists");
@@ -124,6 +128,10 @@ public class OrganizationController {
 
         if (username == null || password == null || fullName == null) {
             return ResponseEntity.badRequest().body("username, password, and fullName are required");
+        }
+
+        if (!password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$#&*])[A-Za-z\\d@$#&*]{8,}$")) {
+            return ResponseEntity.badRequest().body("Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character (@$#&*)");
         }
 
         Integer branchId;

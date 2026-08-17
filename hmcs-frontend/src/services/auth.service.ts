@@ -1,13 +1,25 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1/auth/';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/` : 'http://localhost:8080/api/v1/auth/';
+
+// Enable sending cookies with requests
+axios.defaults.withCredentials = true;
+// Spring Security CSRF configuration
+axios.defaults.xsrfCookieName = 'XSRF-TOKEN';
+axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
 export const authHeader = (overrideTenantId?: number) => {
-  const user = getCurrentUser();
-  const headers: Record<string, string> = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
+  const headers: Record<string, string> = {};
   if (overrideTenantId !== undefined) {
     headers['X-Tenant-ID'] = overrideTenantId.toString();
   }
+  
+  // Axios drops auto CSRF headers for cross-origin (even different ports on localhost)
+  const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+  if (match) {
+    headers['X-XSRF-TOKEN'] = match[2];
+  }
+  
   return headers;
 };
 
@@ -40,7 +52,7 @@ export const login = async (username: string, password: string) => {
     username,
     password,
   });
-  if (response.data.token) {
+  if (response.data.username) {
     const userObj = {
       ...response.data,
       tenantId: response.data.tenantId
@@ -50,8 +62,37 @@ export const login = async (username: string, password: string) => {
   return response.data;
 };
 
-export const logout = () => {
+export const verifyOtp = async (tempToken: string, otp: string) => {
+  const response = await axios.post(API_URL + 'verify-otp', {
+    tempToken,
+    otp,
+  });
+  if (response.data.username) {
+    const userObj = {
+      ...response.data,
+      tenantId: response.data.tenantId
+    };
+    localStorage.setItem('user', JSON.stringify(userObj));
+  }
+  return response.data;
+};
+
+export const setupMfa = async (tempToken: string, method: string) => {
+  const response = await axios.post(API_URL + 'setup-mfa', {
+    tempToken,
+    method,
+  });
+  return response.data;
+};
+
+export const logout = async () => {
+  try {
+    await axios.post(API_URL + 'logout');
+  } catch (err) {
+    // Ignore errors during logout
+  }
   localStorage.removeItem('user');
+  sessionStorage.clear();
 };
 
 export const getCurrentUser = () => {
@@ -95,6 +136,9 @@ export interface UserDTO {
   branchId: number;
   status: string;
   password?: string;
+  email?: string;
+  mfaType?: string;
+  totpSecret?: string;
 }
 
 export const getUsers = async (overrideTenantId?: number): Promise<UserDTO[]> => {

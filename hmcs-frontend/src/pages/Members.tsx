@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, UserPlus, FileDown, MoreVertical } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Members() {
   const { t } = useLanguage();
@@ -198,6 +198,8 @@ export default function Members() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
                     <input 
                       type="text" required
+                      pattern="^[a-zA-Z\s]+$"
+                      title="Name must contain only alphabets and spaces"
                       value={formData.fullName}
                       onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" 
@@ -208,6 +210,8 @@ export default function Members() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">NIC Number</label>
                       <input 
                         type="text" required
+                        pattern="^([0-9]{9}[vVxX]|[0-9]{12})$"
+                        title="NIC must be 9 digits followed by V or X, or 12 digits"
                         value={formData.nic}
                         onChange={(e) => setFormData({...formData, nic: e.target.value})}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" 
@@ -217,6 +221,8 @@ export default function Members() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
                       <input 
                         type="tel" required
+                        pattern="^(\+?[0-9]{10,12})?$"
+                        title="Contact number must be 10 to 12 digits"
                         value={formData.contactNumber}
                         onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" 

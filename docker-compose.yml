@@ -25,6 +25,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-member-auth-service:
@@ -37,6 +39,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-audit-service:
@@ -51,6 +55,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-savings-service:
@@ -63,6 +69,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-loan-service:
@@ -76,6 +84,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
       SAVINGS_SERVICE_HOST: hmcs-savings-service
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-pawning-service:
@@ -88,6 +98,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   hmcs-reporting-service:
@@ -100,6 +112,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
     restart: unless-stopped
 
   adminer:
@@ -123,4 +137,36 @@ services:
       - ./hmcs-frontend/public:/app/public
       - ./hmcs-frontend/index.html:/app/index.html
       - ./hmcs-frontend/vite.config.ts:/app/vite.config.ts
+    environment:
+      - VITE_PROXY_TARGET=http://hmcs-api-gateway:8080
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: hmcs-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./logging-config/loki-config.yaml:/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: hmcs-promtail
+    volumes:
+      - ./hmcs-logs:/var/logs/hmcs
+      - ./logging-config/promtail-config.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: hmcs-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
     restart: unless-stopped

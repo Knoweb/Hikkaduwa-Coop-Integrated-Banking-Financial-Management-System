@@ -6,6 +6,11 @@ import { applyForLoan } from '../services/loan.service';
 import { searchMembers, getAccounts } from '../services/account.service';
 import * as AuthService from '../services/auth.service';
 import { useLanguage } from '../context/LanguageContext';
+const isValidNIC = (nic: string): boolean => {
+  if (!nic) return false;
+  const clean = nic.trim();
+  return /^[0-9]{9}[vVxX]$/.test(clean) || /^[0-9]{12}$/.test(clean);
+};
 
 
 interface NormalLoanFormProps {
@@ -140,6 +145,10 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
         showMessage('කරුණාකර සියලුම අත්‍යවශ්‍ය මූලික තොරතුරු සහ අයදුම් කළ දිනය පුරවන්න. (Please fill all essential basic details including Applied Date)', 'warning');
         return false;
       }
+      if (!isValidNIC(formData.nic)) {
+        showMessage('ඉල්ලුම්කරුගේ ජාතික හැඳුනුම්පත් අංකය (NIC) වැරදියි. (අංක 9ක් සමග V/X හෝ අංක 12ක් විය යුතුය)', 'warning');
+        return false;
+      }
     }
     if (step === 2) {
       if (!formData.requiredLoanCash && !formData.requiredLoanGoods) {
@@ -171,6 +180,68 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     }
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  // Live DB NIC lookup for Applicant
+  const [applicantDbStatus, setApplicantDbStatus] = useState<{ checking: boolean; foundMember: any | null }>({ checking: false, foundMember: null });
+
+  // Live DB NIC lookup for Guarantors
+  const [guarantorDbStatus, setGuarantorDbStatus] = useState<{ [key: string]: { checking: boolean; foundMember: any | null } }>({
+    guarantor1: { checking: false, foundMember: null },
+    guarantor2: { checking: false, foundMember: null },
+  });
+
+  useEffect(() => {
+    if (isValidNIC(formData.nic)) {
+      setApplicantDbStatus(prev => ({ ...prev, checking: true }));
+      const timer = setTimeout(async () => {
+        try {
+          const results = await searchMembers(formData.nic);
+          const match = results?.find((m: any) => m.nic?.toLowerCase() === formData.nic.toLowerCase());
+          setApplicantDbStatus({ checking: false, foundMember: match || null });
+        } catch {
+          setApplicantDbStatus({ checking: false, foundMember: null });
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    } else {
+      setApplicantDbStatus({ checking: false, foundMember: null });
+    }
+  }, [formData.nic]);
+
+  useEffect(() => {
+    ['guarantor1', 'guarantor2'].forEach(gKey => {
+      const gNic = (formData as any)[gKey]?.nic;
+      if (isValidNIC(gNic)) {
+        setGuarantorDbStatus(prev => ({ ...prev, [gKey]: { ...prev[gKey], checking: true } }));
+        const timer = setTimeout(async () => {
+          try {
+            const results = await searchMembers(gNic);
+            const match = results?.find((m: any) => m.nic?.toLowerCase() === gNic.toLowerCase());
+            if (match) {
+              setFormData((prev: any) => ({
+                ...prev,
+                [gKey]: {
+                  ...prev[gKey],
+                  name: prev[gKey].name || match.fullName || match.nameWithInitials || '',
+                  address: prev[gKey].address || match.address || '',
+                  memberNo: prev[gKey].memberNo || match.membershipNumber || '',
+                  phone: prev[gKey].phone || match.contactNumber || '',
+                  dob: prev[gKey].dob || match.dateOfBirth || '',
+                  job: prev[gKey].job || match.occupation || '',
+                }
+              }));
+            }
+            setGuarantorDbStatus(prev => ({ ...prev, [gKey]: { checking: false, foundMember: match || null } }));
+          } catch {
+            setGuarantorDbStatus(prev => ({ ...prev, [gKey]: { checking: false, foundMember: null } }));
+          }
+        }, 400);
+        return () => clearTimeout(timer);
+      } else {
+        setGuarantorDbStatus(prev => ({ ...prev, [gKey]: { checking: false, foundMember: null } }));
+      }
+    });
+  }, [formData.guarantor1?.nic, formData.guarantor2?.nic]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -270,6 +341,14 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
     }
     if (!formData.guarantor1.name || !formData.guarantor1.nic || !formData.guarantor2.name || !formData.guarantor2.nic) {
         showMessage('කරුණාකර ඇපකරුවන් දෙදෙනාගේම අත්‍යවශ්‍ය විස්තර පුරවන්න. (Please fill essential details for both guarantors)', 'warning');
+        return;
+    }
+    if (!isValidNIC(formData.guarantor1.nic)) {
+        showMessage('පළමු ඇපකරුගේ ජාතික හැඳුනුම්පත් අංකය (NIC) වැරදියි. (9 V/X හෝ ඉලක්කම් 12 විය යුතුය)', 'warning');
+        return;
+    }
+    if (!isValidNIC(formData.guarantor2.nic)) {
+        showMessage('දෙවන ඇපකරුගේ ජාතික හැඳුනුම්පත් අංකය (NIC) වැරදියි. (9 V/X හෝ ඉලක්කම් 12 විය යුතුය)', 'warning');
         return;
     }
     
@@ -431,7 +510,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
                 <div>
                   <label className="block text-sm font-medium mb-1">{t(`03. උපන් දිනය`)}</label>
-                  <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
+                  <input type="date" name="dob" value={formData.dob} max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">{t(`04. ස්ත්රී / පුරුෂ භාවය`)}</label>
@@ -451,7 +530,45 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">{t(`06. ජාතික හැඳුනුම්පත් අංකය (NIC)`)}<span className="text-red-500 font-bold">*</span></label>
-                  <input type="text" name="nic" value={formData.nic} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border focus:ring-2 focus:ring-emerald-500" />
+                  <input
+                    type="text"
+                    maxLength={12}
+                    name="nic"
+                    placeholder="e.g. 912345678V / 199123456789"
+                    value={formData.nic}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase().replace(/[^0-9VX]/g, '');
+                      handleInputChange({ target: { name: 'nic', value: val } } as any);
+                    }}
+                    className={`w-full rounded-lg p-2.5 border transition-all ${
+                      !formData.nic
+                        ? 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                        : isValidNIC(formData.nic)
+                        ? 'border-emerald-500 bg-emerald-50/20 text-emerald-900 focus:ring-2 focus:ring-emerald-500 font-bold'
+                        : 'border-red-500 bg-red-50/20 text-red-900 focus:ring-2 focus:ring-red-500 font-semibold'
+                    }`}
+                  />
+                  {formData.nic && isValidNIC(formData.nic) && (
+                    <div className="mt-1">
+                      {applicantDbStatus.checking ? (
+                        <p className="text-[11px] font-semibold text-blue-600 animate-pulse flex items-center gap-1">
+                          <span className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full inline-block"></span>
+                          පද්ධතියේ සාමාජික දත්ත පරීක්ෂා කරමින්... (Checking Live DB...)
+                        </p>
+                      ) : applicantDbStatus.foundMember ? (
+                        <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-1.5 rounded border border-emerald-200 flex items-center gap-1 mt-1">
+                          ✓ පද්ධතියේ සිටින සාමාජිකයෙකි: <span className="underline">{applicantDbStatus.foundMember.fullName || applicantDbStatus.foundMember.nameWithInitials}</span> (අංකය: {applicantDbStatus.foundMember.membershipNumber})
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-bold text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200 flex items-center gap-1 mt-1">
+                          ℹ️ පද්ධතියේ නොමැති/නව සාමාජික NIC එකකි (Unregistered NIC in DB)
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {formData.nic && !isValidNIC(formData.nic) && (
+                    <p className="text-[11px] font-bold text-red-600 mt-1">❌ ජාතික හැඳුනුම්පත් අංකය වැරදියි (9 V/X හෝ ඉලක්කම් 12 විය යුතුය)</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">{t(`07. දුරකථන අංකය`)}<span className="text-red-500 font-bold">*</span></label>
@@ -642,7 +759,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
               {/* වාර්ෂික ආදායම හා වියදම */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border">
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t(`වාර්ෂික ප්රධාන රැකියා ආදායම (රු.)`)}</label>
+                  <label className="block text-sm font-medium mb-1">{t(`වාර්ෂික ප්රධාන රැකියා ආදායම (රු.)`)} <span className="text-red-500 font-bold">*</span></label>
                   <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} name="annualIncomePrimary" value={formData.annualIncomePrimary} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 p-2.5 border bg-white" />
                 </div>
                 <div>
@@ -675,7 +792,7 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                 <h3 className="font-semibold text-slate-700 flex items-center gap-2">{t(`08. අතිරේක ලියකියවිලි (Supporting Documents)`)}</h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <label className="block text-sm font-medium mb-2 text-slate-600">{t(`ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න`)}</label>
-                  <input type="file" multiple className="w-full rounded-lg border-slate-300 p-2 bg-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                  <input type="file" multiple accept=".pdf,image/jpeg,image/png" className="w-full rounded-lg border-slate-300 p-2 bg-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
                 </div>
               </div>
             </div>
@@ -705,11 +822,48 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">{t(`ජාතික හැඳුනුම්පත් අංකය`)}<span className="text-red-500 font-bold">*</span></label>
-                      <input type="text" value={(formData as any)[gKey].nic} onChange={(e) => handleGuarantorChange(gKey, 'nic', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
+                      <input
+                        type="text"
+                        maxLength={12}
+                        placeholder="e.g. 912345678V / 199123456789"
+                        value={(formData as any)[gKey].nic}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase().replace(/[^0-9VX]/g, '');
+                          handleGuarantorChange(gKey, 'nic', val);
+                        }}
+                        className={`w-full rounded-lg p-2 border bg-white transition-all ${
+                          !(formData as any)[gKey].nic
+                            ? 'border-slate-300'
+                            : isValidNIC((formData as any)[gKey].nic)
+                            ? 'border-emerald-500 bg-emerald-50/20 text-emerald-900 font-bold'
+                            : 'border-red-500 bg-red-50/20 text-red-900 font-semibold'
+                        }`}
+                      />
+                      {(formData as any)[gKey].nic && isValidNIC((formData as any)[gKey].nic) && (
+                        <div className="mt-1">
+                          {guarantorDbStatus[gKey]?.checking ? (
+                            <p className="text-[11px] font-semibold text-blue-600 animate-pulse flex items-center gap-1">
+                              <span className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full inline-block"></span>
+                              ඇපකරු පද්ධතියේ පරීක්ෂා කරමින්... (Checking Live DB...)
+                            </p>
+                          ) : guarantorDbStatus[gKey]?.foundMember ? (
+                            <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-1.5 rounded border border-emerald-200 flex items-center gap-1 mt-1">
+                              ✓ පද්ධතියේ සාමාජික ඇපකරුවෙකි: <span className="underline">{guarantorDbStatus[gKey].foundMember.fullName || guarantorDbStatus[gKey].foundMember.nameWithInitials}</span> (අංකය: {guarantorDbStatus[gKey].foundMember.membershipNumber})
+                            </p>
+                          ) : (
+                            <p className="text-[11px] font-bold text-slate-700 bg-slate-100 p-1.5 rounded border border-slate-200 flex items-center gap-1 mt-1">
+                              ℹ️ සාමාජික නොවන බාහිර ඇපකරුවෙකි (External Guarantor)
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {(formData as any)[gKey].nic && !isValidNIC((formData as any)[gKey].nic) && (
+                        <p className="text-[11px] font-bold text-red-600 mt-1">❌ ජාතික හැඳුනුම්පත් අංකය වැරදියි (9 V/X හෝ ඉලක්කම් 12 විය යුතුය)</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">{t(`උපන් දිනය`)}</label>
-                      <input type="date" value={(formData as any)[gKey].dob} onChange={(e) => handleGuarantorChange(gKey, 'dob', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
+                      <input type="date" value={(formData as any)[gKey].dob} max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]} onChange={(e) => handleGuarantorChange(gKey, 'dob', e.target.value)} className="w-full rounded-lg border-slate-300 p-2 border bg-white" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">{t(`සාමාජික අංකය`)}</label>
@@ -746,9 +900,17 @@ export default function NormalLoanForm({ loanTypeId, onClose }: NormalLoanFormPr
 
                   <div className="pt-3 border-t text-sm mt-3">
                     <label className="block font-medium text-slate-600 mb-2">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
-                    <input type="file" accept="image/*" onChange={(e) => {
+                    <input type="file" accept="image/jpeg,image/png" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          (window as any).showToast('File size must be less than 5MB');
+                          return;
+                        }
+                        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                          (window as any).showToast('Only JPG and PNG images are allowed');
+                          return;
+                        }
                         const reader = new FileReader();
                         reader.onloadend = () => {
                           handleGuarantorChange(gKey, 'digitalSignatureUrl', reader.result as string);

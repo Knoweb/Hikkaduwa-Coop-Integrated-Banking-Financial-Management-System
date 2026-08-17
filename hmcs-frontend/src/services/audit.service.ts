@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { authHeader } from './auth.service';
 
-const API_URL = 'http://localhost:8080/api/v1/audit/comments';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/audit/comments` : 'http://localhost:8080/api/v1/audit/comments';
 
 export interface AuditComment {
   id: number;

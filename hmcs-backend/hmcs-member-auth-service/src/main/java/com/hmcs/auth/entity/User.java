@@ -37,6 +37,24 @@ public class User {
     @Column(length = 20)
     private String status = "ACTIVE";
 
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
+    @Column(unique = true, length = 100)
+    private String email;
+
+    @Column(name = "mfa_type", length = 20)
+    private String mfaType = "NONE";
+
+    @Column(name = "totp_secret", length = 100)
+    private String totpSecret;
+
+    @Column(name = "active_token", length = 500)
+    private String activeToken;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

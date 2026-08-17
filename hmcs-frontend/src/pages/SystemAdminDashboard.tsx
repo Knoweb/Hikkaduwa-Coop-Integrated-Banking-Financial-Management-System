@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
+import Swal from 'sweetalert2';
 import {
   LogOut, LayoutDashboard, Building, Plus, Edit, Trash2,
   CheckCircle, Server, Database, Clock, Shield, Key, Users, UserMinus,
   Settings, ChevronRight, ChevronDown, ChevronUp, Save, ArrowLeft, X, Eye, EyeOff, Percent, PiggyBank,
-  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote, ClipboardList, MapPin, MessageSquare, Search, MoreVertical
+  Lock, Briefcase, Scale, AlertTriangle, FileText, Banknote, ClipboardList, MapPin, MessageSquare, Search, MoreVertical, ExternalLink, Activity, Smartphone, Mail
 } from 'lucide-react';
 import * as AuthService from '../services/auth.service';
 import * as AccountService from '../services/account.service';
 import * as LoanService from '../services/loan.service';
 import * as BranchService from '../services/branch.service';
 import { useLanguage } from '../context/LanguageContext';
+import AuditLogsView from '../components/AuditLogsView';
+import SystemSecurityLogsView from '../components/SystemSecurityLogsView';
 import logo from '../assets/logo.jpg';
 
 
@@ -73,9 +77,10 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [userForm, setUserForm] = useState({ fullName: '', username: '', password: '', role: '', branchId: '' });
-  const [editUserForm, setEditUserForm] = useState({ fullName: '', username: '', role: '', status: '', password: '' });
+  const [userForm, setUserForm] = useState({ fullName: '', username: '', password: '', role: '', branchId: '', email: '', mfaType: 'NONE' });
+  const [editUserForm, setEditUserForm] = useState({ fullName: '', username: '', role: '', status: '', password: '', email: '', mfaType: 'NONE' });
   const [error, setError] = useState('');
+  const [qrModal, setQrModal] = useState<{show: boolean, username: string, secret: string}>({show: false, username: '', secret: ''});
 
   useEffect(() => {
     fetchInsights();
@@ -101,18 +106,29 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
     e.preventDefault();
     try {
       setError('');
-      await AuthService.createUser({
+      const createdUser = await AuthService.createUser({
         fullName: userForm.fullName,
         username: userForm.username,
         password: userForm.password,
         role: userForm.role,
         branchId: parseInt(userForm.branchId, 10),
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        email: userForm.email,
+        mfaType: userForm.mfaType
       }, tenantId);
       setShowAddUser(false);
-      setUserForm({ fullName: '', username: '', password: '', role: '', branchId: '' });
-      alert('User added successfully!');
+      setUserForm({ fullName: '', username: '', password: '', role: '', branchId: '', email: '', mfaType: 'NONE' });
       fetchInsights();
+      if (createdUser.totpSecret) {
+         setQrModal({ show: true, username: createdUser.username, secret: createdUser.totpSecret });
+      } else {
+         Swal.fire({
+           title: 'Success!',
+           text: 'User added successfully!',
+           icon: 'success',
+           confirmButtonColor: '#2563eb'
+         });
+      }
     } catch (err: any) {
       setError(err.response?.data || 'Failed to add user');
     }
@@ -125,7 +141,9 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
       username: user.username,
       role: user.role,
       status: user.status,
-      password: ''
+      password: '',
+      email: user.email || '',
+      mfaType: user.mfaType || 'NONE'
     });
     setShowEditUser(true);
   };
@@ -134,27 +152,55 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
     e.preventDefault();
     try {
       setError('');
-      await AuthService.updateUser(selectedUser.userId, {
+      const updatedUser = await AuthService.updateUser(selectedUser.userId, {
         ...selectedUser,
         fullName: editUserForm.fullName,
         username: editUserForm.username,
         role: editUserForm.role,
         status: editUserForm.status,
         password: editUserForm.password,
+        email: editUserForm.email,
+        mfaType: editUserForm.mfaType
       }, tenantId);
       setShowEditUser(false);
       fetchInsights();
+      if (updatedUser.totpSecret) {
+         setQrModal({ show: true, username: updatedUser.username, secret: updatedUser.totpSecret });
+      } else {
+        Swal.fire({
+          title: 'Success!',
+          text: 'User updated successfully!',
+          icon: 'success',
+          confirmButtonColor: '#2563eb'
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data || 'Failed to update user');
     }
   };
 
   const handleDeleteUser = async () => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (!result.isConfirmed) return;
+
     try {
       await AuthService.deleteUser(selectedUser.userId, tenantId);
       setShowEditUser(false);
       fetchInsights();
+      Swal.fire({
+        title: 'Deleted!',
+        text: 'User has been deleted.',
+        icon: 'success',
+        confirmButtonColor: '#2563eb'
+      });
     } catch (err: any) {
       setError(err.response?.data || 'Failed to delete user');
     }
@@ -236,6 +282,28 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
               ))}
             </div>
           )}
+
+          {/* QR Modal for Branch Staff */}
+          {qrModal.show && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-100 w-full max-w-sm text-center transform transition-all animate-in fade-in zoom-in-95 duration-200">
+                <div className="mb-4 text-center">
+                  <h3 className="font-bold text-slate-800 text-lg">Google Authenticator Setup</h3>
+                  <p className="text-slate-500 text-sm mt-1">Scan this QR Code using the Google Authenticator app for user <strong>{qrModal.username}</strong>.</p>
+                </div>
+                <div className="flex justify-center p-4 bg-white border border-slate-100 rounded-xl inline-block mx-auto mb-4 shadow-sm">
+                  <QRCodeSVG value={`otpauth://totp/HMCS:${qrModal.username}?secret=${qrModal.secret}&issuer=HMCS`} size={200} />
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-6 text-left">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Manual Entry Secret</p>
+                  <p className="font-mono text-sm text-slate-800 select-all">{qrModal.secret}</p>
+                </div>
+                <button onClick={() => setQrModal({show: false, username: '', secret: ''})} className="w-full px-4 py-3 bg-slate-900 text-white font-bold rounded-xl transition hover:bg-slate-800">
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -263,14 +331,14 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Password</label>
                   <div className="relative">
-                    <input type={showAddPassword ? "text" : "password"} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required />
+                    <input type={showAddPassword ? "text" : "password"} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" required pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$#&*])[A-Za-z\d@$#&*]{8,}" title="Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character (@$#&*)" />
                     <button type="button" onClick={() => setShowAddPassword(!showAddPassword)} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
                       {showAddPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Role</label>
                   <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" required>
@@ -279,6 +347,27 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                       <option key={r.roleId} value={r.roleName}>{r.roleName.replace(/_/g, ' ')}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Email Address</label>
+                  <input type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Optional" />
+                </div>
+                <div className="flex flex-col gap-3 mt-6">
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={userForm.mfaType !== 'NONE'}
+                        onChange={e => setUserForm({...userForm, mfaType: e.target.checked ? 'ENABLED' : 'NONE'})}
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700">Require Multi-Factor Authentication</p>
+                      <p className="text-[10px] text-slate-500">If disabled, the user can log in with just their password.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -318,7 +407,7 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">New Password</label>
                   <div className="relative">
-                    <input type={showEditPassword ? "text" : "password"} value={editUserForm.password} onChange={e => setEditUserForm({...editUserForm, password: e.target.value})} placeholder="Leave blank to keep current" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" />
+                    <input type={showEditPassword ? "text" : "password"} value={editUserForm.password} onChange={e => setEditUserForm({...editUserForm, password: e.target.value})} placeholder="Leave blank to keep current" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 bg-white" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$#&*])[A-Za-z\d@$#&*]{8,}" title="Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character (@$#&*)" />
                     <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
                       {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -342,6 +431,27 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Email Address</label>
+                  <input type="email" value={editUserForm.email} onChange={e => setEditUserForm({...editUserForm, email: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Optional" />
+                </div>
+                <div className="flex flex-col gap-3 mt-6">
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={editUserForm.mfaType !== 'NONE'}
+                        onChange={e => setEditUserForm({...editUserForm, mfaType: e.target.checked ? 'ENABLED' : 'NONE'})}
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700">Require Multi-Factor Authentication</p>
+                      <p className="text-[10px] text-slate-500">If disabled, the user can log in with just their password.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t border-slate-100">
@@ -354,6 +464,27 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* QR Code Modal for TOTP Setup */}
+      {qrModal.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-100 w-full max-w-sm text-center">
+            <div className="mb-4 text-center">
+              <h3 className="font-bold text-slate-800 text-lg">Google Authenticator Setup</h3>
+              <p className="text-slate-500 text-sm mt-1">Scan this QR Code using the Google Authenticator app for user <strong>{qrModal.username}</strong>.</p>
+            </div>
+            <div className="flex justify-center p-4 bg-white border border-slate-100 rounded-xl inline-block mx-auto mb-4 shadow-sm">
+              <QRCodeSVG value={`otpauth://totp/HMCS:${qrModal.username}?secret=${qrModal.secret}&issuer=HMCS`} size={200} />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-6 text-left">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Manual Entry Secret</p>
+              <p className="font-mono text-sm text-slate-800 select-all">{qrModal.secret}</p>
+            </div>
+            <button onClick={() => setQrModal({show: false, username: '', secret: ''})} className="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl transition hover:bg-indigo-700">
+              Done
+            </button>
           </div>
         </div>
       )}
@@ -378,7 +509,8 @@ function TenantsTab() {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
       const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-      const res = await axios.get('http://localhost:8080/api/v1/auth/organizations', { headers });
+      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : 'http://localhost:8080/api/v1/auth';
+      const res = await axios.get(`${baseUrl}/organizations`, { headers });
       setTenants(res.data);
     } catch (e) {
       console.error(e);
@@ -400,7 +532,8 @@ function TenantsTab() {
       const user = userStr ? JSON.parse(userStr) : null;
       const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
       
-      await axios.post('http://localhost:8080/api/v1/auth/organizations', form, { headers });
+      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : 'http://localhost:8080/api/v1/auth';
+      await axios.post(`${baseUrl}/organizations`, form, { headers });
       setForm({ name: '', subdomain: '', branchName: '', adminUsername: '', adminPassword: '' });
       setShowAdd(false);
       fetchTenants();
@@ -475,7 +608,7 @@ function TenantsTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">{t(`පරිපාලකගේ මුරපදය (Password)`)}</label>
-                    <input type="password" value={form.adminPassword} onChange={e => setForm({...form, adminPassword: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" required />
+                    <input type="password" value={form.adminPassword} onChange={e => setForm({...form, adminPassword: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" required pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$#&*])[A-Za-z\d@$#&*]{8,}" title="Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character (@$#&*)" />
                   </div>
                 </div>
               </div>
@@ -736,7 +869,8 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
   const [showForm, setShowForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<AuthService.UserDTO | null>(null);
-  const [form, setForm] = useState({ username: '', fullName: '', password: '', role: 'TELLER' });
+  const [form, setForm] = useState({ username: '', fullName: '', password: '', role: 'TELLER', email: '', mfaType: 'NONE' });
+  const [qrModal, setQrModal] = useState<{show: boolean, username: string, secret: string}>({show: false, username: '', secret: ''});
   const [error, setError] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
   const [config, setConfig] = useState({ name: branch.branchName, location: branch.location || '', status: branch.status });
@@ -751,8 +885,10 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
         status: config.status
       });
       onRefresh(); // Refresh branches to get updated info
+      Swal.fire('Success', 'Configuration updated successfully', 'success');
     } catch (e) {
       console.error(e);
+      Swal.fire('Error', 'Failed to update configuration', 'error');
     } finally {
       setSavingConfig(false);
     }
@@ -768,7 +904,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
 
   const startEdit = (u: AuthService.UserDTO) => {
     setEditingUser(u);
-    setForm({ username: u.username, fullName: u.fullName, password: '', role: u.role });
+    setForm({ username: u.username, fullName: u.fullName, password: '', role: u.role, email: u.email || '', mfaType: u.mfaType || 'NONE' });
     setShowPassword(false);
     setShowForm(true);
   };
@@ -777,45 +913,91 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
     if (!form.username || !form.fullName) return;
     try {
       setError('');
+      let returnedUser: any;
       if (editingUser) {
-        await AuthService.updateUser(editingUser.userId!, {
+        if (form.password) {
+          const result = await Swal.fire({
+            title: 'Change Password?',
+            text: 'Are you sure you want to change the password for this user?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, change it!'
+          });
+          if (!result.isConfirmed) {
+            return;
+          }
+        }
+        returnedUser = await AuthService.updateUser(editingUser.userId!, {
           username: form.username,
           fullName: form.fullName,
           password: form.password || undefined,
           role: form.role,
           branchId: branch.branchId,
-          status: editingUser.status
+          status: editingUser.status,
+          email: form.email,
+          mfaType: form.mfaType
         });
       } else {
         if (!form.password) { setError('Password is required'); return; }
-        await AuthService.createUser({
+        returnedUser = await AuthService.createUser({
           username: form.username,
           fullName: form.fullName,
           password: form.password,
           role: form.role,
           branchId: branch.branchId,
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          email: form.email,
+          mfaType: form.mfaType
         });
       }
-      setForm({ username: '', fullName: '', password: '', role: 'TELLER' });
+      setForm({ username: '', fullName: '', password: '', role: 'TELLER', email: '', mfaType: 'NONE' });
       setEditingUser(null);
       setShowPassword(false);
       setShowForm(false);
-      alert(editingUser ? 'User updated successfully!' : 'User created successfully!');
       onRefresh();
+      
+      if (returnedUser?.totpSecret) {
+         setQrModal({ show: true, username: returnedUser.username, secret: returnedUser.totpSecret });
+      } else {
+         Swal.fire({ title: 'Success', text: editingUser ? 'User updated successfully!' : 'User created successfully!', icon: 'success' });
+      }
     } catch (err: any) {
-      setError(err.response?.data || 'Operation failed');
+      let msg = 'Operation failed';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          msg = err.response.data;
+        } else if (err.response.data.message) {
+          msg = err.response.data.message;
+        } else if (err.response.data.error) {
+          msg = err.response.data.error;
+        } else if (err.response.data.errors) {
+          msg = err.response.data.errors.map((e: any) => e.defaultMessage || e.message).join(', ');
+        }
+      } else if (err.message) {
+        msg = err.message;
+      }
+      setError(msg);
     }
   };
 
   const handleDelete = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (result.isConfirmed) {
       try {
         await AuthService.deleteUser(userId);
-        alert('User deleted successfully!');
+        Swal.fire('Deleted!', 'User deleted successfully!', 'success');
         onRefresh();
       } catch (err) {
-        (window as any).showToast('Failed to delete user');
+        Swal.fire('Error', 'Failed to delete user', 'error');
       }
     }
   };
@@ -878,13 +1060,13 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Full Name')}</label>
-                    <input type="text" value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                    <input type="text" autoComplete="off" value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
                       placeholder="e.g. D.P. Perera" className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition" />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Username')}</label>
-                    <input type="text" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
+                    <input type="text" autoComplete="off" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
                       disabled={!!editingUser}
                       placeholder="e.g. teller_hkw" className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition disabled:bg-slate-50 disabled:text-slate-400" />
                   </div>
@@ -896,6 +1078,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                     <div className="relative">
                       <input 
                         type={showPassword ? 'text' : 'password'} 
+                        autoComplete="new-password"
                         value={form.password} 
                         onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                         placeholder={editingUser ? t('Leave empty to keep existing') : t('Set password')} 
@@ -909,6 +1092,29 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {form.password.length > 0 && (
+                      <div className="mt-3 bg-slate-50 border border-slate-100 rounded-xl p-3.5 animate-in fade-in slide-in-from-top-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">Password Requirements</p>
+                        <ul className="space-y-2">
+                          {[
+                            { label: 'At least 8 characters long', met: form.password.length >= 8 },
+                            { label: 'Contains an uppercase letter', met: /[A-Z]/.test(form.password) },
+                            { label: 'Contains a lowercase letter', met: /[a-z]/.test(form.password) },
+                            { label: 'Contains a number', met: /[0-9]/.test(form.password) },
+                            { label: 'Contains a special character (@$!%*?&)', met: /[@$!%*?&#]/.test(form.password) }
+                          ].map((req, i) => (
+                            <li key={i} className="flex items-center text-xs">
+                              {req.met ? (
+                                <CheckCircle size={14} className="text-emerald-500 mr-2 shrink-0" />
+                              ) : (
+                                <X size={14} className="text-slate-300 mr-2 shrink-0" />
+                              )}
+                              <span className={req.met ? 'text-slate-700 font-medium' : 'text-slate-500'}>{req.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -924,6 +1130,30 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                         return <option key={r} value={r}>{label}</option>;
                       })}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">{t('Email Address')}</label>
+                    <input type="email" autoComplete="new-password" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                      placeholder="e.g. teller@hikkaduwa.lk" className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition" />
+                  </div>
+
+                  <div className="flex flex-col gap-3 pt-3">
+                    <div className="flex items-center gap-3">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={form.mfaType !== 'NONE'}
+                          onChange={e => setForm(p => ({ ...p, mfaType: e.target.checked ? 'ENABLED' : 'NONE' }))}
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">{t('Require Multi-Factor Authentication')}</p>
+                        <p className="text-[10px] text-slate-500">{t('If disabled, the user can log in with just their password.')}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1068,10 +1298,11 @@ export default function SystemAdminDashboard() {
       await BranchService.createBranch(addBranchForm);
       setShowAddBranch(false);
       setAddBranchForm({ branchName: '', location: '', status: 'ACTIVE' });
-      alert('Branch created successfully!');
+      Swal.fire('Success', 'Branch created successfully!', 'success');
       fetchBranches();
     } catch(e) {
       console.error(e);
+      Swal.fire('Error', 'Failed to create branch', 'error');
     } finally {
       setAddingBranch(false);
     }
@@ -1185,10 +1416,21 @@ export default function SystemAdminDashboard() {
             <div className="space-y-1">
               {user.tenantId === 0 ? (
                 // Platform Admin Tabs (Tenant 0)
-                <button onClick={() => { handleClearBranch(); setMainTab('tenants'); }}
-                  className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'tenants' ? 'bg-indigo-600/10 text-indigo-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                  <Building size={18} className="mr-3" />{t('Organizations (SaaS)')}
-                </button>
+                <>
+                  <button onClick={() => { handleClearBranch(); setMainTab('tenants'); }}
+                    className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'tenants' ? 'bg-indigo-600/10 text-indigo-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                    <Building size={18} className="mr-3" />{t('Organizations (SaaS)')}
+                  </button>
+                  <button onClick={() => { handleClearBranch(); setMainTab('audit_logs'); }}
+                    className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${mainTab === 'audit_logs' ? 'bg-indigo-600/10 text-indigo-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                    <Shield size={18} className="mr-3" />{t('System Security Logs')}
+                  </button>
+                  <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:bg-white/5 hover:text-slate-200">
+                    <ExternalLink size={18} className="mr-3 text-orange-500" />
+                    <span className="text-orange-500 font-bold">{t('Grafana Dashboard')}</span>
+                  </a>
+                </>
               ) : (
                 // Society Admin Tabs (e.g. Tenant 1)
                 <>
@@ -1241,6 +1483,7 @@ export default function SystemAdminDashboard() {
                   { key: 'handovers', label: 'ක්ෂේත්‍ර නිලධාරී මුදල් භාරගැනීම්', icon: Briefcase },
                   { key: 'summary-ledger', label: 'Summary Ledger', icon: ClipboardList },
                   { key: 'vault-cash', label: 'Cash Balances', icon: Banknote },
+                  { key: 'activity_logs', label: 'Activity Logs', icon: Activity },
                   { key: 'audit_logs', label: 'Audit Logs', icon: Shield },
                   { key: 'staff', label: 'Branch Staff', icon: Users },
                   { key: 'config', label: 'Branch Config', icon: Settings }
@@ -1342,6 +1585,7 @@ export default function SystemAdminDashboard() {
           {mainTab === 'account_types' && <GlobalSettings currentTab='account_types' />}
           {mainTab === 'settings' && <GlobalSettings currentTab='settings' />}
           {mainTab === 'auditor_comments' && <AuditorCommentsView />}
+          {mainTab === 'audit_logs' && <div className="p-8"><SystemSecurityLogsView /></div>}
           {mainTab === 'overview' && (
             activeBranch ? (
               (activeTab === 'staff' || activeTab === 'config') ? (

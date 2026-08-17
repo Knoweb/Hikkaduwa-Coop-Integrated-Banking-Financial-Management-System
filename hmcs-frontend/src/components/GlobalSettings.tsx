@@ -399,7 +399,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
         <div className="space-y-6 max-w-5xl">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden ring-1 ring-slate-900/5">
             {/* Tabs Header */}
-            <div className="flex items-center gap-3 p-4 bg-slate-50/80 border-b border-slate-200 overflow-x-auto custom-scrollbar">
+            <div className="flex items-center gap-2 p-3 bg-slate-50/80 border-b border-slate-200 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {[
                 { id: 'savings', label: 'Savings', icon: PiggyBank, color: 'text-blue-600', activeBg: 'bg-blue-600 text-white shadow-md shadow-blue-500/20 border-blue-600' },
                 { id: 'fd', label: 'Fixed Deposits', icon: Lock, color: 'text-emerald-600', activeBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 border-emerald-600' },
@@ -409,7 +409,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 const isActive = rateCategory === tab.id;
                 return (
                   <button key={tab.id} onClick={() => { setRateCategory(tab.id as any); setEditingRateId(null); }}
-                    className={`flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${isActive ? tab.activeBg : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 shadow-sm'}`}>
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap border ${isActive ? tab.activeBg : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 shadow-sm'}`}>
                     <tab.icon size={18} className={isActive ? 'text-white/90' : tab.color} />
                     {t(tab.label)}
                   </button>
@@ -785,7 +785,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
 
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden ring-1 ring-slate-900/5">
             {/* Tabs Header */}
-            <div className="flex items-center gap-3 p-4 bg-slate-50/80 border-b border-slate-200 overflow-x-auto custom-scrollbar">
+            <div className="flex items-center gap-2 p-3 bg-slate-50/80 border-b border-slate-200 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {[
                 { id: 'savings', label: 'Savings', icon: PiggyBank, color: 'text-blue-600', activeBg: 'bg-blue-600 text-white shadow-md shadow-blue-500/20 border-blue-600' },
                 { id: 'fd', label: 'Fixed Deposits', icon: Lock, color: 'text-emerald-600', activeBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 border-emerald-600' },
@@ -794,7 +794,7 @@ export default function GlobalSettings({ currentTab, readOnly = false }: { curre
                 const isActive = accountCategory === tab.id;
                 return (
                   <button key={tab.id} onClick={() => setAccountCategory(tab.id as any)}
-                    className={`flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${isActive ? tab.activeBg : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 shadow-sm'}`}>
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap border ${isActive ? tab.activeBg : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 shadow-sm'}`}>
                     <tab.icon size={18} className={isActive ? 'text-white/90' : tab.color} />
                     {t(tab.label)}
                   </button>

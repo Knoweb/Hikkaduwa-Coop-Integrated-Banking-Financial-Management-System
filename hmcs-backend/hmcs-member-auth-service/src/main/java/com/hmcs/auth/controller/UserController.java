@@ -9,10 +9,14 @@ import com.hmcs.auth.repository.RoleRepository;
 import com.hmcs.auth.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import dev.samstevens.totp.secret.DefaultSecretGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
 
 @RestController
 @RequestMapping("/api/v1/auth/users")
@@ -20,11 +24,13 @@ public class UserController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserRepository userRepository, RoleRepository roleRepository, BranchRepository branchRepository) {
+    public UserController(UserRepository userRepository, RoleRepository roleRepository, BranchRepository branchRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.branchRepository = branchRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -37,13 +43,30 @@ public class UserController {
             dto.setRole(u.getRole().getRoleName());
             dto.setBranchId(u.getBranch() != null ? u.getBranch().getBranchId() : null);
             dto.setStatus(u.getStatus());
+            dto.setEmail(u.getEmail());
+            dto.setMfaType(u.getMfaType());
             return dto;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
 
+    private boolean isPasswordComplex(String password) {
+        if (password == null || password.length() < 8) return false;
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            else if (Character.isLowerCase(c)) hasLower = true;
+            else if (Character.isDigit(c)) hasDigit = true;
+            else hasSpecial = true;
+        }
+        return hasUpper && hasLower && hasDigit && hasSpecial;
+    }
+
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserDTO dto) {
+    public ResponseEntity<?> createUser(@jakarta.validation.Valid @RequestBody UserDTO dto) {
         if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Username already exists");
         }
@@ -58,11 +81,23 @@ public class UserController {
 
         User user = new User();
         user.setUsername(dto.getUsername());
-        user.setPasswordHash(dto.getPassword() != null ? dto.getPassword() : "password");
+        
+        String rawPassword = dto.getPassword() != null && !dto.getPassword().isEmpty() ? dto.getPassword() : "ChangeMe@123";
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty() && !isPasswordComplex(rawPassword)) {
+            return ResponseEntity.badRequest().body("Password must be at least 8 characters long, and contain uppercase, lowercase, numbers, and special characters.");
+        }
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        
         user.setFullName(dto.getFullName());
         user.setRole(role);
         user.setBranch(branch);
         user.setStatus(dto.getStatus() != null ? dto.getStatus() : "ACTIVE");
+        user.setEmail(dto.getEmail());
+        user.setMfaType(dto.getMfaType() != null ? dto.getMfaType() : "NONE");
+
+        if ("NONE".equals(user.getMfaType())) {
+            user.setTotpSecret(null);
+        }
 
         User saved = userRepository.save(user);
         
@@ -71,7 +106,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UserDTO dto) {
+    public ResponseEntity<?> updateUser(@PathVariable UUID id, @jakarta.validation.Valid @RequestBody UserDTO dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -87,8 +122,19 @@ public class UserController {
         user.setRole(role);
         user.setBranch(branch);
         user.setStatus(dto.getStatus());
+        user.setEmail(dto.getEmail());
+        
+        user.setMfaType(dto.getMfaType() != null ? dto.getMfaType() : "NONE");
+
+        if ("NONE".equals(user.getMfaType())) {
+            user.setTotpSecret(null); // Clear secret if MFA is disabled
+        }
+
         if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
-            user.setPasswordHash(dto.getPassword());
+            if (!isPasswordComplex(dto.getPassword())) {
+                return ResponseEntity.badRequest().body("Password must be at least 8 characters long, and contain uppercase, lowercase, numbers, and special characters.");
+            }
+            user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
 
         User saved = userRepository.save(user);

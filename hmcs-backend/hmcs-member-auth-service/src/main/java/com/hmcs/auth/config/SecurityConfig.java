@@ -19,11 +19,16 @@ public class SecurityConfig {
     }
 
     @Bean
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/login").permitAll()
+                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/seed", "/api/v1/auth/seed-admin", "/api/v1/auth/setup-mfa", "/api/v1/auth/verify-otp").permitAll()
                 // Allow branch staff to view users for assignment purposes
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/users", "/api/v1/auth/users/").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_BRANCH_MANAGER", "ROLE_SENIOR_OFFICER", "ROLE_PLATFORM_ADMIN", "ROLE_AUDITOR")
                 

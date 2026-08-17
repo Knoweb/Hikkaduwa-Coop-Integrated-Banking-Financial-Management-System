@@ -10,4 +10,5 @@ import java.util.List;
 public interface AuditCommentRepository extends JpaRepository<AuditComment, Long> {
     List<AuditComment> findAllByOrderByCreatedAtDesc();
     List<AuditComment> findByBranchIdOrderByCreatedAtDesc(Integer branchId);
+    List<AuditComment> findByTenantIdOrderByCreatedAtDesc(Integer tenantId);
 }

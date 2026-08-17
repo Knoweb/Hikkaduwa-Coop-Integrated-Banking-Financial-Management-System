@@ -275,6 +275,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                   type="date" 
                   required
                   name="appliedDate"
+                  max={new Date().toLocaleDateString('en-CA')}
                   value={formData.appliedDate}
                   onChange={handleChange}
                   className="w-full rounded-lg border-yellow-200 p-3 border focus:ring-2 focus:ring-yellow-500 bg-white shadow-sm" 
@@ -366,9 +367,17 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                     <textarea name="guarantor1Address" placeholder={t(`ලිපිනය`)} value={formData.guarantor1Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
                   </div>
                   <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
+                  <input type="file" accept="image/jpeg,image/png" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          (window as any).showToast('File size must be less than 5MB');
+                          return;
+                        }
+                        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                          (window as any).showToast('Only JPG and PNG images are allowed');
+                          return;
+                        }
                         const reader = new FileReader();
                         reader.onloadend = () => {
                           setFormData(prev => ({...prev, guarantor1DigitalSignatureUrl: reader.result as string}));
@@ -399,9 +408,17 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                     <textarea name="guarantor2Address" placeholder={t(`ලිපිනය`)} value={formData.guarantor2Address} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" required></textarea>
                   </div>
                   <label className="block font-medium text-gray-600 text-xs mt-2 mb-1">{t(`ඇපකරුගේ ඩිජිටල් අත්සන (Digital Signature)`)}</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
+                  <input type="file" accept="image/jpeg,image/png" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          (window as any).showToast('File size must be less than 5MB');
+                          return;
+                        }
+                        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                          (window as any).showToast('Only JPG and PNG images are allowed');
+                          return;
+                        }
                         const reader = new FileReader();
                         reader.onloadend = () => {
                           setFormData(prev => ({...prev, guarantor2DigitalSignatureUrl: reader.result as string}));
@@ -428,7 +445,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
             <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-teal-600 pl-3">{t(`අතිරේක ලියකියවිලි (Supporting Documents)`)}</h3>
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t(`ණය ඉල්ලුම්පත, වත්කම් ඔප්පු ආදියෙහි ස්කෑන් පිටපත් හෝ ඡායාරූප උඩුගත කරන්න`)}</label>
-              <input type="file" multiple onChange={(e) => setDocsCount(e.target.files?.length || 0)} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
+              <input type="file" multiple accept=".pdf,image/jpeg,image/png" onChange={(e) => setDocsCount(e.target.files?.length || 0)} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
               {docsCount > 0 && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-sm font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">

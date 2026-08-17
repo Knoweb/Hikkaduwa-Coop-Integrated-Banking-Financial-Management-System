@@ -8,10 +8,44 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastContainer } from './components/ToastContainer';
 import './utils/toast';
+import { useEffect } from 'react';
+import { logout } from './services/auth.service';
+
+function IdleTimer() {
+  useEffect(() => {
+    let timeoutId: number;
+
+    const resetTimer = () => {
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(async () => {
+        await logout();
+        window.location.href = '/login?expired=true';
+      }, 15 * 60 * 1000); // 15 minutes
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    resetTimer();
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+    };
+  }, []);
+
+  return null;
+}
 
 function App() {
   return (
     <LanguageProvider>
+      <IdleTimer />
       <ToastContainer />
       <Router>
         <Routes>

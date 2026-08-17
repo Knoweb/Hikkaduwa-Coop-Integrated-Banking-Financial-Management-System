@@ -1,4 +1,17 @@
-
 logging:
   level:
     org.springframework.security: DEBUG
+
+jwt:
+  secret: "hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system"
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hmcscoopsystem@gmail.com
+    password: dyrffvgggzqopagy
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.debug: true

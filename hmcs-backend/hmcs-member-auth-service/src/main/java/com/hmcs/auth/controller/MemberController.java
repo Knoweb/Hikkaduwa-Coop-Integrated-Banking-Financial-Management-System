@@ -69,7 +69,7 @@ public class MemberController {
     }
 
     @PostMapping
-    public ResponseEntity<?> registerMember(@RequestBody Member member, HttpServletRequest request) {
+    public ResponseEntity<?> registerMember(@jakarta.validation.Valid @RequestBody Member member, HttpServletRequest request) {
         if (member.getNic() == null || member.getNic().trim().isEmpty()) {
             return ResponseEntity.badRequest().body("NIC must be provided");
         }

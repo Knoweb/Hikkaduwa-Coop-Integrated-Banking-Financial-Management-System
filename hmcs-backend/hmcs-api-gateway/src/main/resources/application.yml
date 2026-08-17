@@ -5,10 +5,13 @@ spring:
     name: hmcs-api-gateway
   cloud:
     gateway:
+      default-filters:
+        - SecureHeaders
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOrigins: "http://localhost:5173"
+            allowCredentials: true
             allowedMethods:
               - GET
               - POST
@@ -50,3 +53,11 @@ spring:
 
 server:
   port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+logging:
+  file:
+    name: /var/logs/hmcs/hmcs-api-gateway.log

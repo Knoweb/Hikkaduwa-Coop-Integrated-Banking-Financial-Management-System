@@ -206,6 +206,14 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        (window as any).showToast('File size must be less than 5MB');
+        return;
+      }
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        (window as any).showToast('Only JPG and PNG images are allowed');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         setSignaturePreview(event.target?.result as string);
@@ -246,7 +254,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
       };
 
       const res = await AccountService.openAccount(accountData);
-      console.log('Account created:', res);
+
       
       const accountTypeNames: Record<string, string> = {
         samanaya: 'සාමාන්‍ය ඉතුරුම් (Normal Savings)',
@@ -469,7 +477,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                 {clientType === 'child' && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{t('උපන් දිනය (DOB)')}</label>
-                    <input type="date" name="dob1" value={formData.dob1} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
+                    <input type="date" name="dob1" value={formData.dob1} max={new Date().toLocaleDateString('en-CA')} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#025a4e] focus:border-[#025a4e]" required />
                   </div>
                 )}
                 <div>
@@ -622,7 +630,7 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
                         <button type="button" className="px-3 py-1.5 bg-gray-200 text-gray-700 text-[10px] font-bold rounded hover:bg-gray-300 transition-colors">
                           {t('ස්කෑන් (Scan)')}</button>
                         <label className="cursor-pointer px-3 py-1.5 bg-[#025a4e]/10 text-[#025a4e] text-[10px] font-bold rounded border border-[#025a4e]/20 hover:bg-[#025a4e]/20 transition-colors inline-block text-center">
-                          {t('පින්තූරයක් (Upload)')}<input type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
+                          {t('පින්තූරයක් (Upload)')}<input type="file" accept="image/jpeg,image/png" onChange={handleSignatureUpload} className="hidden" />
                         </label>
                       </div>
                     </>

@@ -505,7 +505,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                 }}
                 className="text-xs px-4 py-2 rounded-xl font-black bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white border-2 border-white/90 shadow-[0_0_18px_rgba(239,68,68,0.7)] hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer uppercase tracking-wider animate-pulse"
               >
-                🚨 කල්පසු ණයක් ලෙස සලකුණු කරන්න
+                🚨 {t('කල්පසු ණයක් ලෙස සලකුණු කරන්න')}
               </button>
             ) : null}
 
@@ -525,12 +525,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
 
         {/* Tabs */}
         <div className="flex border-b border-slate-100 bg-white">
-          {(['overview', 'schedule', 'payments', 'history'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+          {(['overview', 'schedule', 'payments', 'history'] as const).map(tabName => (
+            <button key={tabName} onClick={() => setTab(tabName)}
               className={`px-6 py-3.5 text-sm font-bold capitalize transition border-b-2 ${
-                tab === t ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'
+                tab === tabName ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}>
-              {t === 'overview' ? '📋 දළ විශ්ලේෂණය (Overview)' : t === 'schedule' ? '📅 ණය සැලසුම (Schedule)' : t === 'payments' ? '💵 වාරික ගෙවීම් (Payments)' : '📜 අනුමත ඉතිහාසය (History)'}
+              {tabName === 'overview' ? t('📋 දළ විශ්ලේෂණය (Overview)') : tabName === 'schedule' ? t('📅 ණය සැලසුම (Schedule)') : tabName === 'payments' ? t('💵 වාරික ගෙවීම් (Payments)') : t('📜 අනුමත ඉතිහාසය (History)')}
             </button>
           ))}
         </div>
@@ -572,12 +572,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
               {/* Loan Details Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { label: 'ඉල්ලුම් කළ මුදල', value: `රු. ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
-                  { label: 'කාල සීමාව', value: `මාස ${loan.termMonths}`, icon: '📅' },
-                  { label: 'පොලී අනුපාතය', value: `වාර්ෂිකව ${loan.interestRate}%`, icon: '📈' },
-                  { label: 'ණය වර්ගය', value: loan.loanType?.name || '—', icon: '🏷️' },
-                  { label: 'අයදුම් කළ දිනය', value: loan.appliedDate || '—', icon: '📋' },
-                  { label: 'ශාඛාව', value: branchName, icon: '🏦' },
+                  { label: t('ඉල්ලුම් කළ මුදල'), value: `${t('රු.')} ${Number(loan.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💰' },
+                  { label: t('කාල සීමාව'), value: `${t('මාස (Months)')} ${loan.termMonths}`, icon: '📅' },
+                  { label: t('පොලී අනුපාතය'), value: `${t('වාර්ෂිකව')} ${loan.interestRate}%`, icon: '📈' },
+                  { label: t('ණය වර්ගය'), value: t(loan.loanType?.name || '—'), icon: '🏷️' },
+                  { label: t('අයදුම් කළ දිනය'), value: loan.appliedDate || '—', icon: '📋' },
+                  { label: t('ශාඛාව'), value: t(branchName), icon: '🏦' },
                 ].map(item => (
                   <div key={item.label} className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{item.label}</p>
@@ -599,9 +599,9 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                       const monthlyPrincipal = p / m;
                       const monthlyInterest = (p * r * 30) / 36500;
                       return [
-                        { label: 'මාසික මූලික මුදල', value: `රු. ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                        { label: '+ මාසික පොලිය (ඇස්ත.)', value: `රු. ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                        { label: '= මාසික වාරිකය', value: `රු. ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
+                        { label: t('මාසික මූලික මුදල'), value: `${t('රු.')} ${monthlyPrincipal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: t('+ මාසික පොලිය (ඇස්ත.)'), value: `${t('රු.')} ${monthlyInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        { label: t('= මාසික වාරිකය'), value: `${t('රු.')} ${(monthlyPrincipal + monthlyInterest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
                       ];
                     })().map(item => (
                       <div key={item.label} className={`rounded-xl p-3 ${(item as any).highlight ? 'bg-indigo-600 text-white' : 'bg-white border border-indigo-100'}`}>
@@ -733,7 +733,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                   <div className="mb-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-3">
                     <div className="flex items-start gap-3 text-sm text-slate-600">
                       <Info size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                      <span>රු. {Number(loan.requestedAmount).toLocaleString()} ක මුදලක් සඳහා මාස {loan.termMonths} ක කාලයකට අදාළ වන {loan.interestRate}% ක වාර්ෂික පොලී අනුපාතය යටතේ සකසන ලද ණය ආපසු ගෙවීමේ සැලසුම.</span>
+                      <span>{t('රු.')} {Number(loan.requestedAmount).toLocaleString()} {t('ක මුදලක් සඳහා මාස')} {loan.termMonths} {t('ක කාලයකට අදාළ වන')} {loan.interestRate}% {t('ක වාර්ෂික පොලී අනුපාතය යටතේ සකසන ලද ණය ආපසු ගෙවීමේ සැලසුම.')}</span>
                     </div>
                     <div className="bg-white rounded-xl border border-indigo-100 p-4 space-y-2">
                       <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">{t(`📐 ගණනය කිරීමේ ක්‍රමය (Calculation Method)`)}</p>
@@ -741,14 +741,14 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                         <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                           <p className="font-bold text-slate-600 mb-1">{t(`🔢 මාසික මූලික මුදල`)}</p>
                           <p className="text-slate-500 font-mono">{t(`= ණය මුදල ÷ මාස ගණන`)}</p>
-                          <p className="text-indigo-700 font-black mt-1">= රු. {Number(loan.requestedAmount).toLocaleString()} ÷ {loan.termMonths}</p>
-                          <p className="text-emerald-700 font-black">= රු. {(Number(loan.requestedAmount) / (loan.termMonths || 1)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                          <p className="text-indigo-700 font-black mt-1">= {t('රු.')} {Number(loan.requestedAmount).toLocaleString()} ÷ {loan.termMonths}</p>
+                          <p className="text-emerald-700 font-black">= {t('රු.')} {(Number(loan.requestedAmount) / (loan.termMonths || 1)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         </div>
                         <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                           <p className="font-bold text-slate-600 mb-1">{t(`📈 1 වැනි මාසයේ පොලිය`)}</p>
                           <p className="text-slate-500 font-mono">{t(`= ශේෂය × (අනු. ÷ 36500) × 30`)}</p>
-                          <p className="text-indigo-700 font-black mt-1">= රු. {Number(loan.requestedAmount).toLocaleString()} × ({loan.interestRate}÷36500) × 30</p>
-                          <p className="text-rose-600 font-black">= රු. {(Number(loan.requestedAmount) * Number(loan.interestRate) * 30 / 36500).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                          <p className="text-indigo-700 font-black mt-1">= {t('රු.')} {Number(loan.requestedAmount).toLocaleString()} × ({loan.interestRate}÷36500) × 30</p>
+                          <p className="text-rose-600 font-black">= {t('රු.')} {(Number(loan.requestedAmount) * Number(loan.interestRate) * 30 / 36500).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         </div>
                         <div className="bg-indigo-600 rounded-lg p-3 text-white">
                           <p className="font-bold text-indigo-200 mb-1">{t(`💡 ගෙවීම් ක්‍රමය`)}</p>
@@ -763,7 +763,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                     <table className="w-full text-sm">
                       <thead className="bg-indigo-50 border-b border-indigo-100">
                         <tr>
-                          {['#', 'ගෙවිය යුතු දිනය', 'දිනගණන', 'මූලික මුදල', 'පොලිය', 'වාරිකය', 'ඉතිරි ශේෂය'].map(h => (
+                          {['#', t('ගෙවිය යුතු දිනය'), t('දිනගණන'), t('මූලික මුදල'), t('පොලිය'), t('වාරිකය'), t('ඉතිරි ශේෂය')].map(h => (
                             <th key={h} className="px-4 py-3 text-left text-xs font-bold text-indigo-900 uppercase tracking-wide">{h}</th>
                           ))}
                         </tr>
@@ -777,11 +777,11 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                           <tr key={row.installmentNumber || row.installmentNo} className="hover:bg-slate-50 transition">
                             <td className="px-4 py-3 font-bold text-slate-500 text-center w-10">{row.installmentNumber || row.installmentNo}</td>
                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">{row.dueDate}</td>
-                             <td className="px-4 py-3 text-center"><span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{row.daysInPeriod || 30}d</span></td>
-                            <td className="px-4 py-3 font-semibold text-slate-800">රු. {Number(principal).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-rose-600 font-semibold">රු. {Number(interest).toLocaleString()}</td>
-                            <td className="px-4 py-3 font-black text-indigo-700">රු. {Number(expectedAmount).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-slate-500 font-mono">රු. {Number(row.outstandingBalance || 0).toLocaleString()}</td>
+                             <td className="px-4 py-3 text-center"><span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{row.daysInPeriod || 30}{t('d')}</span></td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">{t('රු.')} {Number(principal).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-rose-600 font-semibold">{t('රු.')} {Number(interest).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-black text-indigo-700">{t('රු.')} {Number(expectedAmount).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-slate-500 font-mono">{t('රු.')} {Number(row.outstandingBalance || 0).toLocaleString()}</td>
                           </tr>
                         )})}
                       </tbody>
@@ -791,8 +791,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
                   <div className="mt-3 flex items-start gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                     <span className="text-emerald-500 font-black shrink-0 mt-0.5">✓</span>
                     <span>
-                      <strong>{t(`නිවැරදි ගණනය:`)}</strong> {t(`ඉහත පොලිය ගණනය කිරීමේදී සෑම මාසයකටම`)}<strong>{t(`ඇත්ත දිනගණන`)}</strong> {t(`(පෙබරවාරි 28/29, දින 31 ක් ඇති මාස ආදිය) ගනිති. 
-                      ගෙවිය යුතු දිනය නියමිත ලෙස ගෙව්වහොත් schedule table එකේ ඇති ප්‍රමාණයම ගෙවිය යුතුය.`)}</span>
+                      <strong>{t(`නිවැරදි ගණනය:`)}</strong> {t(`ඉහත පොලිය ගණනය කිරීමේදී සෑම මාසයකටම`)}<strong>{t(`ඇත්ත දිනගණන`)}</strong> {t(`(පෙබරවාරි 28/29, දින 31 ක් ඇති මාස ආදිය) ගනිති. ගෙවිය යුතු දිනය නියමිත ලෙස ගෙව්වහොත් schedule table එකේ ඇති ප්‍රමාණයම ගෙවිය යුතුය.`)}</span>
                   </div>
                 </>
               )}
@@ -1151,12 +1150,12 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">{t(`Payment Date (දිනය)`)}</label>
-                  <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)}
+                  <input type="date" value={paymentDate} max={new Date().toLocaleDateString('en-CA')} onChange={e => setPaymentDate(e.target.value)}
                     className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 font-bold text-slate-800 transition outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">{t(`Amount to Pay (Rs.) (ගෙවන මුදල)`)}</label>
-                  <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} 
+                  <input type="number" min="1" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} 
                     className="w-full border-2 border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 transition outline-none" />
                   
                   {paymentAmount && Number(paymentAmount) > 0 && (

@@ -345,6 +345,21 @@ public class LoanController {
         }
     }
 
+    @PostMapping("/field-collection/handover/{id}")
+    public ResponseEntity<?> handoverSingleFieldCash(@PathVariable java.util.UUID id, @RequestBody Map<String, Object> body) {
+        try {
+            String tellerUsername = body.containsKey("tellerUsername") && body.get("tellerUsername") != null 
+                    ? body.get("tellerUsername").toString() : "system";
+            Integer branchId = body.containsKey("branchId") && body.get("branchId") != null 
+                    ? Integer.valueOf(body.get("branchId").toString()) : 1;
+                    
+            loanService.handoverSingleFieldCash(id, tellerUsername, branchId);
+            return ResponseEntity.ok(Map.of("message", "Individual handover successful"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/transactions/branch/{branchId}")
     public ResponseEntity<?> getTransactionsByBranch(@PathVariable Integer branchId) {
         List<com.hmcs.loan.entity.LedgerEntry> ledgers = ledgerEntryRepository.findByBranchIdOrderByEntryDateDesc(branchId);

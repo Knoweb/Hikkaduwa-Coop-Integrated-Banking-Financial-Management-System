@@ -1,0 +1,321 @@
+2026-08-14T11:18:39.030+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T11:18:39.167+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T11:18:47.649+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-14T11:19:10.768+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T11:19:10.782+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T11:20:11.472+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T11:20:11.488+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T11:20:17.991+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-14T11:20:22.675+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-14T11:20:22.677+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-14T11:20:22.679+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-14T11:20:22.684+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-14T11:20:22.689+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-14T11:20:22.690+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-14T11:20:22.692+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-14T11:20:22.696+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-14T11:20:22.698+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-14T11:20:22.704+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-14T11:20:22.712+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-14T11:20:22.713+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-14T11:20:22.718+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-14T11:20:22.720+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-14T11:20:24.699+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-14T11:20:25.121+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 16.053 seconds (process running for 18.848)
+2026-08-14T11:22:44.322+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T11:22:44.358+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T11:22:55.594+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-14T11:23:00.351+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-14T11:23:00.356+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-14T11:23:00.358+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-14T11:23:00.364+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-14T11:23:00.377+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-14T11:23:00.379+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-14T11:23:00.388+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-14T11:23:00.389+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-14T11:23:00.393+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-14T11:23:00.400+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-14T11:23:00.417+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-14T11:23:00.421+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-14T11:23:00.429+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-14T11:23:00.431+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-14T11:23:25.425+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T11:23:25.483+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T11:23:32.575+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-14T11:23:39.473+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-14T11:23:39.480+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-14T11:23:39.483+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-14T11:23:39.486+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-14T11:23:39.496+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-14T11:23:39.501+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-14T11:23:39.505+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-14T11:23:39.508+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-14T11:23:39.509+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-14T11:23:39.512+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-14T11:23:39.515+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-14T11:23:39.517+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-14T11:23:39.520+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-14T11:23:39.527+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-14T11:23:42.439+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-14T11:23:43.575+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 25.177 seconds (process running for 28.872)
+2026-08-14T11:24:26.402+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-3] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T11:24:50.683+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-4] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T11:24:52.960+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-5] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T11:25:08.940+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-6] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T12:41:51.279+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-7] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/logout" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T13:59:38.889+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-8] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.3:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T13:59:46.045+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-9] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.3:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T14:04:09.286+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-10] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.3:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T14:04:10.841+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-11] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.3:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T14:20:26.481+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-12] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.9:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/login" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T14:21:18.112+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-1] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-member-auth-service/172.19.0.10:8081
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/api/v1/auth/seed" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-14T14:26:40.328+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-14T14:26:40.383+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-14T14:26:50.185+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-14T14:26:59.036+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-14T14:26:59.045+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-14T14:26:59.050+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-14T14:26:59.056+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-14T14:26:59.067+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-14T14:26:59.072+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-14T14:26:59.075+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-14T14:26:59.085+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-14T14:26:59.096+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-14T14:26:59.107+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-14T14:26:59.113+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-14T14:26:59.117+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-14T14:26:59.122+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-14T14:26:59.127+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-14T14:27:02.776+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-14T14:27:03.365+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 28.006 seconds (process running for 32.854)

@@ -114,41 +114,41 @@ export default function PawningApprovalsView() {
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> {t('අනුමැතිය ලැබිය යුතු උකස් අයදුම්පත්')}</h3>
           {pendingTickets.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t('අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින උකස් අයදුම්පත් නොමැත.')}</p>
-          ) : pendingTickets.map(t => (
-            <div key={t.ticketId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
+          ) : pendingTickets.map(ticket => (
+            <div key={ticket.ticketId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">උකස් ඉල්ලුම්කරු</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('උකස් ඉල්ලුම්කරු')}</p>
                   <p className="text-lg font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors">
-                    {getMemberDetails(t.memberId).name}
+                    {getMemberDetails(ticket.memberId).name}
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-1">
-                    සාමාජික අංකය: {getMemberDetails(t.memberId).number}
+                    {t('සාමාජික අංකය:')} {getMemberDetails(ticket.memberId).number}
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-1">
-                    උකස් පත්‍රිකා අංකය: <span className="text-amber-800 font-bold">{t.ticketNumber}</span>
+                    {t('උකස් පත්‍රිකා අංකය:')} <span className="text-amber-800 font-bold">{ticket.ticketNumber}</span>
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-3">
-                    ශාඛාව: <span className="text-blue-700 font-bold">{getBranchName(t.branchId)}</span>
+                    {t('ශාඛාව:')} <span className="text-blue-700 font-bold">{getBranchName(ticket.branchId)}</span>
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                      <FileText size={14} /> {t.ticketNumber}
+                      <FileText size={14} /> {ticket.ticketNumber}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {getBranchName(t.branchId)}
+                      <MapPin size={14} /> {getBranchName(ticket.branchId)}
                     </span>
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <Scale size={14} /> {t.articleDescription}
+                      <Scale size={14} /> {ticket.articleDescription}
                     </span>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      දළ බර: {t.grossWeightGrams}g
+                      {t('දළ බර:')} {ticket.grossWeightGrams}g
                     </span>
                   </div>
                 </div>
                 <div className="flex shrink-0">
-                  <button onClick={() => setSelectedTicket(t)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    <Eye size={16} /> පරීක්ෂා කර අනුමත කරන්න
+                  <button onClick={() => setSelectedTicket(ticket)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
+                    <Eye size={16} /> {t('පරීක්ෂා කර අනුමත කරන්න')}
                   </button>
                 </div>
               </div>
@@ -159,44 +159,44 @@ export default function PawningApprovalsView() {
 
       {activeListTab === 'approved' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> පෙර උකස් වාර්තා</h3>
+          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> {t('පෙර උකස් වාර්තා')}</h3>
           {approvedTickets.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">පෙර උකස් වාර්තා නොමැත.</p>
-          ) : approvedTickets.map(t => (
-            <div key={t.ticketId} className="mb-4 p-5 border border-emerald-100 rounded-xl bg-emerald-50/30 hover:border-emerald-300 hover:shadow-md transition-all group">
+            <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t('පෙර උකස් වාර්තා නොමැත.')}</p>
+          ) : approvedTickets.map(ticket => (
+            <div key={ticket.ticketId} className="mb-4 p-5 border border-emerald-100 rounded-xl bg-emerald-50/30 hover:border-emerald-300 hover:shadow-md transition-all group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">උකස් ඉල්ලුම්කරු</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('උකස් ඉල්ලුම්කරු')}</p>
                   <p className="text-lg font-bold text-slate-800 mb-2 group-hover:text-blue-700 transition-colors">
-                    {getMemberDetails(t.memberId).name}
+                    {getMemberDetails(ticket.memberId).name}
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-1">
-                    සාමාජික අංකය: {getMemberDetails(t.memberId).number}
+                    {t('සාමාජික අංකය:')} {getMemberDetails(ticket.memberId).number}
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-1">
-                    උකස් පත්‍රිකා අංකය: <span className="text-amber-800 font-bold">{t.ticketNumber}</span>
+                    {t('උකස් පත්‍රිකා අංකය:')} <span className="text-amber-800 font-bold">{ticket.ticketNumber}</span>
                   </p>
                   <p className="text-sm font-semibold text-slate-600 mb-3">
-                    ශාඛාව: <span className="text-blue-700 font-bold">{getBranchName(t.branchId)}</span>
+                    {t('ශාඛාව:')} <span className="text-blue-700 font-bold">{getBranchName(ticket.branchId)}</span>
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                      <FileText size={14} /> {t.ticketNumber}
+                      <FileText size={14} /> {ticket.ticketNumber}
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {getBranchName(t.branchId)}
+                      <MapPin size={14} /> {getBranchName(ticket.branchId)}
                     </span>
                     <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <Scale size={14} /> {t.articleDescription}
+                      <Scale size={14} /> {ticket.articleDescription}
                     </span>
                     <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-200">
-                      අනුමත මුදල: Rs. {Number(t.assessedValue).toLocaleString()}
+                      {t('අනුමත මුදල:')} Rs. {Number(ticket.assessedValue).toLocaleString()}
                     </span>
                   </div>
                 </div>
                 <div className="flex shrink-0">
                   <span className="px-5 py-2.5 bg-emerald-100 text-emerald-800 text-sm rounded-xl font-bold flex items-center gap-2">
-                    <CheckCircle size={16} /> අනුමතයි
+                    <CheckCircle size={16} /> {t('අනුමතයි')}
                   </span>
                 </div>
               </div>
@@ -235,7 +235,7 @@ function PawningReviewModal({ ticket, onClose, onAction, memberDetails, branchNa
   });
 
   const handleApprove = async () => {
-    console.log('handleApprove clicked. Ticket:', ticket, 'Assessed Value:', assessedValue, 'Remarks:', remarks);
+
     if (!assessedValue || isNaN(Number(assessedValue))) {
       setError('කරුණාකර නිවැරදි තක්සේරු වටිනාකමක් ඇතුළත් කරන්න.');
       return;
@@ -250,12 +250,12 @@ function PawningReviewModal({ ticket, onClose, onAction, memberDetails, branchNa
         setLoading(true);
         setError('');
         try {
-          console.log('Calling PawningService.approveTicket with ID:', ticket.ticketId);
+
           const result = await PawningService.approveTicket(ticket.ticketId, {
             assessedValue: Number(assessedValue),
             remarks
           });
-          console.log('Approve API call success:', result);
+
           if (showToast) {
             showToast('✅ උකස් පත්‍රිකාව සාර්ථකව අනුමත කරන ලදී! ශාඛාවට දැනුම් දී ඇත.', 'success');
           } else {
@@ -275,7 +275,7 @@ function PawningReviewModal({ ticket, onClose, onAction, memberDetails, branchNa
   };
 
   const handleReject = async () => {
-    console.log('handleReject clicked. Ticket:', ticket, 'Remarks:', remarks);
+
     if (!remarks.trim()) {
       setError('ප්‍රතික්ෂේප කිරීමේ හේතුව remarks ලෙස ඇතුළත් කරන්න.');
       return;
@@ -290,12 +290,12 @@ function PawningReviewModal({ ticket, onClose, onAction, memberDetails, branchNa
         setLoading(true);
         setError('');
         try {
-          console.log('Calling PawningService.approveTicket (Reject) with ID:', ticket.ticketId);
+
           const result = await PawningService.approveTicket(ticket.ticketId, {
             assessedValue: 0,
             remarks: `[REJECTED] ${remarks}`
           });
-          console.log('Reject API call success:', result);
+
           if (showToast) {
             showToast('❌ උකස් පත්‍රිකාව ප්‍රතික්ෂේප කරන ලදී.', 'error');
           } else {

@@ -11,4 +11,7 @@ public class LoginResponse {
     private String branchName;
     private Integer tenantId;
     private String organizationName;
+    private boolean requireOtp;
+    private String tempToken;
+    private String mfaType;
 }

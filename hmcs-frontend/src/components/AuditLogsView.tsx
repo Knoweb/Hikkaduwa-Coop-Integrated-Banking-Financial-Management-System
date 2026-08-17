@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Eye, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import * as AuthService from '../services/auth.service';
@@ -120,13 +121,11 @@ export default function AuditLogsView() {
       
       authHeader['X-Tenant-ID'] = tid.toString();
 
-      const res = await fetch('http://localhost:8080/api/v1/audit/corrections', { headers: authHeader });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
-      }
-    } catch (e) {
-      console.error(e);
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+      const res = await axios.get(`${baseUrl}/audit/corrections`, { headers: authHeader });
+      setLogs(res.data);
+    } catch (e: any) {
+      console.error('Error fetching audit logs:', e);
     } finally {
       setLoading(false);
     }

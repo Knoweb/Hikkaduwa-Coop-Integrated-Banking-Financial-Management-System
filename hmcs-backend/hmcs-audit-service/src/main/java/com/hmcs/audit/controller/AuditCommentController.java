@@ -53,8 +53,12 @@ public class AuditCommentController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
         User user = userRepository.findByUsername(username).orElse(null);
-        if (user != null && user.getRole().getRoleName().equals("BRANCH_MANAGER")) {
-            return ResponseEntity.ok(auditCommentRepository.findByBranchIdOrderByCreatedAtDesc(user.getBranch() != null ? user.getBranch().getBranchId() : null));
+        if (user != null) {
+            if (user.getRole().getRoleName().equals("BRANCH_MANAGER")) {
+                return ResponseEntity.ok(auditCommentRepository.findByBranchIdOrderByCreatedAtDesc(user.getBranch() != null ? user.getBranch().getBranchId() : null));
+            } else if (user.getTenantId() != null) {
+                return ResponseEntity.ok(auditCommentRepository.findByTenantIdOrderByCreatedAtDesc(user.getTenantId()));
+            }
         }
         return ResponseEntity.ok(auditCommentRepository.findAllByOrderByCreatedAtDesc());
     }

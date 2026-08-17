@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { Search, Loader2, X, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import * as AccountService from '../services/account.service';
@@ -110,6 +111,14 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        (window as any).showToast('File size must be less than 5MB');
+        return;
+      }
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        (window as any).showToast('Only JPG and PNG images are allowed');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, depositorSignature: reader.result as string }));
@@ -144,41 +153,27 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
 
     setIsSubmitting(true);
     try {
-      // NOTE: We should ideally have an AccountService method for this,
-      // but for now we'll just fix the URL and auth header to use API_URL and auth token
-      const user = getCurrentUser();
-      const token = user?.token;
-      const response = await fetch(`${AccountService.API_URL}fixed-deposits`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          memberId: formData.memberId,
-          typeId: formData.fdTypeId,
-          principalAmount: parseFloat(formData.principalAmount),
-          interestPayoutMethod: formData.interestPayoutMethod,
-          maturityInstruction: formData.maturityInstruction,
-          linkedSavingsAccountId: formData.linkedSavingsAccountId || null,
-          depositorSignature: formData.depositorSignature || null,
-          receiptNumber: formData.receiptNumber || null,
-          openedDate: formData.openedDate || null,
-          hasSubmittedTaxForm: formData.hasSubmittedTaxForm
-        })
+      await axios.post(`${AccountService.API_URL}fixed-deposits`, {
+        memberId: formData.memberId,
+        typeId: formData.fdTypeId,
+        principalAmount: parseFloat(formData.principalAmount),
+        interestPayoutMethod: formData.interestPayoutMethod,
+        maturityInstruction: formData.maturityInstruction,
+        linkedSavingsAccountId: formData.linkedSavingsAccountId || null,
+        depositorSignature: formData.depositorSignature || null,
+        receiptNumber: formData.receiptNumber || null,
+        openedDate: formData.openedDate || null,
+        hasSubmittedTaxForm: formData.hasSubmittedTaxForm
       });
 
-      if (response.ok) {
-        setAlertConfig({ 
-          message: 'ස්ථාවර තැන්පතුව සාර්ථකව විවෘත කරන ලදි!', 
-          isSuccess: true,
-          onCloseAction: () => { if (onClose) onClose(); }
-        });
-      } else {
-        setAlertConfig({ message: 'Failed to open Fixed Deposit' });
-      }
-    } catch (error) {
-      setAlertConfig({ message: 'System error occurred' });
+      setAlertConfig({ 
+        message: 'ස්ථාවර තැන්පතුව සාර්ථකව විවෘත කරන ලදි!', 
+        isSuccess: true,
+        onCloseAction: () => { if (onClose) onClose(); }
+      });
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.response?.data || 'Failed to open Fixed Deposit';
+      setAlertConfig({ message: typeof errMsg === 'string' ? errMsg : 'Failed to open Fixed Deposit' });
     } finally {
       setIsSubmitting(false);
     }
@@ -540,7 +535,7 @@ const OpenFixedDepositForm = ({ onClose }: { onClose?: () => void }) => {
                     <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`තැන්පත්කරුගේ අත්සන (DEPOSITOR SIGNATURE)`)}</label>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png"
                       onChange={handleSignatureUpload}
                       className="w-full px-4 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#01443b] focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-[#01443b] hover:file:bg-emerald-100 text-sm"
                     />

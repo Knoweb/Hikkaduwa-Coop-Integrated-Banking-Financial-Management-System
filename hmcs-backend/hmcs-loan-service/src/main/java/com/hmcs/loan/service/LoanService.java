@@ -821,6 +821,35 @@ public class LoanService {
         ledgerEntryRepository.save(entry);
     }
 
+    @Transactional
+    public void handoverSingleFieldCash(java.util.UUID collectionId, String tellerUsername, Integer branchId) {
+        com.hmcs.loan.entity.PendingFieldCollection pfc = pendingFieldCollectionRepository.findById(collectionId)
+                .orElseThrow(() -> new RuntimeException("Collection not found."));
+
+        if (!"PENDING".equals(pfc.getStatus())) {
+            throw new RuntimeException("Collection is not in PENDING status.");
+        }
+
+        pfc.setStatus("HANDED_OVER");
+        pendingFieldCollectionRepository.save(pfc);
+
+        String officerUsername = pfc.getFieldOfficerUsername();
+        String fieldAccount = "FIELD_CASH_" + officerUsername.toUpperCase();
+        
+        LedgerEntry entry = new LedgerEntry();
+        entry.setEntryDate(java.time.LocalDate.now());
+        entry.setDescription("Single Field Cash Handover by " + officerUsername + " (Loan: " + pfc.getLoanId() + ")");
+        entry.setDebitAccount("CASH_IN_VAULT");
+        entry.setCreditAccount(fieldAccount);
+        entry.setAmount(pfc.getAmount());
+        entry.setEntryType("FIELD_CASH_HANDOVER");
+        entry.setPaymentMethod("CASH");
+        entry.setBranchId(branchId != null ? branchId : 1);
+        entry.setCreatedBy(tellerUsername != null ? tellerUsername : officerUsername);
+        
+        ledgerEntryRepository.save(entry);
+    }
+
     @org.springframework.transaction.annotation.Transactional
     public void editRepaymentAndRebuildLedger(UUID entryId, BigDecimal newAmount, String reason, String actorUsername) {
         LedgerEntry initialEntry = ledgerEntryRepository.findById(entryId).orElse(null);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
@@ -20,6 +21,7 @@ import logo from '../assets/logo.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { FdViewModal } from '../components/FdViewModal';
 import AuditLogsView from '../components/AuditLogsView';
+import SystemSecurityLogsView from '../components/SystemSecurityLogsView';
 import FdMonitorModal from '../components/FdMonitorModal';
 import OpenAccountForm from '../components/OpenAccountForm';
 import OpenFixedDepositForm from '../components/OpenFixedDepositForm';
@@ -443,7 +445,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
               )}
             </div>
             <h2 className="text-xl font-bold">{ad.applicantName || ad.name || 'Applicant'}</h2>
-            <p className="text-blue-200 text-sm mt-1">Rs. {loan.requestedAmount?.toLocaleString()} · {loan.loanType?.name} · {loan.termMonths} months</p>
+            <p className="text-blue-200 text-sm mt-1">Rs. {loan.requestedAmount?.toLocaleString()} · {t(loan.loanType?.name || '')} · {loan.termMonths} {t('මාස (Months)')}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
@@ -583,11 +585,11 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                   {fieldOfficers.map(fo => <option key={fo.userId} value={fo.userId}>{fo.fullName || fo.username}</option>)}
                 </select>
                 <button type="button" onClick={handleAssignFo} disabled={assigningFo || !selectedFo} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
-                  {assigningFo ? '...' : 'පවරන්න'}
+                  {assigningFo ? '...' : t('පවරන්න (Assign)')}
                 </button>
               </div>
               {loan.evaluatorId && (
-                 <p className="mt-2 text-xs font-semibold text-green-700">✓ දැනටමත් පවරා ඇත (Status: {loan.evaluationStatus})</p>
+                 <p className="mt-2 text-xs font-semibold text-green-700">{t('✓ දැනටමත් පවරා ඇත (Status: ')}{loan.evaluationStatus})</p>
               )}
             </div>
           )}
@@ -678,14 +680,14 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
               <div className="flex gap-3">
                 <button onClick={() => handle('reject')} disabled={loading}
                   className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
-                  {loading ? '...' : '✗ ප්‍රතික්ෂේප කරන්න (Reject)'}
+                  {loading ? '...' : t('✗ ප්‍රතික්ෂේප කරන්න (Reject)')}
                 </button>
                 <button onClick={() => handle('approve')} disabled={loading}
                   className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm shadow transition disabled:opacity-60">
                   {loading ? '...' : (
                     (loan.loanType?.name?.includes('සේවක') || loan.loanType?.name?.includes('කෙටි') || (loan as any).loanTypeStr?.includes('සේවක') || (loan as any).loanTypeStr?.includes('කෙටි')) && loan.currentStage === 'STAGE_1_MANAGER_APPROVAL'
-                      ? 'ණය කමිටුවට වෙත යවන්න'
-                      : '✓ අනුමත කරන්න (Approve)'
+                      ? t('ණය කමිටුවට වෙත යවන්න (Send to Loan Committee)')
+                      : t('✓ අනුමත කරන්න (Approve)')
                   )}
                 </button>
               </div>
@@ -996,7 +998,10 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
                 {displayedLoans.map((l, i) => (
                   <tr key={i} className="hover:bg-slate-50 transition">
                     <td className="px-5 py-3">
-                      <p className="font-semibold text-slate-800">{l.applicationData?.applicantName || l.applicationData?.name || '—'}</p>
+                      <p className="font-semibold text-slate-800">{(() => {
+                        const m = members.find(mem => mem.memberId === l.memberId || (mem as any).id === l.memberId || mem.nic === l.applicationData?.nic);
+                        return l.applicationData?.applicantName || l.applicationData?.name || l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || m?.nameWithInitials || m?.fullName || m?.fullNameSinhala || '—';
+                      })()}</p>
                       <p className="text-xs text-slate-400">{l.applicationData?.nic || l.memberId?.slice(0,12)}</p>
                     </td>
                     <td className="px-5 py-3 text-slate-600">{t(l.loanType?.name || '—')}</td>
@@ -1070,11 +1075,13 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
 function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const { t } = useLanguage();
   const [loans, setLoans] = useState<LoanService.Loan[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const loadData = () => {
     LoanService.getLoans().then(setLoans).catch(() => {});
+    AccountService.getMembers().then(setMembers).catch(() => {});
   };
 
   useEffect(() => { loadData(); }, []);
@@ -1128,49 +1135,56 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Scale size={16} className="text-amber-600" /> {t(`ණය අයදුම්පත් — ඔබගේ අනුමැතිය ලබා දෙන්න`)}</h3>
           {pendingLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`අනුමැතිය සඳහා පොරොත්තුවෙන් පවතින ණය අයදුම්පත් නොමැත.`)}</p>
-          ) : pendingLoans.map(l => (
-            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
-                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
-                    {(() => {
-                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
-                      if (fullName === '—') return fullName;
-                      const parts = fullName.trim().split(/\s+/);
-                      if (parts.length <= 1) return fullName;
-                      const lastName = parts.pop();
-                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
-                      return `${initials} ${lastName}`;
-                    })()}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {(l as any).applicationNumber && (
-                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {(l as any).applicationNumber}
+          ) : pendingLoans.map(l => {
+            const m = members.find(mem => mem.memberId === l.memberId || (mem as any).id === l.memberId || mem.nic === l.applicationData?.nic);
+            const rawName = l.applicationData?.applicantName || l.applicationData?.name || l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || m?.nameWithInitials || m?.fullName || m?.fullNameSinhala || '—';
+            let displayName = rawName;
+            if (rawName !== '—') {
+              const parts = rawName.trim().split(/\s+/);
+              if (parts.length > 1) {
+                const lastName = parts.pop();
+                const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                displayName = `${initials} ${lastName}`;
+              }
+            }
+            const appNumber = (l as any).applicationNumber || l.applicationData?.applicationNumber || l.applicationData?.appNumber || (l as any).loanNumber || (l as any).applicationNo || l.accountNumber || (l.loanId ? `REF-${String(l.loanId).slice(0, 8).toUpperCase()}` : null);
+
+            return (
+              <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all group">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
+                    <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
+                      {displayName}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {appNumber && (
+                        <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                          <FileText size={14} /> {appNumber}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                        <FileText size={14} /> {t(l.loanType?.name || '—')}
                       </span>
-                    )}
-                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {t(l.loanType?.name || '—')}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> {t('මාස')} {l.termMonths}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
-                    </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <MapPin size={14} /> {t(getBranchName(l.branchId))}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <Clock size={14} /> {t('මාස')} {l.termMonths}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                        <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0">
+                    <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
+                      <Eye size={16} /> {t(`පරීක්ෂා කර අනුමත කරන්න`)}</button>
                   </div>
                 </div>
-                <div className="flex shrink-0">
-                  <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    <Eye size={16} /> {t(`පරීක්ෂා කර අනුමත කරන්න`)}</button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1179,49 +1193,56 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> {t(`අනුමත කළ ණය අයදුම්පත්`)}</h3>
           {approvedLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`දැනට අනුමත කළ ණය අයදුම්පත් නොමැත.`)}</p>
-          ) : approvedLoans.map(l => (
-            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-emerald-300 hover:shadow-md transition-all group">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
-                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors">
-                    {(() => {
-                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
-                      if (fullName === '—') return fullName;
-                      const parts = fullName.trim().split(/\s+/);
-                      if (parts.length <= 1) return fullName;
-                      const lastName = parts.pop();
-                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
-                      return `${initials} ${lastName}`;
-                    })()}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {(l as any).applicationNumber && (
-                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {(l as any).applicationNumber}
+          ) : approvedLoans.map(l => {
+            const m = members.find(mem => mem.memberId === l.memberId || (mem as any).id === l.memberId || mem.nic === l.applicationData?.nic);
+            const rawName = l.applicationData?.applicantName || l.applicationData?.name || l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || m?.nameWithInitials || m?.fullName || m?.fullNameSinhala || '—';
+            let displayName = rawName;
+            if (rawName !== '—') {
+              const parts = rawName.trim().split(/\s+/);
+              if (parts.length > 1) {
+                const lastName = parts.pop();
+                const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                displayName = `${initials} ${lastName}`;
+              }
+            }
+            const appNumber = (l as any).applicationNumber || l.applicationData?.applicationNumber || l.applicationData?.appNumber || (l as any).loanNumber || (l as any).applicationNo || l.accountNumber || (l.loanId ? `REF-${String(l.loanId).slice(0, 8).toUpperCase()}` : null);
+
+            return (
+              <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-emerald-300 hover:shadow-md transition-all group">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
+                    <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors">
+                      {displayName}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {appNumber && (
+                        <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                          <FileText size={14} /> {appNumber}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                        <FileText size={14} /> {t(l.loanType?.name || '—')}
                       </span>
-                    )}
-                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {t(l.loanType?.name || '—')}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> {t('මාස')} {l.termMonths}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
-                    </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <MapPin size={14} /> {t(getBranchName(l.branchId))}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <Clock size={14} /> {t('මාස')} {l.termMonths}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                        <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0">
+                    <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
+                      <CheckCircle size={16} /> {t(`අනුමත කර ඇත`)}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0">
-                  <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
-                    <CheckCircle size={16} /> {t(`අනුමත කර ඇත`)}</span>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1230,49 +1251,56 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-red-600" /> {t(`ප්‍රතික්ෂේප කළ ණය අයදුම්පත්`)}</h3>
           {rejectedLoans.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6 border border-dashed border-slate-300 rounded-xl">{t(`ප්‍රතික්ෂේප කළ ණය අයදුම්පත් නොමැත.`)}</p>
-          ) : rejectedLoans.map(l => (
-            <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-red-300 hover:shadow-md transition-all group">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
-                  <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-red-700 transition-colors">
-                    {(() => {
-                      const fullName = l.applicationData?.applicantName || l.applicationData?.name || '—';
-                      if (fullName === '—') return fullName;
-                      const parts = fullName.trim().split(/\s+/);
-                      if (parts.length <= 1) return fullName;
-                      const lastName = parts.pop();
-                      const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
-                      return `${initials} ${lastName}`;
-                    })()}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {(l as any).applicationNumber && (
-                      <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
-                        <FileText size={14} /> {(l as any).applicationNumber}
+          ) : rejectedLoans.map(l => {
+            const m = members.find(mem => mem.memberId === l.memberId || (mem as any).id === l.memberId || mem.nic === l.applicationData?.nic);
+            const rawName = l.applicationData?.applicantName || l.applicationData?.name || l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || m?.nameWithInitials || m?.fullName || m?.fullNameSinhala || '—';
+            let displayName = rawName;
+            if (rawName !== '—') {
+              const parts = rawName.trim().split(/\s+/);
+              if (parts.length > 1) {
+                const lastName = parts.pop();
+                const initials = parts.map((p: string) => p.charAt(0).toUpperCase() + '.').join(' ');
+                displayName = `${initials} ${lastName}`;
+              }
+            }
+            const appNumber = (l as any).applicationNumber || l.applicationData?.applicationNumber || l.applicationData?.appNumber || (l as any).loanNumber || (l as any).applicationNo || l.accountNumber || (l.loanId ? `REF-${String(l.loanId).slice(0, 8).toUpperCase()}` : null);
+
+            return (
+              <div key={l.loanId} className="mb-4 p-5 border border-slate-200 rounded-xl bg-white hover:border-red-300 hover:shadow-md transition-all group">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t(`ණය ඉල්ලුම්කරු`)}</p>
+                    <p className="text-lg font-bold text-slate-800 mb-3 group-hover:text-red-700 transition-colors">
+                      {displayName}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {appNumber && (
+                        <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-lg text-xs font-bold border border-yellow-200">
+                          <FileText size={14} /> {appNumber}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
+                        <FileText size={14} /> {t(l.loanType?.name || '—')}
                       </span>
-                    )}
-                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100">
-                      <FileText size={14} /> {t(l.loanType?.name || '—')}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <MapPin size={14} /> {t(getBranchName(l.branchId))}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
-                      <Clock size={14} /> {t('මාස')} {l.termMonths}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
-                      <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
-                    </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <MapPin size={14} /> {t(getBranchName(l.branchId))}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                        <Clock size={14} /> {t('මාස')} {l.termMonths}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                        <Banknote size={14} /> {t('රු.')} {l.requestedAmount?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0">
+                    <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
+                      <XCircle size={16} /> {t(`ප්‍රතික්ෂේප කර ඇත`)}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0">
-                  <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
-                    <XCircle size={16} /> {t(`ප්‍රතික්ෂේප කර ඇත`)}</span>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1564,6 +1592,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        (window as any).showToast('File size must be less than 5MB');
+        return;
+      }
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        (window as any).showToast('Only JPG and PNG images are allowed');
+        return;
+      }
       setPhotoProgress(10);
       setForm(p => ({ ...p, photographUrl: '' }));
       
@@ -1590,6 +1626,14 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        (window as any).showToast('File size must be less than 5MB');
+        return;
+      }
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        (window as any).showToast('Only JPG and PNG images are allowed');
+        return;
+      }
       setSignatureProgress(10);
       setForm(p => ({ ...p, digitalSignatureUrl: '' }));
       
@@ -1816,7 +1860,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
         const loan = loansList.find((l: any) => l.accountNumber === act.reference || l.applicationNumber === act.reference || l.loanNumber === act.reference || l.loanId === act.reference);
         if (loan) {
           details.transactionId = act.id;
-          details.accountNumber = loan.accountNumber || loan.applicationNumber || (loan as any).loanNumber || loan.loanId;
+          details.accountNumber = loan.accountNumber || (loan as any).applicationNumber || (loan as any).loanNumber || loan.loanId;
           details.amount = act.amount;
           details.balanceAfter = act.balanceAfter;
           details.memberId = loan.memberId;
@@ -2372,7 +2416,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       const typeMatch = normalize(typeStr).includes(termNorm) || normalize(t(typeStr)).includes(termNorm);
       
       const accMatch = normalize(l.accountNumber).includes(termNorm);
-      const appMatch = normalize(l.applicationNumber || (l.applicationData as any)?.applicationNumber).includes(termNorm);
+      const appMatch = normalize((l as any).applicationNumber || (l.applicationData as any)?.applicationNumber).includes(termNorm);
       const loanIdMatch = normalize(l.loanId).includes(termNorm);
       
       return nameMatch || typeMatch || accMatch || appMatch || loanIdMatch;
@@ -3612,9 +3656,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                         <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><FileText size={16} className="text-red-600"/> {t('Loan Accounts')}</h4>
                         <div className="space-y-2">
                           {memberLoans.map(l => {
-                            const refNum = l.accountNumber || l.applicationNumber || (l as any).loanNumber || (l.loanId ? 'REF-' + String(l.loanId).slice(0,8).toUpperCase() : 'Pending Loan');
+                            const refNum = l.accountNumber || (l as any).applicationNumber || (l as any).loanNumber || (l.loanId ? 'REF-' + String(l.loanId).slice(0,8).toUpperCase() : 'Pending Loan');
                             const amt = Number(l.approvedAmount || l.requestedAmount || l.disbursedAmount || 0);
-                            const statusLbl = l.currentStage === 'DISBURSED' || l.accountNumber ? 'නිකුත් කර ඇත (Active)' : (l.status === 'PENDING' || !l.accountNumber ? 'අනුමැතිය අපේක්ෂාවෙන් (Pending)' : l.status);
+                            const statusLbl = l.currentStage === 'DISBURSED' || l.accountNumber ? t('නිකුත් කර ඇත (Active)') : (l.status === 'PENDING' || !l.accountNumber ? t('අනුමැතිය අපේක්ෂාවෙන් (Pending)') : l.status);
                             const typeName = typeof l.loanType === 'string' ? l.loanType : (l.loanType?.name || (l as any).loanTypeStr || 'Loan');
                             return (
                               <div key={l.id || l.loanId} onClick={() => { 
@@ -3626,7 +3670,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                                 <div>
                                   <p className="font-bold text-slate-800 group-hover:text-blue-700">{refNum}</p>
                                   <p className="text-xs text-slate-500 font-medium mt-0.5">
-                                    {typeName} {amt > 0 ? `• Rs. ${amt.toLocaleString()}` : ''} <span className="text-blue-600 font-semibold">({statusLbl})</span>
+                                    {t(typeName)} {amt > 0 ? `• Rs. ${amt.toLocaleString()}` : ''} <span className="text-blue-600 font-semibold">({statusLbl})</span>
                                   </p>
                                 </div>
                                 <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
@@ -3811,7 +3855,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                             <div>
                               <label className="block text-xs font-bold text-amber-800 mb-1.5">{t('Guardian NIC')} <span className="text-red-500">*</span></label>
                               <input required value={guardianNic} onChange={e => setGuardianNic(e.target.value)} placeholder="e.g. 198XXXXXXXXX"
-                                className="w-full border border-amber-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+                                pattern="^([0-9]{9}[vVxX]|[0-9]{12})?$" title="NIC must be 9 digits followed by V or X, or 12 digits"
+                                className="w-full border border-amber-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-amber-800 mb-1.5">{t('Guardian ID')}</label>
@@ -3840,41 +3885,44 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{isChildReg ? t('Birth Certificate No.') : t('National Identity Card (NIC)')} <span className="text-red-500">*</span></label>
                       <input required value={form.nic} onChange={e => setForm(p => ({ ...p, nic: e.target.value }))} placeholder={isChildReg ? "Birth Certificate Number" : "e.g. 199XXXXXXXXX"}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                        pattern={isChildReg ? undefined : "^([0-9]{9}[vVxX]|[0-9]{12})$"} title={isChildReg ? "" : "NIC must be 9 digits followed by V or X, or 12 digits"}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Name with Initials')} <span className="text-red-500">*</span></label>
                       <input required value={form.nameWithInitials} onChange={e => setForm(p => ({ ...p, nameWithInitials: e.target.value }))} placeholder="e.g. A.B.C. Perera"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                     </div>
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Full Name (English)')} <span className="text-red-500">*</span></label>
-                      <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                      <input required value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} placeholder="e.g. Amal Perera"
+                        pattern="^[a-zA-Z\s]+$" title="Name must contain only alphabets and spaces"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                     </div>
 
                   </div>
                   
                   <div className="grid grid-cols-3 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Date of Birth <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Date of Birth')} <span className="text-red-500">*</span></label>
                       <input required type="date" value={form.dateOfBirth} onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                        max={isChildReg ? new Date().toISOString().split('T')[0] : new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Gender <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Gender')} <span className="text-red-500">*</span></label>
                       <select required value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50">
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
+                        <option value="MALE">{t('Male')}</option>
+                        <option value="FEMALE">{t('Female')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Marital Status <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Marital Status')} <span className="text-red-500">*</span></label>
                       <select required value={form.maritalStatus} onChange={e => setForm(p => ({ ...p, maritalStatus: e.target.value }))}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50">
-                        <option value="UNMARRIED">Unmarried</option>
-                        <option value="MARRIED">Married</option>
+                        <option value="UNMARRIED">{t('Unmarried')}</option>
+                        <option value="MARRIED">{t('Married')}</option>
                       </select>
                     </div>
                   </div>
@@ -3897,7 +3945,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Contact Number')} <span className="text-red-500">*</span></label>
                       <input required value={form.contactNumber} onChange={e => setForm(p => ({ ...p, contactNumber: e.target.value }))} placeholder="07X XXXXXXX"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50" />
+                        pattern="^(\+?[0-9]{10,12})?$" title="Contact number must be 10 to 12 digits"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:ring-1 [&:not(:placeholder-shown):invalid]:ring-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-colors" />
                     </div>
                   </div>
                 </div>
@@ -3943,8 +3992,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')}</label>
-                      <input type="file" accept="image/*" onChange={handlePhotoUpload}
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')} <span className="text-[10px] text-slate-400 font-normal ml-1">(Max 5MB | JPG, PNG)</span></label>
+                      <input type="file" accept="image/jpeg,image/png" onChange={handlePhotoUpload}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
                       
                       {photoProgress > 0 && photoProgress < 100 && (
@@ -3961,8 +4010,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Digital Signature')}</label>
-                      <input type="file" accept="image/*" onChange={handleSignatureUpload}
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Digital Signature')} <span className="text-[10px] text-slate-400 font-normal ml-1">(Max 5MB | JPG, PNG)</span></label>
+                      <input type="file" accept="image/jpeg,image/png" onChange={handleSignatureUpload}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
                       
                       {signatureProgress > 0 && signatureProgress < 100 && (
@@ -4042,8 +4091,8 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   const [collections, setCollections] = useState<any[]>([]);
   const [handoversSummary, setHandoversSummary] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; officer: string; total: number } | null>(null);
-  const [acceptedOfficers, setAcceptedOfficers] = useState<string[]>([]);
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; officer: string; collectionId: string; memberName: string; amount: number } | null>(null);
+  const [acceptedCollections, setAcceptedCollections] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>('');
   const user = AuthService.getCurrentUser();
 
@@ -4107,14 +4156,12 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
   const executeAccept = async () => {
     if (!confirmState) return;
     try {
-      await LoanService.handoverFieldCash({
-        fieldOfficerUsername: confirmState.officer,
-        amount: confirmState.total,
+      await LoanService.handoverSingleFieldCash(confirmState.collectionId, {
         tellerUsername: user?.username,
         branchId: user?.branchId
       });
       (window as any).showToast('සාර්ථකව භාරගන්නා ලදී! (Handover Accepted)');
-      setAcceptedOfficers(prev => [...prev, confirmState.officer]);
+      setAcceptedCollections(prev => [...prev, confirmState.collectionId]);
     } catch (e: any) {
       (window as any).showToast('දෝෂයකි: ' + (e.response?.data?.error || e.message));
     } finally {
@@ -4122,11 +4169,14 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
     }
   };
 
-  const handleAcceptClick = (officer: string) => {
-    const summary = handoversSummary.find(s => s.officer === officer);
-    if (summary) {
-      setConfirmState({ isOpen: true, officer: summary.officer, total: summary.total });
-    }
+  const handleAcceptClick = (item: any, memberName: string) => {
+    setConfirmState({ 
+      isOpen: true, 
+      officer: item.fieldOfficerUsername || item.collectedBy, 
+      collectionId: item.id,
+      memberName: memberName,
+      amount: Number(item.amount) 
+    });
   };
 
   if (loading) return <div className="text-center p-10"><span className="animate-pulse">Loading...</span></div>;
@@ -4166,11 +4216,6 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
                 const loan = loans.find(l => l.loanId === item.loanId || l.id === item.loanId);
                 const member = members.find(m => m.memberId === loan?.memberId || m.id === loan?.memberId);
                 const officerName = item.fieldOfficerUsername || item.collectedBy;
-                
-                // Only show the Accept button on the first row for each officer
-                const isFirstForOfficer = collections.findIndex(c => (c.fieldOfficerUsername || c.collectedBy) === officerName) === i;
-                const officerSummary = handoversSummary.find(s => s.officer === officerName);
-
                 return (
                   <tr key={i} className="hover:bg-slate-50 transition-colors bg-white">
                     <td className="px-6 py-4 border border-slate-200">
@@ -4204,20 +4249,16 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center border border-slate-200">
-                      {item.status === 'HANDED_OVER' || acceptedOfficers.includes(officerName) ? (
+                      {item.status === 'HANDED_OVER' || acceptedCollections.includes(item.id) ? (
                         <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[11px]">
                           <CheckCircle size={14} /> {t(`භාරගන්නා ලදී`)}</span>
                       ) : (
-                        isFirstForOfficer && officerSummary ? (
                           <button 
-                            onClick={() => handleAcceptClick(officerName)} 
+                            onClick={() => handleAcceptClick(item, member?.fullName || 'නොදන්නා')} 
                             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition inline-flex items-center gap-2 text-[11px]"
-                            title={`Accept all cash from ${officerName} (Rs. ${officerSummary.total.toLocaleString()})`}
+                            title={`Accept cash (Rs. ${Number(item.amount).toLocaleString()})`}
                           >
                             <CheckCircle size={14} /> {t(`භාරගන්න`)}</button>
-                        ) : (
-                          <span className="text-slate-300 text-[11px]"></span>
-                        )
                       )}
                     </td>
                   </tr>
@@ -4233,7 +4274,7 @@ function FieldHandoversView({ members, loans }: { members: any[]; loans: any[] }
         <ConfirmDialog
           isOpen={true}
           title={t(`මුදල් භාරගැනීම තහවුරු කරන්න`)}
-          message={`ඔබට විශ්වාසද ${confirmState.officer} වෙතින් Rs. ${confirmState.total.toLocaleString()} ක මුදලක් භාරගැනීමට අවශ්‍ය බව?`}
+          message={`ඔබට විශ්වාසද ${confirmState.memberName} මහතා/මහත්මියගේ එකතු කිරීමෙන් Rs. ${confirmState.amount.toLocaleString(undefined, {minimumFractionDigits: 2})} ක මුදලක් භාරගැනීමට අවශ්‍ය බව?`}
           confirmText={t(`ඔව්, භාරගන්න`)}
           cancelText={t(`අවලංගු කරන්න`)}
           variant="info"
@@ -4379,6 +4420,14 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       Array.from(e.target.files).forEach(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          (window as any).showToast('File size must be less than 5MB');
+          return;
+        }
+        if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) {
+          (window as any).showToast('Only JPG, PNG, and PDF files are allowed');
+          return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
           setEvaluationDocs(prev => [...prev, reader.result as string]);
@@ -4515,21 +4564,34 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={16} className="text-amber-600" /> {t(`වාර්තාව ඇතුලත් කිරීම`)}</h3>
               <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
-                 <div className="flex justify-between items-start mb-4">
-                   <div>
-                     <h4 className="font-bold text-lg">{selectedLoan.applicationData?.name || selectedLoan.applicationData?.applicantName || 'N/A'}</h4>
-                     <p className="text-sm text-amber-700">Rs. {Number(selectedLoan.requestedAmount).toLocaleString()} - {selectedLoan.loanType?.name || 'ණය'}</p>
-                   </div>
-                   <button onClick={() => { setSelectedLoan(null); setEvaluationDocs([]); }} className="text-amber-500 hover:text-amber-700"><X size={20}/></button>
-                 </div>
+                 {(() => {
+                    const evalMember = members.find(m => m.memberId === selectedLoan.memberId || (m as any).id === selectedLoan.memberId || m.nic === selectedLoan.applicationData?.nic);
+                    const name = selectedLoan.applicationData?.name || selectedLoan.applicationData?.applicantName || selectedLoan.applicationData?.applicant?.applicantName || evalMember?.nameWithInitials || evalMember?.fullName || 'N/A';
+                    const address = selectedLoan.applicationData?.address || (selectedLoan.applicationData?.addressLine1 ? `${selectedLoan.applicationData.addressLine1} ${selectedLoan.applicationData.addressLine2 || ''}`.trim() : '') || selectedLoan.applicationData?.applicant?.address || evalMember?.address || '—';
+                    const phone = selectedLoan.applicationData?.phone || selectedLoan.applicationData?.contactNumber || selectedLoan.applicationData?.telephone || selectedLoan.applicationData?.applicant?.phone || evalMember?.contactNumber || '—';
+                    const nic = selectedLoan.applicationData?.nic || selectedLoan.applicationData?.applicant?.nic || evalMember?.nic || '—';
+                    const purpose = selectedLoan.applicationData?.loanPurpose || selectedLoan.applicationData?.purpose || selectedLoan.purpose || selectedLoan.loanType?.name || '—';
 
-                 <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
-                   <h5 className="font-bold text-slate-800 text-sm">{t(`Customer Details (ගනුදෙනුකරුගේ විස්තර)`)}</h5>
-                   <p className="text-sm text-slate-600"><strong>{t(`ලිපිනය (Address):`)}</strong> {selectedLoan.applicationData?.addressLine1} {selectedLoan.applicationData?.addressLine2}</p>
-                   <p className="text-sm text-slate-600"><strong>{t(`දුරකථන (Phone):`)}</strong> {selectedLoan.applicationData?.phone}</p>
-                   <p className="text-sm text-slate-600"><strong>{t(`හැඳුනුම්පත (NIC):`)}</strong> {selectedLoan.applicationData?.nic}</p>
-                   <p className="text-sm text-slate-600"><strong>{t(`ණය අරමුණ (Purpose):`)}</strong> {selectedLoan.applicationData?.loanPurpose}</p>
-                 </div>
+                    return (
+                      <>
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-bold text-lg">{name}</h4>
+                            <p className="text-sm text-amber-700">Rs. {Number(selectedLoan.requestedAmount).toLocaleString()} - {selectedLoan.loanType?.name || 'ණය'}</p>
+                          </div>
+                          <button onClick={() => { setSelectedLoan(null); setEvaluationDocs([]); }} className="text-amber-500 hover:text-amber-700"><X size={20}/></button>
+                        </div>
+
+                        <div className="mb-4 p-4 bg-white border border-amber-200 rounded-xl space-y-2">
+                          <h5 className="font-bold text-slate-800 text-sm">{t(`Customer Details (ගනුදෙනුකරුගේ විස්තර)`)}</h5>
+                          <p className="text-sm text-slate-600"><strong>{t(`ලිපිනය (Address):`)}</strong> {address}</p>
+                          <p className="text-sm text-slate-600"><strong>{t(`දුරකථන (Phone):`)}</strong> {phone}</p>
+                          <p className="text-sm text-slate-600"><strong>{t(`හැඳුනුම්පත (NIC):`)}</strong> {nic}</p>
+                          <p className="text-sm text-slate-600"><strong>{t(`ණය අරමුණ (Purpose):`)}</strong> {purpose}</p>
+                        </div>
+                      </>
+                    );
+                 })()}
                  
                  <div className="space-y-4">
                    <div>
@@ -4546,7 +4608,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                    </div>
                    <div>
                      <label className="block text-sm font-bold text-slate-700 mb-1">{t(`ඡායාරූප / ලියකියවිලි (Documents/Photos)`)}</label>
-                     <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
+                     <input type="file" multiple accept=".pdf,image/jpeg,image/png" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
                      {evaluationDocs.length > 0 && (
                        <div className="flex gap-2 mt-2 flex-wrap">
                          {evaluationDocs.map((doc, i) => (
@@ -5404,7 +5466,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-800">{t(`ශාඛා සාරාංශ ලේඛනය (Branch Summary Ledger)`)}</h4>
-            <p className="text-xs text-slate-500 font-medium">ශාඛාව (Branch): {t(getDynamicBranchName())}</p>
+            <p className="text-xs text-slate-500 font-medium">{t('ශාඛාව (Branch):')} {t(getDynamicBranchName())}</p>
           </div>
         </div>
         
@@ -5475,7 +5537,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
         
         {/* Lined Notebook Header */}
         <div className="flex justify-between items-center mb-6 border-b-2 border-blue-500/40 pb-3 shrink-0">
-          <div className="text-xs font-bold text-blue-600 font-mono">ශාඛාව (Branch): {t(getDynamicBranchName())}</div>
+          <div className="text-xs font-bold text-blue-600 font-mono">{t('ශාඛාව (Branch):')} {t(getDynamicBranchName())}</div>
           <div className="text-xs font-bold text-blue-600 font-mono">
             {filterMode === 'MONTH' ? (
               <>{t(`මාසය (Month):`)} {t(MONTHS.find(m => m.value === selectedMonth)?.label || '')}</>
@@ -5519,7 +5581,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         const sb = splitBalance(item.balance);
                         return (
                           <tr key={`sav-ma-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
-                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{t(item.name.trim())}</td>
                             <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                             <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                             <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5551,7 +5613,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         const sb = splitBalance(item.balance);
                         return (
                           <tr key={`sav-nma-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
-                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{t(item.name.trim())}</td>
                             <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                             <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                             <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5583,7 +5645,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         const sb = splitBalance(item.balance);
                         return (
                           <tr key={`sav-mi-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20 text-slate-500 bg-blue-50/5">
-                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{t(item.name.trim())}</td>
                             <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                             <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                             <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5615,7 +5677,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                         const sb = splitBalance(item.balance);
                         return (
                           <tr key={`sav-nmi-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20 text-slate-500 bg-blue-50/5">
-                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{item.name}</td>
+                            <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-10">{t(item.name.trim())}</td>
                             <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                             <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                             <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5662,7 +5724,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                     const sb = splitBalance(item.balance);
                     return (
                       <tr key={`fd-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
-                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{t(item.name.trim())}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                         <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                         <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5708,7 +5770,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                     const sb = splitBalance(item.balance);
                     return (
                       <tr key={`loan-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
-                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{t(item.name.trim())}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                         <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                         <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5738,7 +5800,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
                     const sb = splitBalance(item.balance);
                     return (
                       <tr key={`pawn-${idx}`} className="hover:bg-amber-50/40 border-b border-[#1E40AF]/20">
-                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{item.name}</td>
+                        <td className="px-4 py-1 border-r border-[#1E40AF]/40 pl-6">{t(item.name.trim())}</td>
                         <td className="px-3 py-1 border-r border-[#1E40AF]/40 text-center font-mono">{item.count}</td>
                         <td className="px-3 py-1 text-right font-mono border-r border-[#1E40AF]/20">{sb.rupees}</td>
                         <td className="px-1.5 py-1 text-center font-mono text-[10px] w-8">{sb.cents}</td>
@@ -5831,31 +5893,25 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           let idToEdit = editingTx.transactionId; // for savings
           if (isLoan) {
             idToEdit = editingTx.entryId || editingTx.transactionId || editingTx.referenceNumber; // for loans
-            url = `http://localhost:8080/api/v1/loans/transactions/${idToEdit}/edit`;
+            url = `${AccountService.API_URL}loans/transactions/${idToEdit}/edit`;
           } else if (editingTx.creditAccount?.includes('PAWN') || editingTx.debitAccount?.includes('PAWN')) {
             idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
-            url = `http://localhost:8080/api/v1/pawning/tickets/transactions/${idToEdit}/edit`;
+            url = `${AccountService.API_URL}pawning/tickets/transactions/${idToEdit}/edit`;
           } else if (editingTx.creditAccount?.includes('FIXED_DEPOSIT') || editingTx.debitAccount?.includes('FIXED_DEPOSIT')) {
             idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
-            url = `http://localhost:8080/api/v1/fixed-deposits/transactions/${idToEdit}/edit`;
+            url = `${AccountService.API_URL}fixed-deposits/transactions/${idToEdit}/edit`;
           } else {
-            url = `http://localhost:8080/api/v1/transactions/${idToEdit}/edit`;
+            url = `${AccountService.API_URL}transactions/${idToEdit}/edit`;
           }
 
           if (!idToEdit) {
             throw new Error('මෙම ගනුදෙනුව සංස්කරණය කළ නොහැක. (Transaction ID missing)');
           }
 
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: authHeader,
-            body: JSON.stringify({ newAmount: Number(editAmount), reason: editReason })
-          });
-          
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || errData.message || 'Error editing transaction');
-          }
+          await axios.post(url, 
+            { newAmount: Number(editAmount), reason: editReason },
+            { headers: authHeader }
+          );
           
           setEditModalOpen(false);
           (window as any).showToast?.('ගණුදෙනුව සාර්ථකව සංස්කරණය කරන ලදී! (Transaction Edited Successfully!)', 'success');
@@ -5983,9 +6039,17 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     // Handle specific dynamic titles
     if (originalTitle.startsWith('Field Cash Handover by')) {
       const username = originalTitle.replace('Field Cash Handover by', '').trim();
-      title = `ක්ෂේත්‍ර නිලධාරී අත්තිකාරම් බේරුම් කිරීම (${username})`;
+      title = `${t('ක්ෂේත්‍ර නිලධාරී අත්තිකාරම් බේරුම් කිරීම')} (${username})`;
+    } else if (originalTitle.startsWith('Savings Deposit:')) {
+      title = `${t('Savings Deposit:')} ${originalTitle.replace('Savings Deposit:', '').trim()}`;
+    } else if (originalTitle.startsWith('Savings Withdrawal:')) {
+      title = `${t('Savings Withdrawal:')} ${originalTitle.replace('Savings Withdrawal:', '').trim()}`;
+    } else if (originalTitle.startsWith('Fixed Deposit Open')) {
+      title = t('Fixed Deposit Open');
+    } else if (originalTitle.startsWith('Pawning Repayment')) {
+      title = t('Pawning Repayment');
     } else {
-      title = titleTranslations[originalTitle] || originalTitle;
+      title = t(titleTranslations[originalTitle] || originalTitle);
     }
     
     const details: string[] = [];
@@ -5999,26 +6063,27 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           const uuid = detail.replace('Member:', '').trim();
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික: ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            detail = `${t('සාමාජිකයා (Member):')} ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           } else {
-            detail = `සාමාජික: ${uuid}`;
+            detail = `${t('සාමාජිකයා (Member):')} ${uuid}`;
           }
         } else if (detail.startsWith('සාමාජික අංකය:') || detail.startsWith('සාමාජික:')) {
           foundMember = true;
           const uuid = detail.replace(/සාමාජික අංකය:|සාමාජික:/, '').trim();
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
-            detail = `සාමාජික: ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            detail = `${t('සාමාජිකයා (Member):')} ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
           }
         } else if (ticketsMap[detail]) {
           foundMember = true;
           const minfo = ticketsMap[detail];
           details.push(detail);
-          details.push(`සාමාජික: ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
-          if (minfo.typeStr) details.push(`ණය වර්ගය (Loan Type): ${minfo.typeStr}`);
+          details.push(`${t('සාමාජිකයා (Member):')} ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+          if (minfo.typeStr) details.push(`${t('ණය වර්ගය (Loan Type):')} ${t(minfo.typeStr.trim())}`);
           continue;
         }
-        if (detail.startsWith('Method:')) detail = detail.replace('Method:', 'ක්‍රමය:');
+        if (detail.startsWith('Method:')) detail = detail.replace('Method:', t('ක්‍රමය (Method):') + ' ');
+        if (detail.startsWith('ක්‍රමය:')) detail = detail.replace('ක්‍රමය:', t('ක්‍රමය (Method):') + ' ');
         details.push(detail);
       }
     }
@@ -6027,14 +6092,14 @@ function VaultCashView({ branchId }: { branchId?: number }) {
       const ref = extractAccountRef('', raw);
       if (ref && ticketsMap[ref]) {
         const minfo = ticketsMap[ref];
-        details.push(`සාමාජික: ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+        details.push(`${t('සාමාජිකයා (Member):')} ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
       }
     }
     
     // Always try to attach Loan/Ticket Type if available
     const refForType = extractAccountRef('', raw);
     if (refForType && ticketsMap[refForType] && ticketsMap[refForType].typeStr) {
-      details.push(`ණය වර්ගය (Loan Type): ${ticketsMap[refForType].typeStr}`);
+      details.push(`${t('ණය වර්ගය (Loan Type):')} ${t(ticketsMap[refForType].typeStr.trim())}`);
     }
 
     const uniqueDetails = Array.from(new Set(details));
@@ -6132,13 +6197,13 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         if (e.debitAccount === 'CASH_IN_VAULT') {
           const parsed = parseLedgerDescription(e.description || 'Cash Inflow', e.creditAccount || 'Other', membersMap);
           const timeStamp = e.createdAt || e.entryDate;
-          if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
+          if (timeStamp) parsed.details.push(`${t('දිනය/වේලාව (Date/Time):')} ${new Date(timeStamp).toLocaleString('en-GB')}`);
           inflowList.push({ parsed, amount: amt, raw: e });
         }
         if (e.creditAccount === 'CASH_IN_VAULT') {
           const parsed = parseLedgerDescription(e.description || 'Cash Outflow', e.debitAccount || 'Other', membersMap);
           const timeStamp = e.createdAt || e.entryDate;
-          if (timeStamp) parsed.details.push(`දිනය/වේලාව: ${new Date(timeStamp).toLocaleString('en-GB')}`);
+          if (timeStamp) parsed.details.push(`${t('දිනය/වේලාව (Date/Time):')} ${new Date(timeStamp).toLocaleString('en-GB')}`);
           outflowList.push({ parsed, amount: amt, raw: e });
         }
       });
@@ -6609,17 +6674,20 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
 
   useEffect(() => {
     let intervalId: any;
-    const fetchAudits = () => {
-      import('../services/audit.service').then(m => {
-        m.default.getComments().then(comments => {
-          setPendingAuditorCommentsCount(comments.filter((c: any) => c.status !== 'RESOLVED').length);
-        }).catch(() => {});
-      });
-    };
-    
-    // Fetch immediately and set up polling
-    fetchAudits();
-    intervalId = setInterval(fetchAudits, 5000);
+    const userRole = AuthService.getCurrentUser()?.role;
+    if (['ORGANIZATION_ADMIN', 'BRANCH_MANAGER', 'AUDITOR'].includes(userRole || '')) {
+      const fetchAudits = () => {
+        import('../services/audit.service').then(m => {
+          m.default.getComments().then(comments => {
+            setPendingAuditorCommentsCount(comments.filter((c: any) => c.status !== 'RESOLVED').length);
+          }).catch(() => {});
+        });
+      };
+      
+      // Fetch immediately and set up polling
+      fetchAudits();
+      intervalId = setInterval(fetchAudits, 5000);
+    }
     
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -6682,6 +6750,12 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     }
     if (tab === 'audit_logs') {
       return <div className="p-8"><AuditLogsView /></div>;
+    }
+    if (tab === 'activity_logs') {
+      const saActiveBranchStr = sessionStorage.getItem('sa_activeBranch');
+      const saActiveBranch = saActiveBranchStr ? JSON.parse(saActiveBranchStr) : null;
+      const activeBranchId = saActiveBranch ? saActiveBranch.branchId : user.branchId;
+      return <div className="p-8 pb-32 animate-fade-in max-w-[1600px] mx-auto"><SystemSecurityLogsView branchId={activeBranchId} /></div>;
     }
     if (tab === 'auditor-comments') {
       return <div className="flex-1 min-h-0 flex flex-col"><AuditorCommentsView /></div>;

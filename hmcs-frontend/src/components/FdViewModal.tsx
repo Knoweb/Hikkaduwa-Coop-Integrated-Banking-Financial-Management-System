@@ -113,7 +113,7 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-800 leading-tight">{t(`ස්ථාවර තැන්පතු විස්තර`)}</h2>
-              <p className="text-xs font-semibold text-slate-500">ගිණුම් අංකය: {fd.fdNumber}</p>
+              <p className="text-xs font-semibold text-slate-500">{t('ගිණුම් අංකය:')} {fd.fdNumber}</p>
             </div>
           </div>
           
@@ -171,11 +171,11 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`තැන්පතු කාණ්ඩය (CATEGORY)`)}</label>
-                      <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">{category}</div>
+                      <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">{t(category)}</div>
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කාලය (TERM)`)}</label>
-                      <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">මාස {fd.termMonths}</div>
+                      <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">{t('මාස (Months)')} {fd.termMonths}</div>
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`ගිණුම් වර්ගය (ACCOUNT TYPE)`)}</label>
@@ -219,13 +219,13 @@ export function FdViewModal({ fd, members, savingsAccounts, onClose }: FdViewMod
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`පොලිය ගෙවන ආකාරය (INTEREST PAYOUT)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
-                        {payoutMethodText}
+                        {t(payoutMethodText)}
                       </div>
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t(`කල් පිරුණු පසු උපදෙස් (MATURITY INSTRUCTION)`)}</label>
                       <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
-                        {maturityInstructionText}
+                        {t(maturityInstructionText)}
                       </div>
                     </div>
                     {fd.linkedSavingsAccountId && (

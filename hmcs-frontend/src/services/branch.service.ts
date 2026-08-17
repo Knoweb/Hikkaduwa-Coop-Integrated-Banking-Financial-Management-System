@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { authHeader } from './auth.service';
 
-const API_URL = 'http://localhost:8080/api/v1/auth/branches';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/branches` : 'http://localhost:8080/api/v1/auth/branches';
 
 export interface BranchDTO {
   branchId?: number;

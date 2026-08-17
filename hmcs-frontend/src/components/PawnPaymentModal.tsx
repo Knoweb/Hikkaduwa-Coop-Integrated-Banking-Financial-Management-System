@@ -122,6 +122,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
                 <input
                   type="date"
                   value={paymentDate}
+                  max={new Date().toLocaleDateString('en-CA')}
                   onChange={(e) => setPaymentDate(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-xl outline-none transition font-semibold text-slate-800"
                 />
@@ -160,6 +161,7 @@ export default function PawnPaymentModal({ ticket, onClose, onSuccess }: any) {
                 <input
                   type="number"
                   step="0.01"
+                  min="1"
                   max={dynamicCalc.totalDue}
                   required
                   value={amount}

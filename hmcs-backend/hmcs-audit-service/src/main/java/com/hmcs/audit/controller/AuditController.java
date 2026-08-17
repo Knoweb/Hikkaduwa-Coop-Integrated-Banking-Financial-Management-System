@@ -61,8 +61,11 @@ public class AuditController {
             "LEFT JOIN pawning_service.pawn_payments pp ON c.transaction_id::text = pp.payment_id::text " +
             "LEFT JOIN pawning_service.pawn_tickets pt ON c.transaction_id::text = pt.ticket_id::text OR pp.ticket_id::text = pt.ticket_id::text " +
             "LEFT JOIN auth_service.users u3 ON pt.valuer_id::text = u3.username::text OR pt.valuer_id::text = u3.user_id::text " +
-            "WHERE c.tenant_id = ? ORDER BY c.timestamp DESC";
-        List<Map<String, Object>> corrections = jdbcTemplate.queryForList(sql, tenantId);
+            "WHERE (? = 0 OR c.tenant_id = ? OR m.branch_id = ? OR m.branch_id IS NULL) ORDER BY c.timestamp DESC";
+        
+        System.out.println("AUDIT API CALLED! xTenantId: " + xTenantId + ", resolved tenantId: " + tenantId);
+        List<Map<String, Object>> corrections = jdbcTemplate.queryForList(sql, tenantId, tenantId, tenantId);
+        System.out.println("AUDIT API RETURNED ROWS: " + (corrections != null ? corrections.size() : "null"));
         return ResponseEntity.ok(corrections);
     }
 }
