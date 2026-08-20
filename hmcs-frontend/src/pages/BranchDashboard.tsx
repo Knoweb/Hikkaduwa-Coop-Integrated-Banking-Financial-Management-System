@@ -5,7 +5,7 @@ import {
   LogOut, LayoutDashboard, Users, CreditCard, FileText,
   Gem, ClipboardList, TrendingUp, AlertTriangle, CheckCircle,
   Clock, DollarSign, UserPlus, Scale, Banknote, ArrowDownLeft,
-  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List, Edit3, Save, MessageSquare
+  ArrowUpRight, Shield, Bell, ChevronRight, ChevronDown, Calculator, Award, X, Search, PiggyBank, Lock, MapPin, FileImage, Eye, BookOpen, Percent, Activity, Trash2, Loader2, User, Printer, XCircle, Power, Briefcase, Plus, Calendar, AlertCircle, List, Edit3, Save, MessageSquare, Building, Home, Upload
 } from 'lucide-react';
 import GlobalSettings from '../components/GlobalSettings';
 import * as AuthService from '../services/auth.service';
@@ -29,6 +29,7 @@ import RenewFixedDepositModal from '../components/RenewFixedDepositModal';
 import ViewAccountModal from '../components/ViewAccountModal';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 import LoanDetailModal from '../components/LoanDetailModal';
+import FieldOfficerEvalDetailsModal from '../components/FieldOfficerEvalDetailsModal';
 import GlobalLoanSearchModal from '../components/GlobalLoanSearchModal';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -91,7 +92,7 @@ export const extractAccountRef = (refVal?: string, desc?: string) => {
   const labelMatch = description.match(/(?:Ticket|Acc|Account|FD|Loan|Ref):\s*([A-Za-z0-9._-]+)/i);
   if (labelMatch) return labelMatch[1];
 
-  const codeMatch = description.match(/\b(PW\d+|ACC-[A-Za-z0-9-]+|LN-[A-Za-z0-9-]+|FD-[A-Za-z0-9-]+|RCPT-[A-Za-z0-9-]+)\b/i);
+  const codeMatch = description.match(/\b(PW\d+|ACC-?[A-Za-z0-9-]+|LN-?[A-Za-z0-9-]+|FD-?[A-Za-z0-9-]+|RCPT-?[A-Za-z0-9-]+)\b/i);
   if (codeMatch) return codeMatch[1];
 
   const ref = refVal || '-';
@@ -117,6 +118,7 @@ export const getBranchName = (branchId: number) => {
     10: 'සන්දරවල ශාඛාව',
     11: 'Galle Main Branch',
     12: 'දොඩංගොඩ ශාඛාව',
+    13: 'Balapitiya Branch',
   };
   return branchMap[branchId] || `Branch ${branchId}`;
 };
@@ -245,6 +247,7 @@ function LoanOutstandingCell({ loan }: { loan: any }) {
           if (!repayments || repayments.length === 0) {
             setOutstanding(loan.requestedAmount);
           } else {
+
             const totalPrincipalPaid = repayments.reduce((sum: number, r: any) => sum + Number(r.principalPortion || 0), 0);
             const bal = Number(loan.requestedAmount) - totalPrincipalPaid;
             setOutstanding(bal < 0 ? 0 : bal);
@@ -335,13 +338,34 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   const [fieldOfficers, setFieldOfficers] = useState<any[]>([]);
   const [selectedFo, setSelectedFo] = useState('');
   const [assigningFo, setAssigningFo] = useState(false);
-
+  const [debugMsg, setDebugMsg] = useState<string>('');
   useEffect(() => {
-    import('../services/auth.service').then(Auth => {
-      Auth.getUsers().then(users => {
-        setFieldOfficers(users.filter(u => u.role === 'ROLE_FIELD_OFFICER' || u.role === 'FIELD_OFFICER' || u.role.includes('FIELD')));
-      }).catch(() => {});
-    });
+    const currentUser = AuthService.getCurrentUser();
+    const userRole = currentUser?.role?.replace('ROLE_', '') || 'BRANCH_MANAGER';
+    if (['ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ORGANIZATION_ADMIN'].includes(userRole)) {
+      setDebugMsg('Fetching users...');
+      import('../services/auth.service').then(Auth => {
+        Auth.getUsers().then(users => {
+          console.log('Fetched users:', users);
+          setDebugMsg(`Fetched ${users?.length} users. `);
+          const targetBranchId = loan.branchId || currentUser?.branchId;
+          const filtered = users.filter(u => {
+             const roleStr = (u.role || '').toUpperCase();
+             const isFO = roleStr === 'ROLE_FIELD_OFFICER' || roleStr === 'FIELD_OFFICER' || roleStr.includes('FIELD') || roleStr.includes('FEILD');
+             const uBranchId = u.branchId !== undefined ? u.branchId : (u as any).registeredBranchId;
+             return isFO && (!targetBranchId || Number(uBranchId) === Number(targetBranchId));
+          });
+          console.log('Filtered FOs:', filtered);
+          setDebugMsg(prev => prev + `Filtered FOs: ${filtered?.length}.`);
+          setFieldOfficers(filtered);
+        }).catch((e) => { 
+          console.error('Error fetching users:', e); 
+          setDebugMsg(`Error fetching users: ${e.message || 'Unknown error'}`);
+        });
+      });
+    } else {
+      setDebugMsg(`User role ${userRole} not authorized to fetch users.`);
+    }
   }, []);
 
   const handleAssignFo = async () => {
@@ -521,7 +545,6 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
           )}
 
 
-          
           {/* Field Officer Evaluation */}
           {loan.evaluatorId && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
@@ -588,6 +611,7 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
                   {assigningFo ? '...' : t('පවරන්න (Assign)')}
                 </button>
               </div>
+              <p className="mt-1 text-[10px] text-slate-400">Debug: {debugMsg}</p>
               {loan.evaluatorId && (
                  <p className="mt-2 text-xs font-semibold text-green-700">{t('✓ දැනටමත් පවරා ඇත (Status: ')}{loan.evaluationStatus})</p>
               )}
@@ -887,7 +911,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
 
 
 
-  if (activeTab === 'loans' || activeTab === 'committee-approved') {
+  if (activeTab === 'loans' || activeTab === 'approvals' || activeTab === 'committee-approved') {
     const isCommitteeApprovedTab = activeTab === 'committee-approved';
 
     const requiresCommittee = (l: any) => {
@@ -1933,9 +1957,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     
     const matchesSearch = accNoNorm.includes(searchNorm) || nameNorm.includes(searchNorm);
 
-    const member = members.find(m => m.memberId === a.memberId);
-    // If member not found, default to false (treat as non-member)
-    const isSociety = member ? member.isMember !== false : false; 
+    const isSociety = a.isSocietyMember !== false; 
     const matchesTab = savingsTab === 'SOCIETY' ? isSociety : !isSociety;
     return matchesSearch && matchesTab;
   });
@@ -2420,6 +2442,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
       const loanIdMatch = normalize(l.loanId).includes(termNorm);
       
       return nameMatch || typeMatch || accMatch || appMatch || loanIdMatch;
+    }).sort((a, b) => {
+      const dateA = new Date(a.appliedDate || a.createdAt || 0).getTime();
+      const dateB = new Date(b.appliedDate || b.createdAt || 0).getTime();
+      return dateB - dateA;
     });
 
     const uniqueLoanTypes = Array.from(new Set(loans.map(l => l.loanType?.name || l.loanTypeStr).filter(Boolean)));
@@ -2450,8 +2476,10 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
               >
                 <FileText size={14} /> {t(`නව ණයක් ඉල්ලුම් කරන්න`)}</button>
             </div>
-          )}
-        </div>
+         )}
+
+
+       </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2650,7 +2678,6 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             onClose={() => setViewLoan(null)}
             defaultOpenNotice={openNoticeOnModal}
             onUpdated={() => {
-              setViewLoan(null);
               LoanService.getLoans().then(setLoans).catch(() => {});
             }}
           />
@@ -2670,7 +2697,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
             loan={globalSelectedLoan}
             onClose={() => setGlobalSelectedLoan(null)}
             onUpdated={() => {
-              setGlobalSelectedLoan(null);
+              // Stay open to show success message and refresh data
             }}
           />
         )}
@@ -2944,13 +2971,13 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 onClick={() => setSavingsTab('SOCIETY')} 
                 className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                {t(`සමාජීය`)}</button>
+                {t(`සාමාජික ගිණුම්`)}</button>
               
               <button 
                 onClick={() => setSavingsTab('NON_SOCIETY')} 
                 className={`relative z-10 flex-1 py-1.5 text-sm font-bold tracking-wide transition-all duration-300 ${savingsTab === 'NON_SOCIETY' ? 'text-white' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                {t(`සමාජීය නොවන`)}</button>
+                {t(`සාමාජික නොවන ගිණුම්`)}</button>
             </div>
 
             {/* Search Bar */}
@@ -2983,7 +3010,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     {a.childName || members.find(m => m.memberId === a.memberId)?.nameWithInitials || members.find(m => m.memberId === a.memberId)?.fullNameSinhala || 'N/A'}
                   </td>
                   <td className="px-5 py-5">
-                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide inline-block">
+                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide inline-block mb-1">
                       {t(a.accountType)}
                     </span>
                   </td>
@@ -3994,7 +4021,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Photograph')} <span className="text-[10px] text-slate-400 font-normal ml-1">(Max 5MB | JPG, PNG)</span></label>
                       <input type="file" accept="image/jpeg,image/png" onChange={handlePhotoUpload}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer shadow-sm transition" />
                       
                       {photoProgress > 0 && photoProgress < 100 && (
                         <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
@@ -4012,7 +4039,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('Digital Signature')} <span className="text-[10px] text-slate-400 font-normal ml-1">(Max 5MB | JPG, PNG)</span></label>
                       <input type="file" accept="image/jpeg,image/png" onChange={handleSignatureUpload}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-slate-50/50 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer shadow-sm transition" />
                       
                       {signatureProgress > 0 && signatureProgress < 100 && (
                         <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
@@ -4307,7 +4334,7 @@ function BankServiceManagerView() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-function FieldOfficerView({ activeTab }: { activeTab: string }) {
+function FieldOfficerView({ activeTab, setTab }: { activeTab: string; setTab?: (tab: string) => void }) {
   const { t } = useLanguage();
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -4319,6 +4346,8 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
   const [evalTab, setEvalTab] = useState<'pending' | 'history'>('pending');
 
   const [evaluationDocs, setEvaluationDocs] = useState<string[]>([]);
+  const [viewingHistoryLoan, setViewingHistoryLoan] = useState<any>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [members, setMembers] = useState<any[]>([]);
 
   const getMemberName = (memberId: string) => {
@@ -4498,19 +4527,156 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
     }
   };
 
+  const todaysVisitsCount = assignedLoans.length + collectionList.length;
+
   if (activeTab === 'overview') {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={FileText}      label={t(`පොරොත්තු පරීක්ෂණ`)} value={assignedLoans.length} color="text-amber-600" />
-          <StatCard icon={Users}         label={t(`අද දින ගමන්`)}      value="0"             color="text-blue-600" />
-          <StatCard icon={Banknote}      label={t(`එකතු කළ මුළු මුදල`)}     value="Rs. 0"     color="text-green-600" />
-          <StatCard icon={AlertTriangle} label={t(`ප්‍රමාද වූ ණය`)}       value="0"              color="text-red-600" />
+      <div className="space-y-4 animate-fade-in relative z-10">
+        
+        {/* Compact Welcome Header */}
+        <div className="rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">ආයුබෝවන්, {user?.fullName?.split(' ')[0] || 'නිලධාරීතුමනි'}!</h2>
+            <p className="text-blue-200 text-xs font-medium mt-0.5">
+              අද දින ක්ෂේත්‍ර රාජකාරි සාරාංශය සහ කාර්යයන්.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setTab?.('evaluations')} 
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 backdrop-blur-sm"
+            >
+              <FileText size={14} /> ණය පරීක්ෂණ
+            </button>
+            <button 
+              onClick={() => setTab?.('collection')} 
+              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            >
+              <ClipboardList size={14} /> මුදල් එකතු කිරීම
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><LayoutDashboard size={16} className="text-blue-600" /> {t(`ක්ෂේත්‍ර නිලධාරී සාරාංශය`)}</h3>
-          <p className="text-sm text-slate-500 mb-4">{t(`අද දින සඳහා ඔබට පවරා ඇති ණය පරීක්ෂණ සහ මුදල් එකතු කිරීමේ කාර්යයන් පහතින් දැක්වේ.`)}</p>
+        {/* Compact Metric Cards (Row of 3) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div 
+            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:border-amber-200 transition cursor-pointer flex items-center justify-between group" 
+            onClick={() => setTab?.('evaluations')}
+          >
+            <div>
+              <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">පොරොත්තු පරීක්ෂණ</p>
+              <h3 className="text-2xl font-black text-slate-800">{assignedLoans.length}</h3>
+            </div>
+            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+              <FileText size={20} />
+            </div>
+          </div>
+
+          <div 
+            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:border-blue-200 transition cursor-pointer flex items-center justify-between group" 
+            onClick={() => setTab?.('evaluations')}
+          >
+            <div>
+              <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">අද දින ගමන්</p>
+              <h3 className="text-2xl font-black text-slate-800">{todaysVisitsCount}</h3>
+            </div>
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Users size={20} />
+            </div>
+          </div>
+
+          <div 
+            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:border-emerald-200 transition cursor-pointer flex items-center justify-between group" 
+            onClick={() => setTab?.('collection')}
+          >
+            <div>
+              <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">එකතු කළ මුළු මුදල</p>
+              <h3 className="text-xl font-black text-emerald-600">Rs. {collectionBalance?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}</h3>
+            </div>
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Banknote size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Operational Overview Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          
+          {/* Left: Pending Evaluation Quick List */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <FileText size={16} className="text-amber-600" />
+                  ක්ෂේත්‍ර පරීක්ෂණ සාරාංශය ({assignedLoans.length})
+                </h3>
+                <button onClick={() => setTab?.('evaluations')} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                  සියල්ල <ChevronRight size={14} />
+                </button>
+              </div>
+              
+              {assignedLoans.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs border border-dashed rounded-xl border-slate-200">
+                  පවරා ඇති ණය පරීක්ෂණ නොමැත.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {assignedLoans.slice(0, 3).map((l: any) => {
+                    const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
+                    return (
+                      <div key={l.loanId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 text-xs">
+                        <div>
+                          <p className="font-bold text-slate-800">{loanName}</p>
+                          <p className="text-slate-500">{l.loanType?.name || 'ණය'} - Rs. {Number(l.requestedAmount).toLocaleString()}</p>
+                        </div>
+                        <button onClick={() => setTab?.('evaluations')} className="px-2.5 py-1 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition">
+                          පරීක්ෂා කරන්න
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Cash Collection Summary Card */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <Banknote size={16} className="text-emerald-600" />
+                  දවසේ මුදල් එකතුව & භාරදීම
+                </h3>
+                <button onClick={() => setTab?.('collection')} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                  එකතු කිරීම් <ChevronRight size={14} />
+                </button>
+              </div>
+
+              <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 mb-3 flex items-center justify-between">
+                <div>
+                  <span className="text-slate-500 text-xs font-medium">ලඟ තබාගත් මුළු මුදල:</span>
+                  <p className="text-2xl font-black text-emerald-700">
+                    Rs. {collectionBalance?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}
+                  </p>
+                </div>
+                {collectionBalance > 0 && (
+                  <button 
+                    onClick={handleHandover} 
+                    disabled={submitting} 
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition disabled:opacity-50"
+                  >
+                    {submitting ? 'යැවෙමින්...' : 'මුදල් භාරදෙන්න'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400">
+              * ක්ෂේත්‍රයෙන් එකතු කරන ලද මුදල් ශාඛාවට භාරදී සහතික කරගන්න.
+            </p>
+          </div>
+
         </div>
       </div>
     );
@@ -4529,6 +4695,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
 
   if (activeTab === 'evaluations') {
     return (
+      <>
       <div className="space-y-4">
         <div className="bg-gradient-to-r from-amber-600 to-amber-500 rounded-xl p-4 text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
@@ -4608,7 +4775,7 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                    </div>
                    <div>
                      <label className="block text-sm font-bold text-slate-700 mb-1">{t(`ඡායාරූප / ලියකියවිලි (Documents/Photos)`)}</label>
-                     <input type="file" multiple accept=".pdf,image/jpeg,image/png" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm" />
+                     <input type="file" multiple accept=".pdf,image/jpeg,image/png" onChange={handleFileChange} className="w-full border border-amber-300 rounded-lg p-2 bg-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer shadow-sm transition" />
                      {evaluationDocs.length > 0 && (
                        <div className="flex gap-2 mt-2 flex-wrap">
                          {evaluationDocs.map((doc, i) => (
@@ -4665,15 +4832,30 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
                  completedLoans.map((l: any) => {
                    const loanName = l.applicationData?.name || l.applicationData?.applicantName || 'Unknown';
                    return (
-                     <div key={l.loanId} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
+                     <div key={l.loanId} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-amber-300 hover:shadow-md transition gap-3">
                        <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{loanName.charAt(0)}</div>
                          <div>
                            <p className="text-sm font-semibold text-slate-800">{loanName}</p>
-                           <p className="text-xs text-slate-500">{t(l.loanType?.name || 'ණය')} - {l.evaluationStatus}</p>
+                           <p className="text-xs text-slate-500 font-medium">{t(l.loanType?.name || 'ණය')} <span className="mx-1">•</span> Rs. {Number(l.requestedAmount || 0).toLocaleString()}</p>
                          </div>
                        </div>
-                       <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">{t(`යවා ඇත`)}</span>
+                        <div className="flex items-center gap-3 self-end md:self-auto">
+                          <span className={`px-3 py-1 rounded-full font-bold text-xs border ${
+                            l.evaluationStatus === 'RECOMMENDED' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                            l.evaluationStatus === 'NOT_RECOMMENDED' ? 'bg-rose-100 text-rose-800 border-rose-200' :
+                            'bg-amber-100 text-amber-800 border-amber-200'
+                          }`}>
+                            {t(l.evaluationStatus === 'RECOMMENDED' ? 'අනුමත කිරීමට නිර්දේශිතයි' : l.evaluationStatus === 'NOT_RECOMMENDED' ? 'නිර්දේශ කර නැත' : 'වැඩිදුර තොරතුරු අවශ්‍යයි')}
+                          </span>
+                          <button 
+                            onClick={() => setSelectedLoanForDetails(l)}
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs transition shadow-sm cursor-pointer"
+                          >
+                            <Eye size={14} />
+                            {t(`විස්තර (View Details)`)}
+                          </button>
+                        </div>
                      </div>
                    );
                  })
@@ -4682,6 +4864,13 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
           </div>
         )}
       </div>
+      {selectedLoanForDetails && (
+        <FieldOfficerEvalDetailsModal
+          loan={selectedLoanForDetails}
+          onClose={() => setSelectedLoanForDetails(null)}
+        />
+      )}
+      </>
     );
   }
 
@@ -4911,10 +5100,19 @@ function FieldOfficerView({ activeTab }: { activeTab: string }) {
              </div>
           </div>
         )}
-        {/* View Details Modal */}
-        {selectedLoanForDetails && (
-          <LoanDetailModal loan={selectedLoanForDetails} onClose={() => setSelectedLoanForDetails(null)} />
-        )}
+        {/* View Details Modal - viewingHistoryLoan from collection tab */}
+        {viewingHistoryLoan && (() => {
+          const modalLoan = viewingHistoryLoan;
+          const loanName = modalLoan?.applicationData?.name || modalLoan?.applicationData?.applicantName || getMemberName(modalLoan?.memberId) || 'Unknown';
+          return (
+            <LoanDetailModal
+              loan={modalLoan}
+              memberName={loanName}
+              onClose={() => setViewingHistoryLoan(null)}
+              onUpdated={() => { fetchLoans(); }}
+            />
+          );
+        })()}
       </div>
     );
   }
@@ -5210,8 +5408,8 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
       };
 
       // Filter by selected month
-      const filteredSavings = savings.filter((a: any) => isBeforeDate(a.openedDate));
-      const filteredFds = fds.filter((f: any) => f.status === 'ACTIVE' && isBeforeDate(f.openedDate));
+      const filteredSavings = savings.filter((a: any) => isBeforeDate(a.createdAt || a.openedDate));
+      const filteredFds = fds.filter((f: any) => f.status === 'ACTIVE' && isBeforeDate(f.createdAt || f.openedDate));
       
       const overdueSavedIds = new Set<string>(JSON.parse(localStorage.getItem('hmcs_overdue_loans') || '[]'));
       const filteredLoans = loansList.filter((l: any) => {
@@ -5248,8 +5446,7 @@ function SummaryLedgerView({ branchId, members }: { branchId?: number; members: 
       filteredSavings.forEach((a: any) => {
         const rawType = a.accountType || 'Normal Savings';
         const type = getDisplayName(rawType);
-        const member = members.find((m: any) => m.memberId === a.memberId);
-        const isMember = member ? member.isMember !== false : false;
+        const isMember = a.isSocietyMember !== false;
         const isActive = a.status === 'ACTIVE';
 
         const targetGroup = isMember 
@@ -5847,8 +6044,25 @@ function VaultCashView({ branchId }: { branchId?: number }) {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [startDate, setStartDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [endDate, setEndDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
-  const [membersMap, setMembersMap] = useState<Record<string, { memberNo: string, name: string }>>({});
+  const [membersMap, setMembersMap] = useState<Record<string, { memberNo: string, name: string, branchId?: number }>>({});
   
+  const [userFullNameMap, setUserFullNameMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    import('../services/auth.service').then(Auth => {
+      Auth.getUsers().then(users => {
+        console.log("Fetched users for mapping:", users);
+        const map: Record<string, string> = {};
+        users.forEach(u => {
+          if (u.username && u.fullName) {
+            map[u.username] = u.fullName;
+          }
+        });
+        console.log("userFullNameMap:", map);
+        setUserFullNameMap(map);
+      }).catch((e) => { console.error("Failed to fetch users in BranchDashboard:", e); });
+    });
+  }, []);
+
   // Edit Modal State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<any>(null);
@@ -5934,7 +6148,8 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         members.forEach(m => {
           const info = {
             memberNo: m.membershipNumber || m.memberId || '',
-            name: m.nameWithInitials || m.fullName || 'Unknown'
+            name: m.nameWithInitials || m.fullName || 'Unknown',
+            branchId: m.registeredBranchId
           };
           if (m.memberId) map[String(m.memberId)] = info;
           if (m.membershipNumber) map[String(m.membershipNumber)] = info;
@@ -5952,7 +6167,10 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         if (Array.isArray(tickets)) {
           tickets.forEach(t => {
             if (t.ticketNumber && t.memberId) {
-              tMap[String(t.ticketNumber)] = map[String(t.memberId)] || { memberNo: String(t.memberId), name: t.memberName || t.member?.nameWithInitials || 'සාමාජික' };
+              const minfo = map[String(t.memberId)] || { memberNo: String(t.memberId), name: t.memberName || t.member?.nameWithInitials || 'සාමාජික' };
+              const enrichedInfo = { ...minfo };
+              if (!enrichedInfo.branchId && t.branchId) enrichedInfo.branchId = t.branchId;
+              tMap[String(t.ticketNumber)] = enrichedInfo;
             }
           });
         }
@@ -5963,6 +6181,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
               name: l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || l.applicantDetail?.applicantName || 'සාමාජික' 
             };
             const enrichedInfo = { ...minfo, typeStr: l.loanType?.name || l.loanTypeStr };
+            if (!enrichedInfo.branchId && l.branchId) enrichedInfo.branchId = l.branchId;
             if (l.accountNumber) tMap[String(l.accountNumber)] = enrichedInfo;
             if (l.applicationNumber) tMap[String(l.applicationNumber)] = enrichedInfo;
             if (l.loanId) tMap[String(l.loanId)] = enrichedInfo;
@@ -5971,7 +6190,10 @@ function VaultCashView({ branchId }: { branchId?: number }) {
         if (Array.isArray(accounts)) {
           accounts.forEach((a: any) => {
             if (a.accountNumber && a.memberId) {
-              tMap[String(a.accountNumber)] = map[String(a.memberId)] || { memberNo: String(a.memberId), name: 'සාමාජික' };
+              const minfo = map[String(a.memberId)] || { memberNo: String(a.memberId), name: 'සාමාජික' };
+              const enrichedInfo = { ...minfo };
+              if (!enrichedInfo.branchId && a.branchId) enrichedInfo.branchId = a.branchId;
+              tMap[String(a.accountNumber)] = enrichedInfo;
             }
           });
         }
@@ -5995,12 +6217,107 @@ function VaultCashView({ branchId }: { branchId?: number }) {
   };
 
   const [cashData, setCashData] = useState<{
-    inflow: { parsed: { title: string; details: string[]; account: string }; amount: number }[];
-    outflow: { parsed: { title: string; details: string[]; account: string }; amount: number }[];
+    inflow: { parsed: { title: string; details: string[]; account: string }; amount: number; raw: any }[];
+    outflow: { parsed: { title: string; details: string[]; account: string }; amount: number; raw: any }[];
     totalInflow: number;
     totalOutflow: number;
     vaultBalance: number;
   } | null>(null);
+
+  const [selectedLedgerTx, setSelectedLedgerTx] = useState<any>(null);
+  const [asyncResolvedBranchId, setAsyncResolvedBranchId] = useState<number | null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (['ADMIN', 'MANAGER'].includes(role)) {
+      import('../services/branch.service').then(m => {
+        m.getBranches().then(setBranches).catch(() => {});
+      });
+    }
+  }, [role]);
+
+  const formatBranchName = (id: number) => {
+    if (user?.branchId === id && user?.branchName) return t(user.branchName);
+    const b = branches.find((x: any) => x.branchId === id);
+    return b ? t(b.branchName) : getBranchName(id);
+  };
+
+  useEffect(() => {
+    if (!selectedLedgerTx) {
+      setAsyncResolvedBranchId(null);
+      return;
+    }
+    
+    // Check if we can resolve synchronously first
+    let syncBranchId = selectedLedgerTx.accountBranchId;
+    if (!syncBranchId) {
+      const ref = selectedLedgerTx.referenceNumber || selectedLedgerTx.loanId;
+      if (ref && ticketsMap[ref]?.branchId) syncBranchId = ticketsMap[ref].branchId;
+    }
+    if (!syncBranchId && selectedLedgerTx.description) {
+      const codeMatch = selectedLedgerTx.description.match(/\b(PW\d+|ACC-?[A-Za-z0-9-]+|LN-?[A-Za-z0-9-]+|FD-?[A-Za-z0-9-]+|RCPT-?[A-Za-z0-9-]+)\b/i);
+      if (codeMatch) {
+        const code = codeMatch[1].replace(/-/g, '').toUpperCase();
+        const key = Object.keys(ticketsMap).find(k => k.replace(/-/g, '').toUpperCase() === code);
+        if (key && ticketsMap[key]?.branchId) syncBranchId = ticketsMap[key].branchId;
+      }
+    }
+    if (!syncBranchId && selectedLedgerTx.memberId) {
+      syncBranchId = membersMap[String(selectedLedgerTx.memberId)]?.branchId;
+    }
+
+    if (syncBranchId) {
+      setAsyncResolvedBranchId(syncBranchId);
+      return;
+    }
+
+    // Try to resolve asynchronously
+    const ref = selectedLedgerTx.referenceNumber || selectedLedgerTx.loanId || selectedLedgerTx.transactionId;
+    
+    const tryGlobalSearch = () => {
+      if (selectedLedgerTx.description) {
+        const lnMatch = selectedLedgerTx.description.match(/\b(LN-?[A-Za-z0-9-]+)\b/i);
+        if (lnMatch) {
+          const code = lnMatch[1].replace(/-/g, '').toUpperCase();
+          import('../services/loan.service').then(m => {
+            m.getGlobalLoans().then(loans => {
+              const found = loans.find(l => l.accountNumber?.replace(/-/g, '').toUpperCase() === code);
+              if (found && found.branchId) setAsyncResolvedBranchId(found.branchId);
+            }).catch(() => {});
+          });
+          return;
+        }
+        
+        const accMatch = selectedLedgerTx.description.match(/\b(ACC-?[A-Za-z0-9-]+)\b/i);
+        if (accMatch) {
+          const code = accMatch[1].replace(/-/g, '').toUpperCase();
+          import('../services/account.service').then(m => {
+            m.getGlobalAccounts().then(accounts => {
+              const found = accounts.find(a => a.accountNumber?.replace(/-/g, '').toUpperCase() === code);
+              if (found && found.branchId) setAsyncResolvedBranchId(found.branchId);
+            }).catch(() => {});
+          });
+          return;
+        }
+      }
+    };
+
+    if (ref && /^[0-9a-fA-F]{8}-/.test(ref)) {
+      import('../services/loan.service').then(m => {
+        m.getLoanById(ref).then(loan => {
+          if (loan && loan.branchId) {
+            setAsyncResolvedBranchId(loan.branchId);
+          } else {
+            tryGlobalSearch();
+          }
+        }).catch(() => {
+          tryGlobalSearch();
+        });
+      });
+    } else {
+      tryGlobalSearch();
+    }
+  }, [selectedLedgerTx, ticketsMap, membersMap]);
 
   const MONTHS = [
     { value: 1, label: 'ජනවාරි (January)' },
@@ -6021,13 +6338,13 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     if (!raw) return { title: 'හඳුනා නොගත් ගනුදෙනුවක් (Unknown Transaction)', details: [], account: relatedAccount };
     
     const titleTranslations: Record<string, string> = {
-      'Loan Disbursement': 'ණය මුදල නිකුත් කිරීම',
-      'Loan Repayment (Cash In)': 'ණය වාරිකය අයකර ගැනීම',
-      'Loan Repayment': 'ණය වාරිකය අයකර ගැනීම',
-      'Cash Deposit': 'මුදල් තැන්පතුව',
-      'Cash Withdrawal': 'මුදල් ආපසු ගැනීම',
-      'Pawning Advance': 'උකස් අත්තිකාරම් නිකුතුව',
-      'Pawning Redemption': 'උකස් බේරා ගැනීම'
+      'Loan Disbursement': t('ණය මුදල නිකුත් කිරීම'),
+      'Loan Repayment (Cash In)': t('ණය වාරිකය අයකර ගැනීම'),
+      'Loan Repayment': t('ණය වාරිකය අයකර ගැනීම'),
+      'Cash Deposit': t('මුදල් තැන්පතුව'),
+      'Cash Withdrawal': t('මුදල් ආපසු ගැනීම'),
+      'Pawning Advance': t('උකස් අත්තිකාරම් නිකුතුව'),
+      'Pawning Redemption': t('උකස් බේරා ගැනීම')
     };
 
     // Split by '—' or '|'
@@ -6048,12 +6365,15 @@ function VaultCashView({ branchId }: { branchId?: number }) {
       title = t('Fixed Deposit Open');
     } else if (originalTitle.startsWith('Pawning Repayment')) {
       title = t('Pawning Repayment');
+    } else if (originalTitle.startsWith('Initial Deposit:')) {
+      title = `${t('මූලික තැන්පතුව (Initial Deposit)')}: ${originalTitle.replace('Initial Deposit:', '').trim()}`;
     } else {
       title = t(titleTranslations[originalTitle] || originalTitle);
     }
     
     const details: string[] = [];
     let foundMember = false;
+    let accountBranchId: number | undefined;
     
     if (parts.length > 1) {
       for (let i = 1; i < parts.length; i++) {
@@ -6064,6 +6384,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
             detail = `${t('සාමාජිකයා (Member):')} ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            if (memberInfo.branchId) accountBranchId = memberInfo.branchId;
           } else {
             detail = `${t('සාමාජිකයා (Member):')} ${uuid}`;
           }
@@ -6073,17 +6394,21 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           const memberInfo = mMap[uuid] || ticketsMap[uuid];
           if (memberInfo) {
             detail = `${t('සාමාජිකයා (Member):')} ${memberInfo.memberNo ? memberInfo.memberNo + ' - ' : ''}${memberInfo.name}`;
+            if (memberInfo.branchId) accountBranchId = memberInfo.branchId;
           }
         } else if (ticketsMap[detail]) {
           foundMember = true;
           const minfo = ticketsMap[detail];
           details.push(detail);
           details.push(`${t('සාමාජිකයා (Member):')} ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+          if (minfo.branchId) accountBranchId = minfo.branchId;
           if (minfo.typeStr) details.push(`${t('ණය වර්ගය (Loan Type):')} ${t(minfo.typeStr.trim())}`);
           continue;
         }
         if (detail.startsWith('Method:')) detail = detail.replace('Method:', t('ක්‍රමය (Method):') + ' ');
         if (detail.startsWith('ක්‍රමය:')) detail = detail.replace('ක්‍රමය:', t('ක්‍රමය (Method):') + ' ');
+        if (detail.startsWith('දිනය/වේලාව (Date/Time):')) detail = detail.replace('දිනය/වේලාව (Date/Time):', t('දිනය/වේලාව (Date/Time)') + ':');
+        if (detail.startsWith('Date/Time:')) detail = detail.replace('Date/Time:', t('දිනය/වේලාව (Date/Time)') + ':');
         details.push(detail);
       }
     }
@@ -6093,6 +6418,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
       if (ref && ticketsMap[ref]) {
         const minfo = ticketsMap[ref];
         details.push(`${t('සාමාජිකයා (Member):')} ${minfo.memberNo ? minfo.memberNo + ' - ' : ''}${minfo.name}`);
+        if (minfo.branchId) accountBranchId = minfo.branchId;
       }
     }
     
@@ -6103,7 +6429,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
     }
 
     const uniqueDetails = Array.from(new Set(details));
-    return { title, details: uniqueDetails, account: relatedAccount };
+    return { title, details: uniqueDetails, account: relatedAccount, accountBranchId };
   };
 
   const fetchCashData = async () => {
@@ -6365,7 +6691,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                     {cashData.inflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
                       return (
-                        <tr key={`in-${idx}`} className="hover:bg-indigo-50/20 border-b border-indigo-600/20">
+                        <tr key={`in-${idx}`} onClick={() => setSelectedLedgerTx({...item.raw, accountBranchId: item.parsed.accountBranchId})} className="hover:bg-indigo-50/50 border-b border-indigo-600/20 cursor-pointer transition-colors">
                           <td className="px-3 py-2 border-r border-indigo-600/40 align-top">
                             <div className="font-bold text-indigo-900 mb-1">{item.parsed.title}</div>
                             {item.parsed.details.map((d: string, i: number) => (
@@ -6410,7 +6736,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                     {cashData.outflow.map((item, idx) => {
                       const sb = splitBalance(item.amount);
                       return (
-                        <tr key={`out-${idx}`} className="hover:bg-indigo-50/20 border-b border-indigo-600/20">
+                        <tr key={`out-${idx}`} onClick={() => setSelectedLedgerTx({...item.raw, accountBranchId: item.parsed.accountBranchId})} className="hover:bg-indigo-50/50 border-b border-indigo-600/20 cursor-pointer transition-colors">
                           <td className="px-3 py-2 border-r border-indigo-600/40 align-top">
                             <div className="font-bold text-indigo-900 mb-1">{item.parsed.title}</div>
                             {item.parsed.details.map((d: string, i: number) => (
@@ -6553,6 +6879,152 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           </div>
         </div>
       )}
+      {/* Transaction Details Modal */}
+      {selectedLedgerTx && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-100 flex justify-between items-center">
+              <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+                <FileText size={18} className="text-indigo-600" />
+                {t('ගනුදෙනු විස්තර (Transaction Details)')}
+              </h3>
+              <button onClick={() => setSelectedLedgerTx(null)} className="text-indigo-400 hover:text-indigo-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold mb-1">{t('දිනය/වේලාව (Date/Time)')}</p>
+                  <p className="font-mono text-slate-800 font-semibold">{new Date(selectedLedgerTx.createdAt || selectedLedgerTx.entryDate).toLocaleString('en-GB')}</p>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold mb-1">{t('මුදල (Amount)')}</p>
+                  <p className="font-mono text-slate-800 font-semibold text-lg">Rs. {Number(selectedLedgerTx.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 col-span-2">
+                  <p className="text-xs text-slate-500 font-bold mb-1">{t('විස්තරය (Description)')}</p>
+                  <p className="font-semibold text-slate-800">{selectedLedgerTx.description}</p>
+                </div>
+                {(() => {
+                  const codeMatch = selectedLedgerTx.description?.match(/\b(PW\d+|ACC-?[A-Za-z0-9-]+|LN-?[A-Za-z0-9-]+|FD-?[A-Za-z0-9-]+|RCPT-?[A-Za-z0-9-]+)\b/i);
+                  const extractedAccountNo = codeMatch ? codeMatch[1].toUpperCase() : null;
+                  if (extractedAccountNo) {
+                    return (
+                      <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                        <p className="text-xs text-amber-600 font-bold mb-1">{t('ගිණුම්/ණය අංකය (Account/Loan No)')}</p>
+                        <p className="font-mono text-amber-900 font-bold text-lg">{extractedAccountNo}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-500 font-bold mb-1">{t('මෙහෙයුම්කරු (Operator)')}</p>
+                  <p className="font-mono text-slate-800 font-semibold break-all">{userFullNameMap[selectedLedgerTx.createdBy || ''] || userFullNameMap[selectedLedgerTx.username || ''] || AuthService.getCurrentUser()?.fullName || AuthService.getCurrentUser()?.username || selectedLedgerTx.createdBy || selectedLedgerTx.username || '-'}</p>
+                </div>
+
+                {(() => {
+                  let derivedBranchId = asyncResolvedBranchId || selectedLedgerTx.accountBranchId;
+                  
+                  // Fallback 1: Try referenceNumber or loanId in ticketsMap
+                  if (!derivedBranchId) {
+                    const ref = selectedLedgerTx.referenceNumber || selectedLedgerTx.loanId;
+                    if (ref && ticketsMap[ref]?.branchId) {
+                      derivedBranchId = ticketsMap[ref].branchId;
+                    }
+                  }
+                  
+                  // Fallback 2: Hyphen-insensitive lookup for LN1008360
+                  if (!derivedBranchId && selectedLedgerTx.description) {
+                    const codeMatch = selectedLedgerTx.description.match(/\b(PW\d+|ACC-?[A-Za-z0-9-]+|LN-?[A-Za-z0-9-]+|FD-?[A-Za-z0-9-]+|RCPT-?[A-Za-z0-9-]+)\b/i);
+                    if (codeMatch) {
+                      const code = codeMatch[1].replace(/-/g, '').toUpperCase();
+                      const key = Object.keys(ticketsMap).find(k => k.replace(/-/g, '').toUpperCase() === code);
+                      if (key && ticketsMap[key]?.branchId) {
+                        derivedBranchId = ticketsMap[key].branchId;
+                      }
+                    }
+                  }
+
+                  // Fallback 3: Try memberId
+                  if (!derivedBranchId && selectedLedgerTx.memberId) {
+                     derivedBranchId = membersMap[String(selectedLedgerTx.memberId)]?.branchId;
+                  }
+
+                  const isCrossBranch = derivedBranchId && String(derivedBranchId) !== String(selectedLedgerTx.branchId);
+                  const descLower = (selectedLedgerTx.description || '').toLowerCase();
+                  const isDeposit = !(descLower.includes('withdrawal') || descLower.includes('disbursement') || descLower.includes('advance'));
+
+                  if (isCrossBranch) {
+                    return (
+                      <div className="col-span-2 mt-2">
+                        <style>{`
+                          @keyframes slideRight { 0% { transform: translateX(-100%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateX(200%); opacity: 0; } }
+                          @keyframes slideLeft { 0% { transform: translateX(200%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateX(-100%); opacity: 0; } }
+                          .animate-transfer-right { animation: slideRight 1.5s ease-in-out infinite; }
+                          .animate-transfer-left { animation: slideLeft 1.5s ease-in-out infinite; }
+                        `}</style>
+                        <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-100 relative overflow-hidden">
+                          <div className="z-10 bg-white p-3 rounded-lg shadow-sm border border-indigo-100 flex-1 text-center relative flex flex-col items-center">
+                            <Home size={18} className="text-indigo-400 mb-1" />
+                            <p className="text-xs text-indigo-500 font-bold mb-1">{t('ගනුදෙනුව සිදුකළ ශාඛාව')} <br/><span className="text-[10px] text-slate-500">(Transaction Branch)</span></p>
+                            <p className="font-semibold text-indigo-900">{formatBranchName(selectedLedgerTx.branchId)}</p>
+                          </div>
+                          
+                          <div className="z-10 px-4 flex flex-col items-center justify-center min-w-[140px]">
+                             <div className="text-blue-600 font-bold text-xs mb-1.5 animate-pulse">
+                                {isDeposit ? 'Transferred ➜' : '⬅ Transferred'}
+                             </div>
+                             <div className="relative w-full h-1.5 bg-blue-100/50 rounded-full overflow-hidden shadow-inner">
+                                <div className={`absolute top-0 left-0 h-full bg-blue-500 rounded-full w-1/3 shadow-md ${isDeposit ? 'animate-transfer-right' : 'animate-transfer-left'}`}></div>
+                             </div>
+                          </div>
+
+                          <div className="z-10 bg-white p-3 rounded-lg shadow-sm border border-blue-100 flex-1 text-center relative flex flex-col items-center">
+                            <Home size={18} className="text-blue-400 mb-1" />
+                            <p className="text-xs text-blue-500 font-bold mb-1">{t('ගිණුම පවතින ශාඛාව')} <br/><span className="text-[10px] text-slate-500">(Account Branch)</span></p>
+                            <p className="font-semibold text-blue-900">{formatBranchName(derivedBranchId)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Default rendering for same branch or unresolved
+                  const hasUnresolvedForeignBranch = !derivedBranchId && selectedLedgerTx.referenceNumber && /^[0-9a-fA-F]{8}-/.test(selectedLedgerTx.referenceNumber);
+
+                  return (
+                    <>
+                      {selectedLedgerTx.branchId && !hasUnresolvedForeignBranch && (
+                        <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 col-span-2 text-center">
+                          <p className="text-xs text-indigo-500 font-bold mb-1">{t('ශාඛාව (Branch)')}</p>
+                          <p className="font-semibold text-indigo-900 text-lg">{formatBranchName(selectedLedgerTx.branchId)}</p>
+                        </div>
+                      )}
+                      {hasUnresolvedForeignBranch && (
+                        <>
+                          {selectedLedgerTx.branchId && (
+                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                              <p className="text-xs text-indigo-500 font-bold mb-1">{t('ගනුදෙනුව සිදුකළ ශාඛාව (Transaction Branch)')}</p>
+                              <p className="font-semibold text-indigo-900">{formatBranchName(selectedLedgerTx.branchId)}</p>
+                            </div>
+                          )}
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <p className="text-xs text-slate-500 font-bold mb-1">{t('ගිණුම පවතින ශාඛාව (Account Branch)')}</p>
+                            <p className="font-semibold text-slate-500 italic text-xs">{t('වෙනත් ශාඛාවක ගිණුමක් විය හැක (May belong to another branch)')}</p>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
@@ -6593,7 +7065,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
     if (currentRole === 'BRANCH_MANAGER') {
       import('../services/loan.service').then(LoanService => {
         LoanService.getLoans().then(loans => {
-          const myLoans = loans.filter((l: any) => l.branchId === user.branchId);
+          const myLoans = loans.filter((l: any) => Number(l.branchId) === Number(user.branchId));
           
           const pending = myLoans.filter((l: any) => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
           setPendingApprovalsCount(pending.length);
