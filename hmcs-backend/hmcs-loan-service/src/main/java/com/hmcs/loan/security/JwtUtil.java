@@ -20,6 +20,14 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+
+    public Integer extractBranchId(String token) {
+        Object val = extractAllClaims(token).get("branchId");
+        if (val == null) return null;
+        if (val instanceof Integer) return (Integer) val;
+        try { return Integer.parseInt(val.toString()); } catch (Exception e) { return null; }
+    }
+
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }

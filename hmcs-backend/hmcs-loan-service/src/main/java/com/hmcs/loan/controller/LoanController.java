@@ -8,6 +8,8 @@ import com.hmcs.loan.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import com.hmcs.loan.security.JwtUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,6 +26,9 @@ public class LoanController {
     @Autowired
     private com.hmcs.loan.repository.LedgerEntryRepository ledgerEntryRepository;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     // ── Apply ────────────────────────────────────────────────────────────────
     @PostMapping("/apply/{loanTypeId}")
     public ResponseEntity<Loan> applyForLoan(@PathVariable UUID loanTypeId, @RequestBody Loan loanRequest) {
@@ -33,12 +38,41 @@ public class LoanController {
 
     // ── Queries ──────────────────────────────────────────────────────────────
     @GetMapping
-    public List<Loan> getAllLoans(@RequestParam(required = false) Integer branchId) {
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'FIELD_OFFICER')")
+    public List<Loan> getAllLoans(@RequestParam(required = false) Integer branchId, HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            Integer userBranchId = jwtUtil.extractBranchId(token);
+            String role = jwtUtil.extractRole(token);
+            
+            if (role != null && !role.equals("ADMIN") && !role.equals("SYSTEM_ADMIN")) {
+                if (branchId == null) {
+                    branchId = userBranchId;
+                } else if (!branchId.equals(userBranchId)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Unauthorized branch access");
+                }
+            }
+        }
         return loanService.getAllLoans(branchId);
     }
 
     @GetMapping("/reports/insurance")
-    public List<Loan> getInsuranceReportLoans(@RequestParam String month, @RequestParam(required = false) Integer branchId) {
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN')")
+    public List<Loan> getInsuranceReportLoans(@RequestParam String month, @RequestParam(required = false) Integer branchId, HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            Integer userBranchId = jwtUtil.extractBranchId(token);
+            String role = jwtUtil.extractRole(token);
+            if (role != null && !role.equals("ADMIN") && !role.equals("SYSTEM_ADMIN")) {
+                if (branchId == null) {
+                    branchId = userBranchId;
+                } else if (!branchId.equals(userBranchId)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Unauthorized branch access");
+                }
+            }
+        }
         return loanService.getInsuranceReportLoans(month, branchId);
     }
 
@@ -123,6 +157,7 @@ public class LoanController {
      * Advance loan to the next workflow stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "..." }
      */
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN')")
     @PostMapping("/{id}/advance")
     public ResponseEntity<Loan> advanceLoanStage(
             @PathVariable UUID id,
@@ -144,6 +179,7 @@ public class LoanController {
      * Reject a loan at the current stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "Reason..." }
      */
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<Loan> rejectLoan(
             @PathVariable UUID id,
@@ -165,6 +201,7 @@ public class LoanController {
      * Disburse an approved loan.
      * Body: { "amount": 100000, "actorUsername": "mgr_hkw" }
      */
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER')")
     @PostMapping("/{id}/disburse")
     public ResponseEntity<?> disburseLoan(
             @PathVariable UUID id,

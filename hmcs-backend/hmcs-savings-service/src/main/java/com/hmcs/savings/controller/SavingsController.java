@@ -110,7 +110,29 @@ public class SavingsController {
 
     // /savings/global - alias for cross-branch access via TransactionModal
     @GetMapping("/savings/global")
-    public ResponseEntity<List<Account>> getGlobalAccounts() {
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER')")
+    public ResponseEntity<List<Account>> getGlobalAccounts(HttpServletRequest request) {
+        Integer branchId = branchContext.extractBranchId(request);
+        String role = "";
+        
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7);
+                java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+                String payload = new String(decoder.decode(token.split("\\.")[1]));
+                if (payload.contains("\"role\":\"ADMIN\"") || payload.contains("\"role\":\"SYSTEM_ADMIN\"")) {
+                    role = "ADMIN";
+                }
+            } catch(Exception e) {}
+        }
+        
+        if (!role.equals("ADMIN")) {
+            // Enforce BOLA for non-admins
+            return ResponseEntity.ok(accountRepository.findAll().stream()
+                    .filter(a -> branchId == null || branchId.equals(a.getBranchId()))
+                    .collect(java.util.stream.Collectors.toList()));
+        }
         return ResponseEntity.ok(accountRepository.findAll());
     }
 

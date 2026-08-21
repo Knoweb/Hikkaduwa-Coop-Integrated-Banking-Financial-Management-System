@@ -29,8 +29,8 @@ public class SecurityConfig {
                               .csrfTokenRequestHandler(requestHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/fixed-deposits/admin/fix-fd-interest").permitAll()
-                .requestMatchers("/api/v1/savings/trigger-interest").permitAll()
+                .requestMatchers("/api/v1/fixed-deposits/admin/fix-fd-interest").hasAnyRole("ADMIN", "SYSTEM_ADMIN")
+                .requestMatchers("/api/v1/savings/trigger-interest").hasAnyRole("ADMIN", "SYSTEM_ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterAfter(new org.springframework.web.filter.OncePerRequestFilter() {
