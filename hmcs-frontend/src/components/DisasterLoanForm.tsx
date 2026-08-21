@@ -72,6 +72,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [docsCount, setDocsCount] = useState(0);
+  const [supportingDocs, setSupportingDocs] = useState<{name: string, url: string, type: string}[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -384,7 +385,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                         };
                         reader.readAsDataURL(file);
                       }
-                  }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  }} />
                   {formData.guarantor1DigitalSignatureUrl && (
                       <div className="flex items-center gap-2 mt-2">
                         <img src={formData.guarantor1DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />
@@ -425,7 +426,7 @@ export default function DisasterLoanForm({ loanTypeId, onClose }: DisasterLoanFo
                         };
                         reader.readAsDataURL(file);
                       }
-                  }} className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  }} />
                   {formData.guarantor2DigitalSignatureUrl && (
                       <div className="flex items-center gap-2 mt-2">
                         <img src={formData.guarantor2DigitalSignatureUrl} alt="Signature Preview" className="h-16 border rounded shadow-sm" />

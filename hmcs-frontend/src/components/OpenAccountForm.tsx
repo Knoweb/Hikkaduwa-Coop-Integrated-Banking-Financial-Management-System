@@ -250,7 +250,8 @@ const OpenAccountForm = ({ isSocietyMember = true, onClose }: { isSocietyMember?
         witnessName: formData.witnessName,
         witnessAddress: formData.witnessAddress,
         specimenSignature: signaturePreview || undefined,
-        migrationAccount: formData.openedDate !== formData.date
+        migrationAccount: formData.openedDate !== formData.date,
+        isSocietyMember: isSocietyMember
       };
 
       const res = await AccountService.openAccount(accountData);

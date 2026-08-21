@@ -136,6 +136,7 @@ public class SavingsController {
         public String specimenSignature;
 
         public Boolean migrationAccount;
+        public Boolean isSocietyMember;
     }
 
     // 2. POST /api/v1/accounts - Open a new account
@@ -160,6 +161,7 @@ public class SavingsController {
         }
         account.setBranchId(branchId);
         account.setStatus("ACTIVE");
+        account.setIsSocietyMember(body.isSocietyMember != null ? body.isSocietyMember : true);
         
         if (body.memberId2 != null) account.setMemberId2(body.memberId2);
         if (body.memberId3 != null) account.setMemberId3(body.memberId3);

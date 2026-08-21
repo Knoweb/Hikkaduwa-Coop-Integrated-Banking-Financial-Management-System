@@ -1,12 +1,14 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   postgres:
     image: postgres:15-alpine
     container_name: hmcs-postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       POSTGRES_USER: hmcs_app
-      POSTGRES_PASSWORD: hmcs_secure_pass_2026
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: hmcs_db
     ports:
       - "5432:5432"
@@ -22,6 +24,8 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -32,10 +36,15 @@ services:
   hmcs-member-auth-service:
     build: ./hmcs-backend/hmcs-member-auth-service
     container_name: hmcs-member-auth-service
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     ports:
       - "8081:8081"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -52,6 +61,8 @@ services:
       - "8089:8089"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -66,6 +77,8 @@ services:
       - "8082:8082"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -80,6 +93,8 @@ services:
       - "8084:8084"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -95,6 +110,8 @@ services:
       - "8085:8085"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -109,6 +126,8 @@ services:
       - "8087:8087"
     depends_on:
       - postgres
+    env_file:
+      - ./hmcs-backend/.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hmcs_db
       TZ: Asia/Colombo
@@ -170,3 +189,4 @@ services:
     depends_on:
       - loki
     restart: unless-stopped
+

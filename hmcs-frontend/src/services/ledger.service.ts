@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ledger` : 'http://localhost:8080/api/v1/ledger';
+const BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ledger` : '/api/v1/ledger';
 
 const authHeader = () => {
   const user = getCurrentUser();

@@ -35,7 +35,7 @@ export default function PawningApprovalsView() {
       const token = user?.token;
       let apiUrl = import.meta.env.VITE_API_URL 
         ? `${import.meta.env.VITE_API_URL}/pawning/tickets` 
-        : 'http://localhost:8080/api/v1/pawning/tickets';
+        : '/api/v1/pawning/tickets';
       
       // Fetch only branch-specific tickets for manager/officer
       if (user?.role === 'BRANCH_MANAGER' || user?.role === 'SENIOR_OFFICER' || user?.branchId) {

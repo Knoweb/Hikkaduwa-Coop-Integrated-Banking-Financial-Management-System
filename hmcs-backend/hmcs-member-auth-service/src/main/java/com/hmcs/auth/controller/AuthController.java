@@ -59,9 +59,41 @@ public class AuthController {
         this.systemAuditLogRepository = systemAuditLogRepository;
     }
 
+    private static class RateLimitData {
+        int attempts;
+        long windowStartTime;
+        RateLimitData(int attempts, long windowStartTime) {
+            this.attempts = attempts;
+            this.windowStartTime = windowStartTime;
+        }
+    }
+    private static final java.util.concurrent.ConcurrentHashMap<String, RateLimitData> loginRateLimiter = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int MAX_LOGIN_ATTEMPTS_PER_MINUTE = 15;
+
     @PostMapping("/login")
     @Transactional
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String clientIp = httpRequest.getRemoteAddr();
+        long currentTime = System.currentTimeMillis();
+        
+        loginRateLimiter.compute(clientIp, (key, data) -> {
+            if (data == null || currentTime - data.windowStartTime > 60000) {
+                return new RateLimitData(1, currentTime); // Start new window
+            }
+            data.attempts++;
+            return data;
+        });
+
+        if (loginRateLimiter.get(clientIp).attempts > MAX_LOGIN_ATTEMPTS_PER_MINUTE) {
+            systemAuditLogRepository.save(SystemAuditLog.builder()
+                    .eventType("LOGIN_RATE_LIMIT_EXCEEDED")
+                    .username(request.getUsername() != null ? request.getUsername() : "UNKNOWN")
+                    .tenantId(1L)
+                    .description("IP " + clientIp + " exceeded login rate limit.")
+                    .build());
+            return ResponseEntity.status(429).body(java.util.Map.of("message", "Too many login attempts from this IP. Please try again after 1 minute."));
+        }
+
         if (request.getUsername() == null || request.getUsername().isEmpty()) {
             return ResponseEntity.badRequest().body("Username is required");
         }
@@ -69,7 +101,7 @@ public class AuthController {
         try {
             // Find user globally across all tenants using native query
             java.util.List<Object[]> users = entityManager.createNativeQuery(
-                "SELECT u.user_id, u.username, u.password_hash, u.tenant_id, r.role_name, b.branch_id, b.branch_name, o.name as organization_name, u.locked_until, u.failed_login_attempts, u.email, u.mfa_type, u.totp_secret " +
+                "SELECT u.user_id, u.username, u.password_hash, u.tenant_id, r.role_name, b.branch_id, b.branch_name, o.name as organization_name, u.locked_until, u.failed_login_attempts, u.email, u.mfa_type, u.totp_secret, u.full_name " +
                 "FROM auth_service.users u " +
                 "JOIN auth_service.roles r ON u.role_id = r.role_id " +
                 "LEFT JOIN auth_service.branches b ON u.branch_id = b.branch_id " +
@@ -78,7 +110,6 @@ public class AuthController {
             ).setParameter("username", request.getUsername()).getResultList();
 
             if (users.isEmpty()) {
-                System.out.println("Login Failed: users.isEmpty() for " + request.getUsername());
                 systemAuditLogRepository.save(SystemAuditLog.builder()
                         .eventType("LOGIN_FAILED")
                         .username(request.getUsername())
@@ -145,7 +176,7 @@ public class AuthController {
                 }
                 query.executeUpdate();
 
-                System.out.println("Login Failed: password mismatch for " + request.getUsername() + " (Attempt " + failedAttempts + ")");
+
                 systemAuditLogRepository.save(SystemAuditLog.builder()
                         .eventType("LOGIN_FAILED")
                         .username(request.getUsername())
@@ -163,7 +194,7 @@ public class AuthController {
                              .executeUpdate();
             }
 
-            System.out.println("Login Success: " + request.getUsername());
+
             String username = (String) userRow[1];
             Integer tenantId = userRow[3] != null ? ((Number) userRow[3]).intValue() : null;
             String roleName = (String) userRow[4];
@@ -174,6 +205,7 @@ public class AuthController {
             String email = userRow.length > 10 && userRow[10] != null ? (String) userRow[10] : null;
             String mfaType = userRow.length > 11 && userRow[11] != null ? (String) userRow[11] : "NONE";
             String totpSecret = userRow.length > 12 && userRow[12] != null ? (String) userRow[12] : null;
+            String fullName = userRow.length > 13 && userRow[13] != null ? (String) userRow[13] : null;
 
             if ("ENABLED".equals(mfaType) || "PENDING_SETUP".equals(mfaType) || "EMAIL".equals(mfaType) || "TOTP".equals(mfaType)) {
                 // If MFA is required at all, let the user choose their method
@@ -204,13 +236,14 @@ public class AuthController {
                     .secure(false) // Use false for localhost
                     .path("/")
                     .maxAge(24 * 60 * 60)
-                    .sameSite("Lax")
+                    .sameSite("Strict")
                     .build();
 
             LoginResponse res = new LoginResponse();
             res.setUserId(userRow[0] != null ? java.util.UUID.fromString(userRow[0].toString()) : null);
             res.setToken(token);
             res.setUsername(username);
+            res.setFullName(fullName);
             res.setRole(roleName);
             res.setBranchId(branchId);
             res.setBranchName(branchName);
@@ -268,9 +301,9 @@ public class AuthController {
                     .setParameter("uname", username)
                     .executeUpdate();
                 
-                System.out.println("=================================================");
-                System.out.println("User Setup NEW TOTP Secret for " + username + ": " + secret);
-                System.out.println("=================================================");
+
+
+
                 
                 java.util.Map<String, String> res = new java.util.HashMap<>();
                 res.put("totpSecret", secret);
@@ -301,9 +334,9 @@ public class AuthController {
                     return ResponseEntity.status(500).body(java.util.Collections.singletonMap("message", "Failed to send OTP to your email address."));
                 }
             } else {
-                System.out.println("=================================================");
-                System.out.println("EMAIL OTP for " + username + ": " + otp);
-                System.out.println("=================================================");
+
+
+
             }
             
             return ResponseEntity.ok(java.util.Collections.singletonMap("status", "EMAIL_SENT"));
@@ -324,31 +357,19 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = java.util.UUID.randomUUID().toString();
-            if (mailSender != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
+            // Send email...
+            if (mailSender != null) {
+                org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
+                message.setTo(user.getEmail());
+                message.setSubject("Password Reset - HMCS");
+                message.setText("Click the link to reset your password: http://localhost:5173/reset-password?token=" + token);
                 try {
-                    org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
-                    message.setTo(user.getEmail());
-                    message.setSubject("HMCS Password Reset Request");
-                    message.setText("Click the following link to reset your password:\nhttp://localhost:5173/reset-password?token=" + token);
                     mailSender.send(message);
-                    System.out.println("Password reset email sent to " + user.getEmail());
-                } catch (Exception e) {
-                    System.err.println("Failed to send reset email: " + e.getMessage());
-                    System.out.println("======================================================");
-                    System.out.println("FALLBACK PASSWORD RESET LINK FOR USER: " + username);
-                    System.out.println("http://localhost:5173/reset-password?token=" + token);
-                    System.out.println("======================================================");
-                }
-            } else {
-                System.out.println("======================================================");
-                System.out.println("PASSWORD RESET LINK FOR USER: " + username);
-                System.out.println("http://localhost:5173/reset-password?token=" + token);
-                System.out.println("======================================================");
+                } catch (Exception e) {}
             }
-            return ResponseEntity.ok("Password reset link sent to your email.");
-        } else {
-            return ResponseEntity.status(404).body("Username not found.");
         }
+        // Generic message regardless of whether user exists
+        return ResponseEntity.ok("If that account exists, a password reset link has been sent to the registered email.");
     }
 
     @PostMapping("/verify-otp")
@@ -358,7 +379,7 @@ public class AuthController {
         
         try {
             java.util.List<Object[]> users = entityManager.createNativeQuery(
-                "SELECT u.user_id, u.username, u.password_hash, u.tenant_id, r.role_name, b.branch_id, b.branch_name, o.name as organization_name, u.email, u.mfa_type, u.totp_secret " +
+                "SELECT u.user_id, u.username, u.password_hash, u.tenant_id, r.role_name, b.branch_id, b.branch_name, o.name as organization_name, u.email, u.mfa_type, u.totp_secret, u.full_name " +
                 "FROM auth_service.users u JOIN auth_service.roles r ON u.role_id = r.role_id LEFT JOIN auth_service.branches b ON u.branch_id = b.branch_id LEFT JOIN auth_service.organizations o ON u.tenant_id = o.organization_id WHERE u.username = :uname AND u.status = 'ACTIVE'")
                 .setParameter("uname", username)
                 .getResultList();
@@ -403,11 +424,20 @@ public class AuthController {
             Integer branchId = userRow[5] != null ? ((Number) userRow[5]).intValue() : null;
             String branchName = userRow[6] != null ? (String) userRow[6] : "System-wide";
             String orgName = userRow[7] != null ? (String) userRow[7] : "HMCS Platform";
+            String fullName = userRow.length > 11 && userRow[11] != null ? (String) userRow[11] : null;
+
+            String token = jwtUtil.generateToken(username, roleName, branchId, tenantId);
+            
+            entityManager.createNativeQuery("UPDATE auth_service.users SET active_token = :token WHERE username = :uname")
+                         .setParameter("token", token)
+                         .setParameter("uname", username)
+                         .executeUpdate();
 
             LoginResponse res = new LoginResponse();
-            res.setToken(jwtUtil.generateToken(username, roleName, branchId, tenantId));
+            res.setToken(token);
             res.setUserId(userRow[0] != null ? java.util.UUID.fromString(userRow[0].toString()) : null);
             res.setUsername(username);
+            res.setFullName(fullName);
             res.setRole(roleName);
             res.setBranchId(branchId);
             res.setBranchName(branchName);

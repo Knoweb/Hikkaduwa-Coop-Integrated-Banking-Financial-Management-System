@@ -96,4 +96,7 @@ public class Account {
     // Interest rate configuration
     @Column(precision = 5, scale = 4)
     private BigDecimal annualInterestRate = new BigDecimal("0.0600"); // 6% by default
+
+    @Column(name = "is_society_member")
+    private Boolean isSocietyMember = true;
 }

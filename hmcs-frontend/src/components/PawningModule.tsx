@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Gem, Plus, Eye, Search, Banknote, X } from 'lucide-react';
 import * as PawningService from '../services/pawning.service';
 import * as AccountService from '../services/account.service';
+import { getCurrentUser } from '../services/auth.service';
 import IssuePawnTicketModal from './IssuePawnTicketModal';
 import PawnTicketViewModal from './PawnTicketViewModal';
 import PawnPaymentModal from './PawnPaymentModal';

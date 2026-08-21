@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class JwtUtilTest {
 
     private JwtUtil jwtUtil;
-    private String secretKey = "hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system";
+    private String secretKey = "test_dummy_secret_key_needs_to_be_long_enough_for_hmac256";
 
     @BeforeEach
     public void setUp() {

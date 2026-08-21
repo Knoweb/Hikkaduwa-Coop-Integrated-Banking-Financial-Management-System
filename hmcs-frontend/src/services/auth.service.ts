@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/` : 'http://localhost:8080/api/v1/auth/';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/` : '/api/v1/auth/';
 
 // Enable sending cookies with requests
 axios.defaults.withCredentials = true;

@@ -38,8 +38,8 @@ public class LoanController {
     }
 
     @GetMapping("/reports/insurance")
-    public List<Loan> getInsuranceReportLoans(@RequestParam String month) {
-        return loanService.getInsuranceReportLoans(month);
+    public List<Loan> getInsuranceReportLoans(@RequestParam String month, @RequestParam(required = false) Integer branchId) {
+        return loanService.getInsuranceReportLoans(month, branchId);
     }
 
     @GetMapping("/{id}")

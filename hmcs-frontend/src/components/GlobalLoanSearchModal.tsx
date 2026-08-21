@@ -4,6 +4,7 @@ import * as LoanService from '../services/loan.service';
 import { getBranchName } from '../pages/BranchDashboard';
 import { useLanguage } from '../context/LanguageContext';
 
+import * as AccountService from '../services/account.service';
 
 interface Props {
   onClose: () => void;
@@ -15,29 +16,36 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [loans, setLoans] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const fetchAllLoans = async () => {
+    const fetchData = async () => {
       try {
-        const data = await LoanService.getGlobalLoans();
+        const [loansData, membersData] = await Promise.all([
+          LoanService.getGlobalLoans(),
+          AccountService.getMembers()
+        ]);
         // Only keep active loans that can be repaid
-        setLoans(data.filter(l => l.status === 'ACTIVE' || l.status === 'DISBURSED'));
+        setLoans(loansData.filter(l => l.status === 'ACTIVE' || l.status === 'DISBURSED'));
+        setMembers(membersData);
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     };
-    fetchAllLoans();
+    fetchData();
   }, []);
 
   const filteredLoans = search.trim() ? loans.filter(l => {
     const s = search.toLowerCase();
     const appData = l.applicationData || {};
-    const name = (appData.name || appData.applicantName || appData.fullName || '').toLowerCase();
-    const nic = (appData.nic || '').toLowerCase();
-    const memNo = (appData.membershipNumber || '').toLowerCase();
+    const member = members.find(m => m.memberId === l.memberId);
+    
+    const name = (member?.fullNameSinhala || member?.nameWithInitials || member?.fullName || appData.name || appData.applicantName || appData.fullName || '').toLowerCase();
+    const nic = (member?.nic || appData.nic || '').toLowerCase();
+    const memNo = (member?.membershipNumber || appData.membershipNumber || '').toLowerCase();
     const accNo = (l.accountNumber || '').toLowerCase();
     return name.includes(s) || nic.includes(s) || memNo.includes(s) || accNo.includes(s);
   }) : [];
@@ -95,7 +103,8 @@ export default function GlobalLoanSearchModal({ onClose, onSelectLoan, currentBr
             <div className="space-y-3">
               {filteredLoans.map((loan) => {
                 const appData = loan.applicationData || {};
-                const name = appData.name || appData.applicantName || appData.fullName || 'Unknown';
+                const member = members.find(m => m.memberId === loan.memberId);
+                const name = member?.fullNameSinhala || member?.nameWithInitials || member?.fullName || appData.name || appData.applicantName || appData.fullName || 'Unknown';
                 const isOtherBranch = currentBranchId && loan.branchId !== currentBranchId;
 
                 return (

@@ -1114,9 +1114,15 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
     return <PawningApprovalsView />;
   }
 
-  const pendingLoans = loans.filter(l => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' && l.status === 'PENDING');
-  const approvedLoans = loans.filter(l => l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED' || l.status === 'ACTIVE' || l.currentStage === 'DISBURSED');
-  const rejectedLoans = loans.filter(l => l.status === 'REJECTED');
+  const pendingLoans = loans
+    .filter(l => l.currentStage === 'STAGE_2_LOAN_COMMITTEE_APPROVAL' && l.status === 'PENDING')
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+  const approvedLoans = loans
+    .filter(l => l.currentStage === 'STAGE_3_APPROVED' || l.status === 'APPROVED' || l.status === 'ACTIVE' || l.currentStage === 'DISBURSED')
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+  const rejectedLoans = loans
+    .filter(l => l.status === 'REJECTED')
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
   return (
     <div className="space-y-6">
@@ -1201,10 +1207,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0">
-                    <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
+                  <div className="flex flex-col items-end shrink-0 gap-1.5">
+                      <button onClick={() => setSelectedLoan(l)} className="px-5 py-2.5 bg-blue-600 text-white text-sm rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
                       <Eye size={16} /> {t(`පරීක්ෂා කර අනුමත කරන්න`)}</button>
-                  </div>
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                        <Calendar size={12} />
+                        {t('Updated At:')} {l.updatedAt ? new Date(l.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (l.createdAt ? new Date(l.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A')}
+                      </span>
+                    </div>
                 </div>
               </div>
             );
@@ -1259,10 +1269,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0">
-                    <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
+                  <div className="flex flex-col items-end shrink-0 gap-1.5">
+                      <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-emerald-200">
                       <CheckCircle size={16} /> {t(`අනුමත කර ඇත`)}</span>
-                  </div>
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                        <Calendar size={12} />
+                        {t('Approved At:')} {l.updatedAt ? new Date(l.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (l.createdAt ? new Date(l.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A')}
+                      </span>
+                    </div>
                 </div>
               </div>
             );
@@ -1317,10 +1331,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0">
-                    <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
+                  <div className="flex flex-col items-end shrink-0 gap-1.5">
+                      <span className="px-4 py-2 bg-red-100 text-red-800 rounded-xl font-bold text-sm flex items-center gap-2 border border-red-200">
                       <XCircle size={16} /> {t(`ප්‍රතික්ෂේප කර ඇත`)}</span>
-                  </div>
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                        <Calendar size={12} />
+                        {t('Rejected At:')} {l.updatedAt ? new Date(l.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (l.createdAt ? new Date(l.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A')}
+                      </span>
+                    </div>
                 </div>
               </div>
             );
@@ -6180,7 +6198,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
               memberNo: String(l.memberId || ''), 
               name: l.applicationData?.applicant?.applicantName || l.applicationData?.applicant?.name || l.applicantDetail?.applicantName || 'සාමාජික' 
             };
-            const enrichedInfo = { ...minfo, typeStr: l.loanType?.name || l.loanTypeStr };
+            const enrichedInfo = { ...minfo, typeStr: l.loanType?.name || l.loanTypeStr, accountNumber: l.accountNumber };
             if (!enrichedInfo.branchId && l.branchId) enrichedInfo.branchId = l.branchId;
             if (l.accountNumber) tMap[String(l.accountNumber)] = enrichedInfo;
             if (l.applicationNumber) tMap[String(l.applicationNumber)] = enrichedInfo;
@@ -6905,7 +6923,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                 </div>
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 col-span-2">
                   <p className="text-xs text-slate-500 font-bold mb-1">{t('විස්තරය (Description)')}</p>
-                  <p className="font-semibold text-slate-800">{selectedLedgerTx.description}</p>
+                  <p className="font-semibold text-slate-800">{parseLedgerDescription(selectedLedgerTx.description || '', selectedLedgerTx.creditAccount || selectedLedgerTx.debitAccount || '', membersMap).title}</p>
                 </div>
                 {(() => {
                   const codeMatch = selectedLedgerTx.description?.match(/\b(PW\d+|ACC-?[A-Za-z0-9-]+|LN-?[A-Za-z0-9-]+|FD-?[A-Za-z0-9-]+|RCPT-?[A-Za-z0-9-]+)\b/i);
@@ -7146,7 +7164,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
 
   useEffect(() => {
     let intervalId: any;
-    const userRole = AuthService.getCurrentUser()?.role;
+    const userRole = AuthService.getCurrentUser()?.role?.replace('ROLE_', '');
     if (['ORGANIZATION_ADMIN', 'BRANCH_MANAGER', 'AUDITOR'].includes(userRole || '')) {
       const fetchAudits = () => {
         import('../services/audit.service').then(m => {

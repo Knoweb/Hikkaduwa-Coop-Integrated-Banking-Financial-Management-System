@@ -56,7 +56,7 @@ export default function SystemSecurityLogsView({ branchId }: { branchId?: number
         authHeader['Authorization'] = 'Bearer ' + token;
       }
 
-      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : 'http://localhost:8080/api/v1/auth';
+      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : '/api/v1/auth';
       const res = await axios.get(`${baseUrl}/system-logs`, { 
           headers: authHeader,
           withCredentials: true

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Gem, AlertTriangle, CheckCircle, FileText, Banknote } from 'lucide-react';
 import { printPawnTicket } from '../utils/print';
 import { useLanguage } from '../context/LanguageContext';
+import { getCurrentUser } from '../services/auth.service';
 
 export default function PawnTicketViewModal({ ticket, onClose, onPay }: { ticket: any, onClose: () => void, onPay?: () => void }) {
   const { t } = useLanguage();

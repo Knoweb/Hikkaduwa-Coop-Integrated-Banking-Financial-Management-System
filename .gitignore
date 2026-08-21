@@ -37,3 +37,8 @@ hmcs-frontend/node_modules_win/
 *.js
 *.py
 *.json
+
+.env
+.env.*
+!.env.example
+

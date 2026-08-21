@@ -4,11 +4,15 @@ import type { Loan } from '../services/loan.service';
 import * as LoanService from '../services/loan.service';
 import type { MemberData } from '../services/account.service';
 import { getMembers } from '../services/account.service';
+import { getCurrentUser } from '../services/auth.service';
 import { useLanguage } from '../context/LanguageContext';
 
 
 export default function InsuranceReport() {
   const { t } = useLanguage();
+  const currentUser = getCurrentUser();
+  const branchId = currentUser?.branchId;
+
   const [loans, setLoans] = useState<Loan[]>([]);
   const [members, setMembers] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +31,7 @@ export default function InsuranceReport() {
     setLoading(true);
     try {
       const [fetchedLoans, fetchedMembers] = await Promise.all([
-        LoanService.getInsuranceReportLoans(selectedMonth),
+        LoanService.getInsuranceReportLoans(selectedMonth, branchId),
         getMembers()
       ]);
       setLoans(fetchedLoans);

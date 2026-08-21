@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/pawning/tickets` : 'http://localhost:8080/api/v1/pawning/tickets';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/pawning/tickets` : '/api/v1/pawning/tickets';
 
 const authHeader = () => {
   const user = getCurrentUser();

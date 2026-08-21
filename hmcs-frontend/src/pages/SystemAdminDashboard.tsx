@@ -509,7 +509,7 @@ function TenantsTab() {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
       const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : 'http://localhost:8080/api/v1/auth';
+      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : '/api/v1/auth';
       const res = await axios.get(`${baseUrl}/organizations`, { headers });
       setTenants(res.data);
     } catch (e) {
@@ -532,7 +532,7 @@ function TenantsTab() {
       const user = userStr ? JSON.parse(userStr) : null;
       const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
       
-      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : 'http://localhost:8080/api/v1/auth';
+      const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth` : '/api/v1/auth';
       await axios.post(`${baseUrl}/organizations`, form, { headers });
       setForm({ name: '', subdomain: '', branchName: '', adminUsername: '', adminPassword: '' });
       setShowAdd(false);
@@ -757,39 +757,52 @@ function OverviewTab({ allUsers, onSelectBranch, branches, onAddBranch, activiti
             const g = BRANCH_GLOWS[idx % BRANCH_GLOWS.length];
             const count = allUsers.filter(u => u.branchId === branch.branchId && u.role !== 'ORGANIZATION_ADMIN' && u.role !== 'AUDITOR').length;
             return (
-              <button key={branch.branchId} onClick={() => onSelectBranch(branch)}
-                style={{
-                  background: g.bg,
-                  border: `1.5px solid ${g.border}`,
-                  boxShadow: `0 0 18px ${g.glow}, 0 4px 20px rgba(0,0,0,0.06)`,
-                  transition: 'box-shadow 0.2s ease, transform 0.2s ease',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${g.glow}, 0 8px 32px rgba(0,0,0,0.12)`;
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-5px)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = `0 0 18px ${g.glow}, 0 4px 20px rgba(0,0,0,0.06)`;
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                }}
-                className="rounded-2xl p-5 text-left cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
-                    style={{ background: g.badge }}>B{branch.branchId}</div>
-                  <span className="flex items-center gap-1 text-xs font-bold" style={{ color: g.badge }}>
-                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: g.badge }} /> {t('Online')}
-                  </span>
-                </div>
-                <p className="font-semibold text-slate-800 text-sm mb-0.5">{t(branch.branchName)}</p>
-                <p className="text-xs text-slate-400 mb-3">{t(branch.location)}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-white/70 text-slate-600">
-                    {count} {count === 1 ? t('user') : t('users')}
-                  </span>
-                  <ChevronRight size={14} style={{ color: g.badge }} />
-                </div>
-              </button>
+              <div key={branch.branchId} className="relative group/card">
+                <button onClick={() => onSelectBranch(branch)}
+                  style={{
+                    background: g.bg,
+                    border: `1.5px solid ${g.border}`,
+                    boxShadow: `0 0 18px ${g.glow}, 0 4px 20px rgba(0,0,0,0.06)`,
+                    transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+                    width: '100%',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${g.glow}, 0 8px 32px rgba(0,0,0,0.12)`;
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-5px)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 0 18px ${g.glow}, 0 4px 20px rgba(0,0,0,0.06)`;
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  }}
+                  className="rounded-2xl p-5 text-left cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
+                      style={{ background: g.badge }}>B{branch.branchId}</div>
+                    <span className="flex items-center gap-1 text-xs font-bold" style={{ color: g.badge }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: g.badge }} /> {t('Online')}
+                    </span>
+                  </div>
+                  <p className="font-semibold text-slate-800 text-sm mb-0.5">{t(branch.branchName)}</p>
+                  <p className="text-xs text-slate-400 mb-3">{t(branch.location)}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-white/70 text-slate-600">
+                      {count} {count === 1 ? t('user') : t('users')}
+                    </span>
+                    <ChevronRight size={14} style={{ color: g.badge }} />
+                  </div>
+                </button>
+                {/* Delete button ΓÇö visible on card hover, non-AUDITOR only */}
+                {AuthService.getCurrentUser()?.role !== 'AUDITOR' && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onDeleteBranch(branch); }}
+                    title={t('Delete Branch')}
+                    className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-all duration-200 w-7 h-7 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-500/30 hover:scale-110"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
             );
           })}
           {AuthService.getCurrentUser()?.role !== 'AUDITOR' && (
@@ -1145,7 +1158,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                           type="checkbox" 
                           className="sr-only peer" 
                           checked={form.mfaType !== 'NONE'}
-                          onChange={e => setForm(p => ({ ...p, mfaType: e.target.checked ? 'ENABLED' : 'NONE' }))}
+                          onChange={e => setForm(p => ({ ...p, mfaType: e.target.checked ? 'TOTP' : 'NONE' }))}
                         />
                         <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
@@ -1157,7 +1170,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 shrink-0 bg-white rounded-b-2xl">
                   <button onClick={() => { setShowForm(false); setEditingUser(null); }} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">{t('Cancel')}</button>
                   <button onClick={handleSubmit} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-sm transition">
                     {editingUser ? t('Save Changes') : t('Create User')}
@@ -1260,6 +1273,32 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
           </div>
         </div>
       )}
+      {/* QR Code Modal for Branch Detail View */}
+      {qrModal.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-100 w-full max-w-sm text-center transform transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                <Smartphone className="text-blue-600" size={20} /> Two-Factor Auth
+              </h3>
+              <button onClick={() => setQrModal({show: false, username: '', secret: ''})} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-slate-500 text-sm mb-4">Scan this QR Code using Google Authenticator for user <strong>{qrModal.username}</strong>.</p>
+            <div className="flex justify-center p-4 bg-white border border-slate-100 rounded-xl mx-auto mb-4 shadow-sm">
+              <QRCodeSVG value={`otpauth://totp/HMCS:${qrModal.username}?secret=${qrModal.secret}&issuer=HMCS`} size={200} />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-6 text-left">
+              <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Secret Key:</p>
+              <p className="font-mono text-sm text-slate-800 select-all">{qrModal.secret}</p>
+            </div>
+            <button onClick={() => setQrModal({show: false, username: '', secret: ''})} className="w-full px-4 py-3 bg-slate-900 text-white font-bold rounded-xl transition hover:bg-slate-800">
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1272,8 +1311,7 @@ import AuditorCommentsView from '../components/AuditorCommentsView';
 
 export default function SystemAdminDashboard() {
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings' | 'tenants' | 'auditor_comments'>(
-    () => {
+  const [mainTab, setMainTab] = useState<'overview' | 'rates' | 'account_types' | 'settings' | 'tenants' | 'auditor_comments' | 'audit_logs'>(() => {
       const saved = sessionStorage.getItem('sa_mainTab');
       if (saved) return saved as any;
       const u = AuthService.getCurrentUser();
@@ -1305,6 +1343,34 @@ export default function SystemAdminDashboard() {
       Swal.fire('Error', 'Failed to create branch', 'error');
     } finally {
       setAddingBranch(false);
+    }
+  };
+
+  const handleDeleteBranch = async (branch: BranchService.BranchDTO) => {
+    const result = await Swal.fire({
+      title: t('Delete Branch?'),
+      html: `<b>${branch.branchName}</b> ${t('α╖üα╖Åα╢¢α╖Åα╖Ç α╢Üα╖èΓÇìα╢╗α╖Æα╢║α╖Åα╖Çα╖Æα╢╗α╖äα╖Æα╢¡ (Inactive) α╢Üα╢╗α╢▒α╖Çα╖Åα╢»?')}<br/><small style="color:#94a3b8">${t('α╖üα╖Åα╢¢α╖Åα╖Çα╖Ü α╢£α╖Æα╢½α╖öα╢╕α╖è α╖âα╖ä α╢»α╢¡α╖èα╢¡ α╢åα╢╗α╢Üα╖èα╖éα╖Æα╢¡α╖Ç α╢┤α╖Çα╢¡α╖Æα╢▒α╖ö α╢çα╢¡.')}</small>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: t('α╢öα╖Çα╖è, α╢╕α╢Üα╢▒α╖èα╢▒'),
+      cancelButtonText: t('α╢àα╖Çα╢╜α╢éα╢£α╖ö α╢Üα╢╗α╢▒α╖èα╢▒'),
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await BranchService.deleteBranch(branch.branchId!);
+      Swal.fire({
+        title: t('α╖âα╖Åα╢╗α╖èα╢«α╢Üα╢║α╖Æ!'),
+        text: `${branch.branchName} ${t('α╖üα╖Åα╢¢α╖Åα╖Ç Inactive α╢Üα╢╗α╢▒ α╢╜α╢»α╖ô.')}`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      fetchBranches();
+    } catch (e) {
+      console.error(e);
+      Swal.fire('α╢»α╖¥α╖éα╢║', 'α╖üα╖Åα╢¢α╖Åα╖Ç α╢╕α╢Üα╖Å α╢»α╖Éα╢╕α╖ôα╢╕α╢º α╢▒α╖£α╖äα╖Éα╢Üα╖Æ α╖Çα╖Æα╢║.', 'error');
     }
   };
 
@@ -1598,7 +1664,7 @@ export default function SystemAdminDashboard() {
                 </div>
               )
             ) : (
-              <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} branches={branches} onAddBranch={() => setShowAddBranch(true)} activities={activities} user={user} />
+              <OverviewTab allUsers={allUsers} onSelectBranch={handleSelectBranch} branches={branches} onAddBranch={() => setShowAddBranch(true)} onDeleteBranch={handleDeleteBranch} activities={activities} user={user} />
             )
           )}
         </div>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getCurrentUser } from './auth.service';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/loans` : 'http://localhost:8080/api/v1/loans';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/loans` : '/api/v1/loans';
 
 const authHeader = () => {
   const user = getCurrentUser();
@@ -134,8 +134,11 @@ export const getLoansByStatus = async (status: string): Promise<Loan[]> => {
   return response.data;
 };
 
-export const getInsuranceReportLoans = async (month: string): Promise<Loan[]> => {
-  const response = await axios.get(`${API_URL}/reports/insurance?month=${month}`, { headers: authHeader() });
+export const getInsuranceReportLoans = async (month: string, branchId?: number): Promise<Loan[]> => {
+  const url = branchId 
+    ? `${API_URL}/reports/insurance?month=${month}&branchId=${branchId}` 
+    : `${API_URL}/reports/insurance?month=${month}`;
+  const response = await axios.get(url, { headers: authHeader() });
   return response.data;
 };
 
@@ -198,7 +201,7 @@ export const disburseLoan = async (
 export const getMemberSavingsAccounts = async (memberId: string): Promise<any[]> => {
   const user = getCurrentUser();
   const headers = user?.token ? { Authorization: 'Bearer ' + user.token } : {};
-  const url = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/savings` : 'http://localhost:8080/api/v1/savings';
+  const url = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/savings` : '/api/v1/savings';
   const res = await axios.get(url, { headers });
   return (res.data as any[]).filter(
     (acc: any) => acc.memberId === memberId && acc.status === 'ACTIVE'

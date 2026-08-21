@@ -50,6 +50,11 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/debug")
+    public ResponseEntity<List<UserDTO>> getDebugUsers() {
+        return getAllUsers();
+    }
+
     private boolean isPasswordComplex(String password) {
         if (password == null || password.length() < 8) return false;
         boolean hasUpper = false;
@@ -97,12 +102,24 @@ public class UserController {
 
         if ("NONE".equals(user.getMfaType())) {
             user.setTotpSecret(null);
+        } else if ("TOTP".equals(user.getMfaType())) {
+            // Auto-generate TOTP secret so the DB constraint is satisfied
+            SecretGenerator secretGenerator = new DefaultSecretGenerator();
+            user.setTotpSecret(secretGenerator.generate());
         }
 
-        User saved = userRepository.save(user);
-        
-        dto.setUserId(saved.getUserId());
-        return ResponseEntity.ok(dto);
+        try {
+            User saved = userRepository.save(user);
+            
+            dto.setUserId(saved.getUserId());
+            // Return totpSecret so frontend can show QR code to the admin
+            if (saved.getTotpSecret() != null) {
+                dto.setTotpSecret(saved.getTotpSecret());
+            }
+            return ResponseEntity.ok(dto);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
     }
 
     @PutMapping("/{id}")

@@ -12,6 +12,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMethod, setLoadingMethod] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [captchaNum1, setCaptchaNum1] = useState(0);
@@ -60,6 +61,7 @@ export default function Login() {
     const params = new URLSearchParams(location.search);
     if (params.get('expired') === 'true') {
       setError('Your session has expired. Please log in again.');
+      window.history.replaceState({}, '', '/login');
     }
   }, [location]);
 
@@ -132,8 +134,10 @@ export default function Login() {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (loading || otpValue.length < 6) return;
+    
     setOtpError('');
     setLoading(true);
     try {
@@ -149,8 +153,16 @@ export default function Login() {
     }
   };
 
+  useEffect(() => {
+    if (otpValue.length === 6 && (showOtpModal || showSetupMfaModal)) {
+      handleVerifyOtp();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValue]);
+
   const handleSetupMfa = async (method: string) => {
     setLoading(true);
+    setLoadingMethod(method);
     try {
       const response = await AuthService.setupMfa(tempToken, method);
       if (method === 'TOTP') {
@@ -347,7 +359,11 @@ export default function Login() {
                         <span className="text-[10px] opacity-75 mt-0.5 inline-block">Login securely using Google Authenticator or Authy.</span>
                       </p>
                     </div>
-                    <ChevronRight size={20} className="text-slate-600 group-hover:text-yellow-500 relative z-10 transition-colors transform group-hover:translate-x-1" />
+                    {loading && loadingMethod === 'TOTP' ? (
+                      <Loader2 size={20} className="text-yellow-500 animate-spin relative z-10" />
+                    ) : (
+                      <ChevronRight size={20} className="text-slate-600 group-hover:text-yellow-500 relative z-10 transition-colors transform group-hover:translate-x-1" />
+                    )}
                   </button>
                   
                   <button 
@@ -367,7 +383,14 @@ export default function Login() {
                         <span className="text-[10px] opacity-75 mt-0.5 inline-block">Receive a verification code to your registered email address.</span>
                       </p>
                     </div>
-                    <ChevronRight size={20} className="text-slate-600 group-hover:text-blue-500 relative z-10 transition-colors transform group-hover:translate-x-1" />
+                    {loading && loadingMethod === 'EMAIL' ? (
+                      <div className="flex items-center gap-2 relative z-10">
+                        <span className="text-xs text-blue-400 font-medium">Please wait...</span>
+                        <Loader2 size={20} className="text-blue-500 animate-spin" />
+                      </div>
+                    ) : (
+                      <ChevronRight size={20} className="text-slate-600 group-hover:text-blue-500 relative z-10 transition-colors transform group-hover:translate-x-1" />
+                    )}
                   </button>
                 </div>
               </>

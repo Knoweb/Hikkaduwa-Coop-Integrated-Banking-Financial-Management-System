@@ -4,23 +4,59 @@ import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import Members from './pages/Members';
 import Accounts from './pages/Accounts';
 import BranchDashboard from './pages/BranchDashboard';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastContainer } from './components/ToastContainer';
 import './utils/toast';
-import { useEffect } from 'react';
-import { logout } from './services/auth.service';
+import { useEffect, useState } from 'react';
+import { logout, getCurrentUser } from './services/auth.service';
+import { AlertTriangle } from 'lucide-react';
 
 function IdleTimer() {
+  const [showWarning, setShowWarning] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+
   useEffect(() => {
-    let timeoutId: number;
+    let warningTimeoutId: number;
+    let logoutTimeoutId: number;
+    let countdownIntervalId: number;
+
+    const timeoutDuration = 60 * 60 * 1000; // 60 mins
+    const warningDuration = 55 * 60 * 1000; // Show warning at 55 mins
+
+    const clearTimers = () => {
+      window.clearTimeout(warningTimeoutId);
+      window.clearTimeout(logoutTimeoutId);
+      window.clearInterval(countdownIntervalId);
+    };
 
     const resetTimer = () => {
-      window.clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(async () => {
+      if (!getCurrentUser()) return; // Don't run timers if not logged in
+      
+      setShowWarning(false);
+      clearTimers();
+
+      warningTimeoutId = window.setTimeout(() => {
+        if (!getCurrentUser()) return;
+        setShowWarning(true);
+        setTimeLeft(5 * 60); // 5 mins in seconds
+
+        countdownIntervalId = window.setInterval(() => {
+          setTimeLeft((prev) => {
+            if (prev <= 1) {
+              window.clearInterval(countdownIntervalId);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }, warningDuration);
+
+      logoutTimeoutId = window.setTimeout(async () => {
+        if (!getCurrentUser()) return;
         await logout();
         window.location.href = '/login?expired=true';
-      }, 15 * 60 * 1000); // 15 minutes
+      }, timeoutDuration);
     };
 
     window.addEventListener('mousemove', resetTimer);
@@ -31,7 +67,7 @@ function IdleTimer() {
     resetTimer();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      clearTimers();
       window.removeEventListener('mousemove', resetTimer);
       window.removeEventListener('keydown', resetTimer);
       window.removeEventListener('click', resetTimer);
@@ -39,7 +75,30 @@ function IdleTimer() {
     };
   }, []);
 
-  return null;
+  if (!showWarning) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex justify-center mb-4 text-amber-500">
+          <AlertTriangle size={48} />
+        </div>
+        <h3 className="text-xl font-bold text-center text-slate-900 mb-2">Session Expiring Soon</h3>
+        <p className="text-center text-slate-600 mb-6">
+          You have been inactive. Your session will expire and you will be logged out in <strong className="text-red-600">{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</strong> minutes to protect your data.
+        </p>
+        <button 
+          onClick={() => {
+            setShowWarning(false);
+            window.dispatchEvent(new Event('mousemove')); // Hack to trigger reset
+          }}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+        >
+          Keep Me Logged In
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function App() {

@@ -20,8 +20,8 @@ export default function AuditorCommentsView() {
     return branch ? branch.branchName : `Branch ${branchId}`;
   };
   const currentUser = getCurrentUser();
-  const isAuditor = currentUser?.role === 'AUDITOR';
-  const isBranchManager = currentUser?.role === 'BRANCH_MANAGER';
+  const isAuditor = currentUser?.role?.replace('ROLE_', '') === 'AUDITOR';
+  const isBranchManager = currentUser?.role?.replace('ROLE_', '') === 'BRANCH_MANAGER';
 
   useEffect(() => {
     fetchComments();

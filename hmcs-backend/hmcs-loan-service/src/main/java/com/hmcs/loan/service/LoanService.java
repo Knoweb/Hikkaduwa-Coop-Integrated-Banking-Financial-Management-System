@@ -323,8 +323,13 @@ public class LoanService {
         return "";
     }
 
-    public List<Loan> getInsuranceReportLoans(String monthStr) {
+    public List<Loan> getInsuranceReportLoans(String monthStr, Integer branchId) {
         List<Loan> allLoans = loanRepository.findAll();
+        if (branchId != null) {
+            allLoans = allLoans.stream()
+                .filter(loan -> branchId.equals(loan.getBranchId()))
+                .collect(Collectors.toList());
+        }
         return allLoans.stream().filter(loan -> {
             // Check if it's a Short Term Loan using the code
             String code = getLoanTypeCode(loan.getLoanType());
@@ -518,6 +523,10 @@ public class LoanService {
                     System.out.println("[LoanService] Extracted Auth Header: " + (authHeader != null ? "Present (length: " + authHeader.length() + ")" : "NULL"));
                     if (authHeader != null) {
                         headers.set("Authorization", authHeader);
+                    }
+                    String csrfHeader = ((org.springframework.web.context.request.ServletRequestAttributes) attrs).getRequest().getHeader("X-XSRF-TOKEN");
+                    if (csrfHeader != null) {
+                        headers.set("X-XSRF-TOKEN", csrfHeader);
                     }
                 } else {
                     System.out.println("[LoanService] RequestContextHolder attrs is NULL or not ServletRequestAttributes");

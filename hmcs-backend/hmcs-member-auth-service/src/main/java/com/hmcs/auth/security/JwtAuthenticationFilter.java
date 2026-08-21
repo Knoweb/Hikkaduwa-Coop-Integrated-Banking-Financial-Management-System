@@ -7,11 +7,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -33,7 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
-                String username = jwtUtil.extractUsername(token);
+                String username = jwtUtil.extractUsername(token); System.out.println("Extracted username: " + username);
                 String role = jwtUtil.extractRole(token);
                 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -49,8 +51,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (optUser.isPresent()) {
                         String activeToken = optUser.get().getActiveToken();
                         if (activeToken != null && token.equals(activeToken)) {
+                            String authName = (role != null && role.startsWith("ROLE_")) ? role : "ROLE_" + (role != null ? role : "");
+                            String rawRole = authName.replace("ROLE_", "");
+                            List<GrantedAuthority> authorities = Arrays.asList(
+                                new SimpleGrantedAuthority(authName),
+                                new SimpleGrantedAuthority(rawRole)
+                            );
                             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                    username, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                                    username, null, authorities
                             );
                             SecurityContextHolder.getContext().setAuthentication(authToken);
                         } else {
@@ -70,3 +78,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

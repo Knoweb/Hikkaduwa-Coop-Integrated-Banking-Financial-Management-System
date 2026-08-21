@@ -4,7 +4,7 @@ public class DbTest {
     public static void main(String[] args) {
         String url = "jdbc:postgresql://localhost:5432/hmcs_db";
         String user = "hmcs_app";
-        String password = "hmcs_secure_pass_2026";
+        String password = System.getenv("DB_PASSWORD");
         try (Connection conn = DriverManager.getConnection(url, user, password);
              Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT count(*) FROM audit_service.audit_corrections");
