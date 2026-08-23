@@ -239,6 +239,11 @@ public class AuthController {
                     .sameSite("Strict")
                     .build();
 
+            entityManager.createNativeQuery("UPDATE auth_service.users SET active_token = :token WHERE username = :uname")
+                         .setParameter("token", token)
+                         .setParameter("uname", username)
+                         .executeUpdate();
+
             LoginResponse res = new LoginResponse();
             res.setUserId(userRow[0] != null ? java.util.UUID.fromString(userRow[0].toString()) : null);
             res.setToken(token);
@@ -443,7 +448,16 @@ public class AuthController {
             res.setBranchName(branchName);
             res.setTenantId(tenantId);
             res.setOrganizationName(orgName);
-            return ResponseEntity.ok(res);
+
+            org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("jwt_token", token)
+                    .httpOnly(true)
+                    .secure(false) // Use false for localhost
+                    .path("/")
+                    .maxAge(24 * 60 * 60)
+                    .sameSite("Strict")
+                    .build();
+
+            return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString()).body(res);
         } catch(Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error generating token");

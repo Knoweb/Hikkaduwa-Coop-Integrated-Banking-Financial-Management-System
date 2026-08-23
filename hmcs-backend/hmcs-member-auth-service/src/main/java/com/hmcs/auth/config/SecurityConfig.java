@@ -1,6 +1,7 @@
 package com.hmcs.auth.config;
 
 import com.hmcs.auth.security.JwtAuthenticationFilter;
+import com.hmcs.auth.security.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,9 +14,11 @@ import org.springframework.http.HttpMethod;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -38,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/branches", "/api/v1/auth/branches/**").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_PLATFORM_ADMIN")
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             
         return http.build();

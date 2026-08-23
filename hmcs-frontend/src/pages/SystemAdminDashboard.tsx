@@ -130,7 +130,15 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
          });
       }
     } catch (err: any) {
-      setError(err.response?.data || 'Failed to add user');
+      const respData = err.response?.data;
+        if (typeof respData === 'string') {
+          setError(respData);
+        } else if (respData && typeof respData === 'object') {
+          const vals = Object.values(respData);
+          setError(vals.length > 0 ? String(vals[0]) : JSON.stringify(respData));
+        } else {
+          setError('Failed to add user');
+        }
     }
   };
 
@@ -175,7 +183,15 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
         });
       }
     } catch (err: any) {
-      setError(err.response?.data || 'Failed to update user');
+      const respData = err.response?.data;
+        if (typeof respData === 'string') {
+          setError(respData);
+        } else if (respData && typeof respData === 'object') {
+          const vals = Object.values(respData);
+          setError(vals.length > 0 ? String(vals[0]) : JSON.stringify(respData));
+        } else {
+          setError('Failed to update user');
+        }
     }
   };
 
@@ -202,7 +218,15 @@ function TenantInsightsView({ tenantId, tenantName, onBack }: { tenantId: number
         confirmButtonColor: '#2563eb'
       });
     } catch (err: any) {
-      setError(err.response?.data || 'Failed to delete user');
+      const respData = err.response?.data;
+        if (typeof respData === 'string') {
+          setError(respData);
+        } else if (respData && typeof respData === 'object') {
+          const vals = Object.values(respData);
+          setError(vals.length > 0 ? String(vals[0]) : JSON.stringify(respData));
+        } else {
+          setError('Failed to delete user');
+        }
     }
   };
 
