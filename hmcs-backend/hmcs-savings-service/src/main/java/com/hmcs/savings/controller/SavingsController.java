@@ -110,7 +110,7 @@ public class SavingsController {
 
     // /savings/global - alias for cross-branch access via TransactionModal
     @GetMapping("/savings/global")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
     public ResponseEntity<List<Account>> getGlobalAccounts(HttpServletRequest request) {
         Integer branchId = branchContext.extractBranchId(request);
         String role = "";
@@ -548,7 +548,7 @@ public class SavingsController {
 
     // 10. POST /api/v1/savings/transactions/{id}/edit - Edit (Overwrite) transaction & Recalculate
     @PostMapping("/transactions/{id}/edit")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'ADMIN', 'SYSTEM_ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MANAGER', 'BRANCH_MANAGER', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER')")
     public ResponseEntity<?> editTransaction(@PathVariable java.util.UUID id, @RequestBody EditTransactionRequest body, jakarta.servlet.http.HttpServletRequest request) {
         java.util.Optional<com.hmcs.savings.entity.Transaction> txOpt = transactionRepository.findById(id);
         if (txOpt.isEmpty()) {

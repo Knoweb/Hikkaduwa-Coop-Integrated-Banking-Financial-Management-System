@@ -822,7 +822,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
               </div>
 
               <div className="flex justify-end">
-                {(userRole === 'SENIOR_OFFICER' || userRole === 'CASHIER' || userRole === 'BRANCH_MANAGER') && (
+                {(userRole === 'SENIOR_OFFICER' || userRole === 'BRANCH_MANAGER' || userRole === 'ORGANIZATION_ADMIN' || userRole === 'PLATFORM_ADMIN') && (
                   <button 
                     onClick={() => {
                       setPaymentAmount('');
@@ -1016,7 +1016,7 @@ export default function LoanDetailModal({ loan, memberName, onClose, onUpdated, 
             <button onClick={() => printLoanAgreement(loan, ad)}
               className="px-5 py-2.5 rounded-xl border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-sm shadow-sm transition flex items-center gap-2">
               <FileText size={16} /> {t(`🖨 ගිවිසුම මුද්‍රණය (Print Agreement)`)}</button>
-            {((userRole === 'SENIOR_OFFICER' || userRole === 'BRANCH_MANAGER') && (loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED')) && (
+            {((userRole === 'SENIOR_OFFICER' || userRole === 'BRANCH_MANAGER' || userRole === 'ORGANIZATION_ADMIN' || userRole === 'PLATFORM_ADMIN') && (loan.status === 'APPROVED' || loan.currentStage === 'STAGE_3_APPROVED')) && (
               <button onClick={() => setShowDisburseModal(true)} className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition flex items-center gap-2">
                 {t(`💰 ණය මුදා හරින්න (Disburse)`)}</button>
             )}

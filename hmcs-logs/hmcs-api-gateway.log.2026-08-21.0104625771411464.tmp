@@ -1,0 +1,117 @@
+2026-08-21T07:31:06.930+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-21T07:31:07.377+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-21T07:31:15.832+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-21T07:31:23.488+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-21T07:31:23.497+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-21T07:31:23.506+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-21T07:31:23.509+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-21T07:31:23.511+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-21T07:31:23.516+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-21T07:31:23.527+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-21T07:31:23.528+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-21T07:31:23.538+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-21T07:31:23.541+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-21T07:31:23.543+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-21T07:31:23.544+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-21T07:31:23.546+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-21T07:31:23.553+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-21T07:31:26.462+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-21T07:31:27.689+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 26.731 seconds (process running for 34.374)
+2026-08-21T07:45:53.321+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-21T07:45:53.327+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-21T07:45:56.283+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-21T07:45:59.120+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-21T07:45:59.122+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-21T07:45:59.126+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-21T07:45:59.128+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-21T07:45:59.132+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-21T07:45:59.134+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-21T07:45:59.136+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-21T07:45:59.138+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-21T07:45:59.141+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-21T07:45:59.143+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-21T07:45:59.145+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-21T07:45:59.147+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-21T07:45:59.149+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-21T07:45:59.151+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-21T07:46:00.060+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-21T07:46:00.255+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 8.58 seconds (process running for 10.541)
+2026-08-21T12:39:54.122+05:30 ERROR 1 --- [hmcs-api-gateway] [reactor-http-epoll-1] c.h.g.e.GlobalErrorWebExceptionHandler   : API Gateway Unexpected Error: 
+
+io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: hmcs-audit-service/172.19.0.12:8089
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ org.springframework.cloud.gateway.filter.WeightCalculatorWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP GET "/api/v1/audit/comments" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359) ~[netty-transport-native-unix-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399) ~[netty-transport-classes-epoll-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.109.Final.jar!/:4.1.109.Final]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-08-21T12:54:07.852+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-21T12:54:07.857+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-21T12:54:09.660+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-21T12:54:11.266+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-21T12:54:11.266+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-21T12:54:11.267+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-21T12:54:11.267+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-21T12:54:11.268+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-21T12:54:11.268+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-21T12:54:11.269+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-21T12:54:11.269+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-21T12:54:11.269+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-21T12:54:11.270+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-21T12:54:11.270+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-21T12:54:11.270+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-21T12:54:11.271+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-21T12:54:11.271+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-21T12:54:11.733+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-21T12:54:11.887+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 5.477 seconds (process running for 6.969)
+2026-08-21T13:06:24.896+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-21T13:06:24.899+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-21T13:06:26.254+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-21T13:06:27.304+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-21T13:06:27.305+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-21T13:06:27.305+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-21T13:06:27.306+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-21T13:06:27.307+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-21T13:06:27.307+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-21T13:06:27.308+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-21T13:06:27.308+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-21T13:06:27.308+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-21T13:06:27.309+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-21T13:06:27.310+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-21T13:06:27.310+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-21T13:06:27.311+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-21T13:06:27.312+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-21T13:06:27.690+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-21T13:06:27.768+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 3.657 seconds (process running for 4.566)
+2026-08-21T15:53:18.460+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Starting HmcsGatewayServiceApplication v0.0.1-SNAPSHOT using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+2026-08-21T15:53:18.479+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-21T15:53:25.973+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=31b7242b-cf3c-3325-89ea-35c1d52d3f91
+2026-08-21T15:53:32.353+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2026-08-21T15:53:32.354+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2026-08-21T15:53:32.357+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2026-08-21T15:53:32.366+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2026-08-21T15:53:32.368+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2026-08-21T15:53:32.369+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2026-08-21T15:53:32.371+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2026-08-21T15:53:32.372+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2026-08-21T15:53:32.373+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2026-08-21T15:53:32.383+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2026-08-21T15:53:32.386+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2026-08-21T15:53:32.388+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [XForwardedRemoteAddr]
+2026-08-21T15:53:32.392+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2026-08-21T15:53:32.396+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2026-08-21T15:53:35.014+05:30  INFO 1 --- [hmcs-api-gateway] [main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080
+2026-08-21T15:53:35.473+05:30  INFO 1 --- [hmcs-api-gateway] [main] c.h.g.HmcsGatewayServiceApplication      : Started HmcsGatewayServiceApplication in 19.8 seconds (process running for 23.967)

@@ -5,6 +5,7 @@ import com.hmcs.pawning.dto.PawnTicketResponse;
 import com.hmcs.pawning.service.PawnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,21 +30,25 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.getAllTickets());
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessBranch(#branchId, authentication)")
     @GetMapping("/branch/{branchId}")
     public ResponseEntity<List<PawnTicketResponse>> getTicketsByBranch(@PathVariable Integer branchId) {
         return ResponseEntity.ok(pawnService.getTicketsByBranch(branchId));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessTicket(#ticketId, authentication)")
     @GetMapping("/{ticketId}")
     public ResponseEntity<PawnTicketResponse> getTicket(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(pawnService.getTicket(ticketId));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessTicket(#ticketId, authentication)")
     @PostMapping("/{ticketId}/redeem")
     public ResponseEntity<PawnTicketResponse> redeemTicket(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(pawnService.redeemTicket(ticketId));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessTicket(#ticketId, authentication)")
     @PostMapping("/{ticketId}/approve")
     public ResponseEntity<PawnTicketResponse> approveTicket(
             @PathVariable UUID ticketId,
@@ -55,6 +60,7 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.approveTicket(ticketId, assessedValue, remarks));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessTicket(#ticketId, authentication)")
     @PostMapping("/{ticketId}/disburse")
     public ResponseEntity<PawnTicketResponse> disburseTicket(
             @PathVariable UUID ticketId,
@@ -64,6 +70,7 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.disburseTicket(ticketId, advanceAmount));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessTicket(#ticketId, authentication)")
     @PostMapping("/{ticketId}/payments")
     public ResponseEntity<PawnTicketResponse> makePayment(
             @PathVariable UUID ticketId,
@@ -76,6 +83,7 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.makePayment(ticketId, amount, date));
     }
 
+    @PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER')")
     @PostMapping("/transactions/{id}/edit")
     public ResponseEntity<?> editTransaction(
             @PathVariable UUID id,
@@ -95,6 +103,7 @@ public class PawnController {
         return ResponseEntity.ok(java.util.Collections.singletonMap("success", true));
     }
 
+    @PreAuthorize("@pawningSecurityService.canAccessBranch(#branchId, authentication)")
     @GetMapping("/transactions/branch/{branchId}")
     public ResponseEntity<?> getTransactionsByBranch(@PathVariable Integer branchId) {
         List<com.hmcs.pawning.entity.PawnTicket> tickets = pawnTicketRepository.findByBranchIdOrderByIssueDateDesc(branchId);

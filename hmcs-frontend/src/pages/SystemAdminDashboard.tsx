@@ -1160,7 +1160,7 @@ function BranchDetail({ branch, allUsers, onRefresh, onBack, innerTab, navigate 
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 transition">
                       {roles.length === 0 ? (
                         <option disabled>Loading roles...</option>
-                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'AUDITOR', 'BANK_SERVICE_MANAGER', 'LOAN_COMMITTEE'].includes(r)).map(r => {
+                      ) : roles.filter(r => !['PLATFORM_ADMIN', 'ORGANIZATION_ADMIN', 'AUDITOR', 'BANK_SERVICE_MANAGER', 'LOAN_COMMITTEE', 'TELLER', 'VALUER'].includes(r)).map(r => {
                         let label = r.replace(/_/g, ' ');
                         if (r === 'BRANCH_MANAGER') label = 'BRANCH MANAGER (ශාඛා කළමනාකරු)';
                         if (r === 'SENIOR_OFFICER') label = 'SENIOR OFFICER (ලිපිකරු)';

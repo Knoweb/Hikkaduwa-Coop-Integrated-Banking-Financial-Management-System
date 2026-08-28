@@ -1,0 +1,129 @@
+2026-08-20T00:36:47.279+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T00:36:47.413+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T00:36:47.420+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.s.w.a.Http403ForbiddenEntryPoint     : Pre-authenticated entry point called. Rejecting access
+2026-08-20T00:36:47.428+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /error
+2026-08-20T00:36:47.430+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T00:36:47.431+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.s.w.a.Http403ForbiddenEntryPoint     : Pre-authenticated entry point called. Rejecting access
+2026-08-20T07:15:32.909+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T07:15:32.919+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:15:32.924+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.s.w.a.Http403ForbiddenEntryPoint     : Pre-authenticated entry point called. Rejecting access
+2026-08-20T07:15:32.927+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Securing GET /error
+2026-08-20T07:15:32.929+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:15:32.930+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.s.w.a.Http403ForbiddenEntryPoint     : Pre-authenticated entry point called. Rejecting access
+2026-08-20T07:16:06.769+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/login
+2026-08-20T07:16:06.772+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:16:06.775+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/login
+2026-08-20T07:16:08.403+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:16:08.474+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:16:08.910+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:16:08.937+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:40:05.566+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:40:05.606+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:40:05.983+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:40:06.016+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:40:42.011+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T07:40:42.075+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/logout
+2026-08-20T07:41:02.787+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/login
+2026-08-20T07:41:02.791+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:41:02.796+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/login
+2026-08-20T07:41:03.408+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:03.445+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:03.995+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:04.026+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:05.902+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:05.919+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.228+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.240+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.443+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.455+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.532+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:06.553+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:14.024+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T07:41:14.051+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/logout
+2026-08-20T07:41:37.636+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/login
+2026-08-20T07:41:37.639+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:41:37.641+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/login
+2026-08-20T07:41:37.969+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:37.988+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:38.203+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:41:38.216+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:42:49.993+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T07:42:50.005+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/logout
+2026-08-20T07:43:19.838+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/login
+2026-08-20T07:43:19.841+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T07:43:19.844+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/login
+2026-08-20T07:43:20.266+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:20.287+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:20.554+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:20.575+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:22.720+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:22.736+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.107+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.129+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.304+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.313+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.413+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:23.427+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:43:41.045+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/auth/branches
+2026-08-20T07:43:41.063+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/auth/branches
+2026-08-20T07:43:41.189+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/auth/branches
+2026-08-20T07:43:41.209+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-9] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/auth/branches
+2026-08-20T07:44:15.193+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:15.212+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:15.540+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:15.558+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:15.827+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:15.842+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:16.055+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T07:44:16.068+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:43.159+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:43.204+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:43.987+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:44.005+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:44.685+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:44.701+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:45.055+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T08:39:45.070+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T10:05:42.381+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T10:05:42.381+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/logout
+2026-08-20T10:05:42.668+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/logout
+2026-08-20T10:05:42.668+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/logout
+2026-08-20T16:49:58.647+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/login
+2026-08-20T16:49:58.787+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-08-20T16:49:58.795+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/login
+2026-08-20T16:50:02.235+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:02.425+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:03.940+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:04.012+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:04.430+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:04.481+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:05.434+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:50:05.503+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:11.036+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:11.135+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.160+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.215+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.589+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.598+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.689+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T16:56:12.698+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:27.165+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:27.209+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:27.370+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:27.382+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:28.067+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:28.076+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:28.599+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T17:04:28.610+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:31.975+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:31.987+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-10] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:32.823+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:32.842+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:40.031+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:40.076+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-3] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:46.902+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:46.967+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:47.783+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:47.809+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-4] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:48.156+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Securing GET /api/v1/members?branchOnly=true
+2026-08-20T22:37:48.218+05:30 DEBUG 1 --- [hmcs-member-auth-service] [http-nio-8081-exec-5] o.s.security.web.FilterChainProxy        : Secured GET /api/v1/members?branchOnly=true

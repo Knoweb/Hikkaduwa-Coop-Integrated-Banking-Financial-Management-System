@@ -6,6 +6,7 @@ import {
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as PawningService from '../services/pawning.service';
 import * as LoanService from '../services/loan.service';
+import * as AuthService from '../services/auth.service';
 
 interface BranchOverviewViewProps {
   branchId: number;
@@ -24,6 +25,7 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
 }) => {
   const [pawningTickets, setPawningTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const userRole = AuthService.getCurrentUser()?.role || '';
 
   useEffect(() => {
     const fetchPawning = async () => {
@@ -98,7 +100,7 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
     <div className="space-y-6">
       
       {/* Pending Actions Alert */}
-      {(pendingLoans > 0 || pendingPawning > 0) && (
+      {(pendingLoans > 0 || pendingPawning > 0) && (userRole === 'BRANCH_MANAGER' || userRole === 'ORGANIZATION_ADMIN' || userRole === 'PLATFORM_ADMIN') && (
         <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg flex items-start justify-between shadow-sm animate-fade-in">
           <div className="flex items-start gap-3">
             <AlertCircle className="text-orange-500 mt-0.5" size={20} />
@@ -119,18 +121,6 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
                 )}
               </div>
             </div>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            {pendingLoans > 0 && (
-              <button onClick={() => setTab('approvals')} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors">
-                {t(`View Loans`)}
-              </button>
-            )}
-            {pendingPawning > 0 && (
-              <button onClick={() => setTab('pawning_approvals')} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors">
-                {t(`View Pawning`)}
-              </button>
-            )}
           </div>
         </div>
       )}

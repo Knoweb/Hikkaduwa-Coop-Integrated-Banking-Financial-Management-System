@@ -2607,7 +2607,9 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
-                {filteredLoans.length === 0 ? (
+                {loading ? (
+                  <tr><td colSpan={7} className="px-3 py-12 text-center text-blue-500 animate-pulse font-bold">{t("Loading loans...")}</td></tr>
+                ) : filteredLoans.length === 0 ? (
                   <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400">
                     <FileText size={28} className="mx-auto mb-2 opacity-30" />
                     <p className="font-semibold">{t(`ණය ගිණුම් කිසිවක් හමු නොවීය`)}</p>
@@ -4545,7 +4547,7 @@ function FieldOfficerView({ activeTab, setTab }: { activeTab: string; setTab?: (
     }
   };
 
-  const todaysVisitsCount = assignedLoans.length + collectionList.length;
+  const todaysCollectionsCount = myCollections.filter((c: any) => new Date(c.createdAt || c.collectedAt || Date.now()).toDateString() === new Date().toDateString()).length;
 
   if (activeTab === 'overview') {
     return (
@@ -4567,7 +4569,7 @@ function FieldOfficerView({ activeTab, setTab }: { activeTab: string; setTab?: (
               <FileText size={14} /> ණය පරීක්ෂණ
             </button>
             <button 
-              onClick={() => setTab?.('collection')} 
+              onClick={() => { setSearchAccNum(''); setSearchedLoan(null); setShowSearchModal(true); setTab?.('collection'); }} 
               className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
             >
               <ClipboardList size={14} /> මුදල් එකතු කිරීම
@@ -4595,8 +4597,8 @@ function FieldOfficerView({ activeTab, setTab }: { activeTab: string; setTab?: (
             onClick={() => setTab?.('evaluations')}
           >
             <div>
-              <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">අද දින ගමන්</p>
-              <h3 className="text-2xl font-black text-slate-800">{todaysVisitsCount}</h3>
+              <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">අද දින ගමන් වාර</p>
+              <h3 className="text-2xl font-black text-slate-800">{todaysCollectionsCount}</h3>
             </div>
             <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
               <Users size={20} />
@@ -4947,7 +4949,7 @@ function FieldOfficerView({ activeTab, setTab }: { activeTab: string; setTab?: (
             ) : (
               filteredCollections.map((c: any, i: number) => {
                 const matchedLoan = loans.find(l => l.loanId === c.loanId);
-                const name = matchedLoan?.applicationData?.name || matchedLoan?.applicationData?.applicantName || 'Unknown';
+                const name = matchedLoan?.applicationData?.name || matchedLoan?.applicationData?.applicantName || getMemberName(matchedLoan?.memberId) || 'Unknown';
                 const accNum = matchedLoan?.accountNumber || c.loanId.substring(0, 8);
                 const isHandedOver = c.status === 'HANDED_OVER';
 
@@ -6120,17 +6122,14 @@ function VaultCashView({ branchId }: { branchId?: number }) {
           };
           let url = '';
           const isSavings = editingTx.creditAccount?.includes('SAVINGS') || editingTx.debitAccount?.includes('SAVINGS');
-          const isLoan = editingTx.creditAccount?.includes('LOAN') || editingTx.debitAccount?.includes('LOAN');
+          const isLoan = editingTx.creditAccount?.includes('LOAN') || editingTx.debitAccount?.includes('LOAN') || editingTx.entryType === 'FIELD_CASH_HANDOVER';
           
-          let idToEdit = editingTx.transactionId; // for savings
+          let idToEdit = editingTx.transactionId || editingTx.entryId || editingTx.referenceNumber;
           if (isLoan) {
-            idToEdit = editingTx.entryId || editingTx.transactionId || editingTx.referenceNumber; // for loans
             url = `${AccountService.API_URL}loans/transactions/${idToEdit}/edit`;
           } else if (editingTx.creditAccount?.includes('PAWN') || editingTx.debitAccount?.includes('PAWN')) {
-            idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
             url = `${AccountService.API_URL}pawning/tickets/transactions/${idToEdit}/edit`;
           } else if (editingTx.creditAccount?.includes('FIXED_DEPOSIT') || editingTx.debitAccount?.includes('FIXED_DEPOSIT')) {
-            idToEdit = editingTx.referenceNumber || editingTx.transactionId || editingTx.entryId;
             url = `${AccountService.API_URL}fixed-deposits/transactions/${idToEdit}/edit`;
           } else {
             url = `${AccountService.API_URL}transactions/${idToEdit}/edit`;
@@ -6723,7 +6722,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                           <td className="px-1.5 py-2 text-center font-mono text-[10px] align-top pt-3.5 w-8 border-r border-indigo-600/20">{sb.cents}</td>
                           <td className="px-1 py-2 align-middle text-center w-8">
                             {role === 'BRANCH_MANAGER' && (
-                              <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditClick(item.raw); }} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
                                 {t(`සංස්කරණය (Edit)`)}
                               </button>
                             )}
@@ -6768,7 +6767,7 @@ function VaultCashView({ branchId }: { branchId?: number }) {
                           <td className="px-1.5 py-2 text-center font-mono text-[10px] align-top pt-3.5 w-8 border-r border-indigo-600/20">{sb.cents}</td>
                           <td className="px-1 py-2 align-middle text-center w-8">
                             {role === 'BRANCH_MANAGER' && (
-                              <button onClick={() => handleEditClick(item.raw)} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditClick(item.raw); }} className="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded shadow-sm border border-red-200">
                                 {t(`සංස්කරණය (Edit)`)}
                               </button>
                             )}
@@ -7260,7 +7259,7 @@ export default function BranchDashboard({ overrideActiveTab, hideSidebar, overri
       case 'LOAN_COMMITTEE':       return <LoanCommitteeView activeTab={tab} />;
       case 'TELLER':               return <TellerView />;
       case 'VALUER':               return <ValuerView />;
-      case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} />;
+      case 'FIELD_OFFICER':        return <FieldOfficerView activeTab={tab} setTab={setTabState} />;
       case 'SENIOR_OFFICER':
         if (tab === 'overview') {
           return <BranchManagerView activeTab="overview" setTab={setTabState} readOnly={readOnly} />;

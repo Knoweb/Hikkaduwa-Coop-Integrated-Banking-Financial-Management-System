@@ -845,9 +845,13 @@ public class LoanService {
         String officerUsername = pfc.getFieldOfficerUsername();
         String fieldAccount = "FIELD_CASH_" + officerUsername.toUpperCase();
         
+        String accountRef = loanRepository.findById(pfc.getLoanId())
+                .map(Loan::getAccountNumber)
+                .orElse(pfc.getLoanId().toString());
+        
         LedgerEntry entry = new LedgerEntry();
         entry.setEntryDate(java.time.LocalDate.now());
-        entry.setDescription("Single Field Cash Handover by " + officerUsername + " (Loan: " + pfc.getLoanId() + ")");
+        entry.setDescription("Single Field Cash Handover by " + officerUsername + " (Loan: " + accountRef + ")");
         entry.setDebitAccount("CASH_IN_VAULT");
         entry.setCreditAccount(fieldAccount);
         entry.setAmount(pfc.getAmount());
