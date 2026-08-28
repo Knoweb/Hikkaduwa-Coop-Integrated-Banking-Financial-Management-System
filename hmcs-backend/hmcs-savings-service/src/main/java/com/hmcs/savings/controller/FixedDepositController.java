@@ -124,6 +124,10 @@ public class FixedDepositController {
         if (request.memberId == null || request.typeId == null || request.principalAmount == null) {
             return ResponseEntity.badRequest().body("Missing required fields");
         }
+        
+        if (request.principalAmount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body("Principal amount must be greater than zero");
+        }
 
         Integer currentBranchId = branchContext.extractBranchId(httpRequest);
         if (currentBranchId == null) currentBranchId = 1;
