@@ -129,9 +129,9 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setTab('members')}>
           <div>
-            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-blue-600 transition-colors">{t(`මුළු සාමාජිකයින් (Total Members)`)}</p>
+            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-blue-600 transition-colors">{t('Total Members')}</p>
             <h3 className="text-2xl font-black text-slate-800">{activeMembers}</h3>
-            <p className="text-xs text-slate-400 mt-1">+{nonMembers} {t(`සාමාජික නොවන (Non-members)`)}</p>
+            <p className="text-xs text-slate-400 mt-1">+{nonMembers} {t('Non-members')}</p>
           </div>
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
             <Users size={24} />
@@ -140,9 +140,9 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setTab('savings')}>
           <div>
-            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-emerald-600 transition-colors">{t(`ඉතුරුම් (Savings)`)}</p>
+            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-emerald-600 transition-colors">{t('Savings')}</p>
             <h3 className="text-xl font-black text-slate-800">{formatCurrency(totalSavings)}</h3>
-            <p className="text-xs text-slate-400 mt-1">{accounts.length} {t(`ගිණුම් (Accounts)`)}</p>
+            <p className="text-xs text-slate-400 mt-1">{accounts.length} {t('Accounts')}</p>
           </div>
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
             <PiggyBank size={24} />
@@ -151,9 +151,9 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setTab('fds')}>
           <div>
-            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-teal-600 transition-colors">{t(`ස්ථාවර තැන්පතු (Fixed Deposits)`)}</p>
+            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-teal-600 transition-colors">{t('Fixed Deposits')}</p>
             <h3 className="text-xl font-black text-slate-800">{formatCurrency(totalFDs)}</h3>
-            <p className="text-xs text-slate-400 mt-1">{fixedDeposits.length} {t(`තැන්පතු (FDs)`)}</p>
+            <p className="text-xs text-slate-400 mt-1">{fixedDeposits.length} {t('FDs')}</p>
           </div>
           <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors">
             <ShieldCheck size={24} />
@@ -162,9 +162,9 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setTab('loans')}>
           <div>
-            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-indigo-600 transition-colors">{t(`ගෙවීමට ඇති ණය (Outstanding Loans)`)}</p>
+            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-indigo-600 transition-colors">{t('Outstanding Loans')}</p>
             <h3 className="text-xl font-black text-slate-800">{formatCurrency(totalLoansOutstanding)}</h3>
-            <p className="text-xs text-slate-400 mt-1">{loans.filter(l => l.status === 'ACTIVE' || l.status === 'COMPLETED').length} {t(`සක්‍රීය ණය (Active Loans)`)}</p>
+            <p className="text-xs text-slate-400 mt-1">{loans.filter(l => l.status === 'ACTIVE' || l.status === 'COMPLETED').length} {t('Active Loans')}</p>
           </div>
           <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
             <FileText size={24} />
@@ -173,9 +173,9 @@ const BranchOverviewView: React.FC<BranchOverviewViewProps> = ({
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group" onClick={() => setTab('pawning')}>
           <div>
-            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-purple-600 transition-colors">{t(`උකස් අත්තිකාරම් (Pawning Advances)`)}</p>
+            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1 group-hover:text-purple-600 transition-colors">{t('Pawning Advances')}</p>
             <h3 className="text-xl font-black text-slate-800">{formatCurrency(totalPawningAdvances)}</h3>
-            <p className="text-xs text-slate-400 mt-1">{pawningTickets.filter(p => p.status === 'ACTIVE').length} {t(`සක්‍රීය උකස් (Active Tickets)`)}</p>
+            <p className="text-xs text-slate-400 mt-1">{pawningTickets.filter(p => p.status === 'ACTIVE').length} {t('Active Tickets')}</p>
           </div>
           <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
             <Scale size={24} />
