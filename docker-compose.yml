@@ -1,4 +1,4 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   postgres:
@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: hmcs_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
       - "./init_db.sql:/docker-entrypoint-initdb.d/init.sql"
@@ -139,7 +139,7 @@ services:
     image: adminer
     container_name: hmcs-db-viewer
     ports:
-      - "8088:8080"
+      - "127.0.0.1:8088:8080"
     depends_on:
       - postgres
     restart: unless-stopped
