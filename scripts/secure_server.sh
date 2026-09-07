@@ -6,9 +6,13 @@
 
 echo "Starting SL CERT Server Hardening..."
 
+# Prevent interactive prompts during apt upgrades
+export DEBIAN_FRONTEND=noninteractive
+
 # 1. Update and Upgrade Packages
 echo "Updating packages..."
-apt-get update -y && apt-get upgrade -y
+apt-get update -y
+apt-get upgrade -yq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
 # 2. Configure UFW (Uncomplicated Firewall) - SL CERT Section 3.3.2 (DENY ALL Policy)
 echo "Configuring UFW Firewall..."
