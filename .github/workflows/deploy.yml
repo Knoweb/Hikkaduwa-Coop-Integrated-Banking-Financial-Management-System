@@ -1,0 +1,41 @@
+name: Deploy SL CERT Compliant HMCS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - name: Deploy via Kamal to Primary (Singapore) & DR (Bangalore)
+        env:
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.GHCR_PAT }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # StrictHostKeyChecking disabled for automated CI/CD deployments to known Droplets
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+          
+          # Deploying using Kamal based on config/deploy.yml
+          kamal deploy

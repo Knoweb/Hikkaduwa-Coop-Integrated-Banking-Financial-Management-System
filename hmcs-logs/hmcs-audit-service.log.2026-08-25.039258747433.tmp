@@ -1,0 +1,130 @@
+2026-08-25T09:14:41.191+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Starting HmcsAuditServiceApplication v0.0.1-SNAPSHOT using Java 21.0.12 with PID 1 (/app/app.jar started by root in /app)
+2026-08-25T09:14:41.239+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-25T09:14:44.509+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-25T09:14:44.645+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 103 ms. Found 3 JPA repository interfaces.
+2026-08-25T09:14:46.042+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8089 (http)
+2026-08-25T09:14:46.081+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-25T09:14:46.083+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-08-25T09:14:46.222+05:30  INFO 1 --- [hmcs-audit-service] [main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 4639 ms
+2026-08-25T09:14:46.856+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-25T09:14:47.006+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-08-25T09:14:48.366+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-25T09:14:48.434+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-25T09:14:49.173+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@61d09475
+2026-08-25T09:14:49.177+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-25T09:14:49.310+05:30  WARN 1 --- [hmcs-audit-service] [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-25T09:14:49.376+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://postgres:5432/hmcs_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 15.18
+	Default catalog/schema: hmcs_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-25T09:14:52.896+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-25T09:14:54.491+05:30  INFO 1 --- [hmcs-audit-service] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-25T09:14:54.719+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-25T09:14:55.366+05:30  WARN 1 --- [hmcs-audit-service] [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-25T09:14:55.548+05:30  WARN 1 --- [hmcs-audit-service] [main] .s.a.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: 30b367fd-94f7-40d6-aa88-9073cde84851
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-08-25T09:14:55.570+05:30  INFO 1 --- [hmcs-audit-service] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-08-25T09:14:56.814+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8089 (http) with context path '/'
+2026-08-25T09:14:56.832+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Started HmcsAuditServiceApplication in 18.912 seconds (process running for 23.282)
+2026-08-25T09:45:21.666+05:30  INFO 1 --- [hmcs-audit-service] [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-08-25T09:45:21.844+05:30  INFO 1 --- [hmcs-audit-service] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-08-25T09:45:30.340+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Starting HmcsAuditServiceApplication v0.0.1-SNAPSHOT using Java 21.0.12 with PID 1 (/app/app.jar started by root in /app)
+2026-08-25T09:45:30.350+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-25T09:45:34.345+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-25T09:45:34.666+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 265 ms. Found 3 JPA repository interfaces.
+2026-08-25T09:45:36.516+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8089 (http)
+2026-08-25T09:45:36.582+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-25T09:45:36.583+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-08-25T09:45:36.725+05:30  INFO 1 --- [hmcs-audit-service] [main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 6000 ms
+2026-08-25T09:45:37.698+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-25T09:45:37.911+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-08-25T09:45:40.350+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-25T09:45:40.464+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-25T09:45:41.764+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@23a78c77
+2026-08-25T09:45:41.778+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-25T09:45:41.967+05:30  WARN 1 --- [hmcs-audit-service] [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-25T09:45:42.111+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://postgres:5432/hmcs_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 15.18
+	Default catalog/schema: hmcs_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-25T09:45:45.735+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-25T09:45:46.350+05:30  INFO 1 --- [hmcs-audit-service] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-25T09:45:46.598+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-25T09:45:47.317+05:30  WARN 1 --- [hmcs-audit-service] [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-25T09:45:47.604+05:30  WARN 1 --- [hmcs-audit-service] [main] .s.a.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: 63ec703c-bc39-4241-9cb2-37bc48152fa1
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-08-25T09:45:47.642+05:30  INFO 1 --- [hmcs-audit-service] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-08-25T09:45:49.354+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8089 (http) with context path '/'
+2026-08-25T09:45:49.399+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Started HmcsAuditServiceApplication in 21.424 seconds (process running for 25.141)
+2026-08-25T09:49:32.457+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-25T09:49:32.487+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-25T09:49:32.630+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 140 ms
+2026-08-25T10:18:45.794+05:30  INFO 1 --- [hmcs-audit-service] [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-08-25T10:18:45.991+05:30  INFO 1 --- [hmcs-audit-service] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-08-25T10:18:53.960+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Starting HmcsAuditServiceApplication v0.0.1-SNAPSHOT using Java 21.0.12 with PID 1 (/app/app.jar started by root in /app)
+2026-08-25T10:18:53.983+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-25T10:18:56.595+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-25T10:18:56.714+05:30  INFO 1 --- [hmcs-audit-service] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 100 ms. Found 3 JPA repository interfaces.
+2026-08-25T10:18:58.682+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8089 (http)
+2026-08-25T10:18:58.723+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-25T10:18:58.726+05:30  INFO 1 --- [hmcs-audit-service] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-08-25T10:18:58.798+05:30  INFO 1 --- [hmcs-audit-service] [main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 4458 ms
+2026-08-25T10:18:59.588+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-25T10:18:59.735+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-08-25T10:19:01.731+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-25T10:19:01.801+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-25T10:19:02.430+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2374452a
+2026-08-25T10:19:02.435+05:30  INFO 1 --- [hmcs-audit-service] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-25T10:19:02.529+05:30  WARN 1 --- [hmcs-audit-service] [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-25T10:19:02.592+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://postgres:5432/hmcs_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 15.18
+	Default catalog/schema: hmcs_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-25T10:19:05.642+05:30  INFO 1 --- [hmcs-audit-service] [main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-25T10:19:06.289+05:30  INFO 1 --- [hmcs-audit-service] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-25T10:19:06.716+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-25T10:19:07.706+05:30  WARN 1 --- [hmcs-audit-service] [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-25T10:19:07.922+05:30  WARN 1 --- [hmcs-audit-service] [main] .s.a.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: 3d924dc8-1caf-4f1a-931f-ad6c06a24589
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-08-25T10:19:07.961+05:30  INFO 1 --- [hmcs-audit-service] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-08-25T10:19:09.636+05:30  INFO 1 --- [hmcs-audit-service] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8089 (http) with context path '/'
+2026-08-25T10:19:09.668+05:30  INFO 1 --- [hmcs-audit-service] [main] c.h.audit.HmcsAuditServiceApplication    : Started HmcsAuditServiceApplication in 18.358 seconds (process running for 21.694)
+2026-08-25T10:25:13.645+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-25T10:25:13.671+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-25T10:25:13.848+05:30  INFO 1 --- [hmcs-audit-service] [http-nio-8089-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 169 ms
