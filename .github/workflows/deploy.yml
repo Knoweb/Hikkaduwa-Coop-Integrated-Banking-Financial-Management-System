@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Install Kamal
-        run: gem install kamal
+        run: sudo gem install kamal
 
       - name: Deploy via Kamal to Primary (Singapore) & DR (Bangalore)
         env:
