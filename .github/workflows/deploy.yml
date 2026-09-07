@@ -20,16 +20,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
+      - name: Create .env file for Docker Compose
+        run: |
+          mkdir -p hmcs-backend
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > hmcs-backend/.env
+          echo "JWT_SECRET=hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system" >> hmcs-backend/.env
+          echo "MAIL_PASSWORD=dyrffvgggzqopagy" >> hmcs-backend/.env
+
       - name: Deploy to Primary Server (Singapore)
         env:
           DOCKER_HOST: ssh://root@143.198.211.244
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           docker compose --project-name hmcs-bank up -d --build
 
       - name: Deploy to DR Server (Bangalore)
         env:
           DOCKER_HOST: ssh://root@168.144.216.11
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           docker compose --project-name hmcs-bank up -d --build

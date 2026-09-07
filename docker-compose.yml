@@ -19,7 +19,7 @@ services:
     build: ./hmcs-backend/hmcs-api-gateway
     container_name: hmcs-api-gateway
     ports:
-    - 127.0.0.1:8080:8080
+    - 8080:8080
     depends_on:
     - postgres
     env_file:
@@ -140,7 +140,7 @@ services:
     build: ./hmcs-frontend
     container_name: hmcs-frontend
     ports:
-    - 127.0.0.1:5173:5173
+    - 80:5173
     depends_on:
     - hmcs-api-gateway
     volumes:
