@@ -47,13 +47,24 @@ else
 fi
 
 # 4. Remove the unencrypted plaintext backup file securely
-echo "[3/4] Removing plaintext database dump..."
+echo "[3/5] Removing plaintext database dump..."
 rm -f "$BACKUP_FILE"
 
-# 5. Clean up old backups (SL CERT Section 4.j - Retention Policy)
-echo "[4/4] Applying retention policy (Keeping last $RETENTION_DAYS days)..."
+# 5. Send to Bangalore (DR) Server securely via SCP
+DR_SERVER_IP="168.144.216.11"
+echo "[4/5] Transferring encrypted backup to DR server ($DR_SERVER_IP)..."
+if scp -o StrictHostKeyChecking=no "$ENCRYPTED_FILE" root@$DR_SERVER_IP:"$BACKUP_DIR/"; then
+    echo "      -> Transfer successful."
+else
+    echo "      -> ERROR: Transfer to DR server failed!"
+    # We won't exit here, so local cleanup still happens
+fi
+
+# 6. Clean up old backups (SL CERT Section 4.j - Retention Policy)
+echo "[5/5] Applying retention policy (Keeping last $RETENTION_DAYS days)..."
 find "$BACKUP_DIR" -type f -name "*.enc" -mtime +$RETENTION_DAYS -exec rm -f {} \;
-echo "      -> Old backups cleaned up."
+ssh -o StrictHostKeyChecking=no root@$DR_SERVER_IP "find $BACKUP_DIR -type f -name '*.enc' -mtime +$RETENTION_DAYS -exec rm -f {} \;"
+echo "      -> Old backups cleaned up locally and remotely."
 
 echo "=========================================================="
 echo " Backup Completed Successfully!"
