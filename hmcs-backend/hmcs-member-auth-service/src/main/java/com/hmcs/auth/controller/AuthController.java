@@ -72,7 +72,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @Transactional
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> login(@jakarta.validation.Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         String clientIp = httpRequest.getRemoteAddr();
         long currentTime = System.currentTimeMillis();
         

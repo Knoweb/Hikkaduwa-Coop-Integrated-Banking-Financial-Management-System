@@ -30,17 +30,19 @@ public class PawningSettingController {
         return ResponseEntity.notFound().build();
     }
 
+    public static class UpdateSettingRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Setting value cannot be blank")
+        public String settingValue;
+        public String description;
+    }
+
     @PutMapping("/{key}")
     public ResponseEntity<PawningSetting> updateSetting(
             @PathVariable String key,
-            @RequestBody Map<String, String> payload) {
+            @jakarta.validation.Valid @RequestBody UpdateSettingRequest payload) {
         
-        String value = payload.get("settingValue");
-        String description = payload.get("description");
-        
-        if (value == null) {
-            return ResponseEntity.badRequest().build();
-        }
+        String value = payload.settingValue;
+        String description = payload.description;
         
         PawningSetting updated = settingService.updateSetting(key, value, description);
         return ResponseEntity.ok(updated);

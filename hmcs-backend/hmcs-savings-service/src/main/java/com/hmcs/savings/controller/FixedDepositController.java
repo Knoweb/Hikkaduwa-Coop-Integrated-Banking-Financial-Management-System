@@ -232,14 +232,23 @@ public class FixedDepositController {
     }
     
     @Transactional
+    public static class EditFdTransactionRequest {
+        @jakarta.validation.constraints.NotNull(message = "New amount is required")
+        @jakarta.validation.constraints.Positive(message = "New amount must be positive")
+        public java.math.BigDecimal newAmount;
+
+        @jakarta.validation.constraints.NotBlank(message = "Reason is required")
+        public String reason;
+    }
+
     @PostMapping("/transactions/{id}/edit")
     public ResponseEntity<?> editTransaction(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> request,
+            @jakarta.validation.Valid @RequestBody EditFdTransactionRequest request,
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
-        java.math.BigDecimal newAmount = new java.math.BigDecimal(request.get("newAmount").toString());
-        String reason = request.get("reason").toString();
+        java.math.BigDecimal newAmount = request.newAmount;
+        String reason = request.reason;
         
         String managerId = "SYSTEM";
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -422,8 +431,13 @@ public class FixedDepositController {
         return ResponseEntity.ok(response);
     }
 
+    public static class UpdateFdStatusRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Status is required")
+        public String status;
+    }
+
     @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateFixedDepositStatus(@PathVariable UUID id, @RequestBody Map<String, String> payload, HttpServletRequest request) {
+    public ResponseEntity<?> updateFixedDepositStatus(@PathVariable UUID id, @jakarta.validation.Valid @RequestBody UpdateFdStatusRequest payload, HttpServletRequest request) {
         Optional<FixedDeposit> fdOpt = fdRepository.findById(id);
         if (fdOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -435,7 +449,7 @@ public class FixedDepositController {
              return ResponseEntity.status(403).body("Not authorized to update FD of another branch");
         }
 
-        String newStatus = payload.get("status");
+        String newStatus = payload.status;
         if (newStatus != null) {
             fd.setStatus(newStatus);
             fdRepository.save(fd);
