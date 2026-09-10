@@ -5,7 +5,7 @@ const BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/led
 
 const authHeader = () => {
   const user = getCurrentUser();
-  return user?.token ? { Authorization: 'Bearer ' + user.token } : {};
+  return {};
 };
 
 export interface LedgerEntry {

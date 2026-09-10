@@ -283,23 +283,28 @@ public class LoanController {
      * Process a loan installment repayment.
      * Body: { "amount": 10500, "paymentMethod": "CASH", "reference": "Ref123", "actorUsername": "mgr_hkw", "paymentBranchId": 2 }
      */
+    public static class RepayRequest {
+        @jakarta.validation.constraints.NotNull(message = "Amount is required")
+        @jakarta.validation.constraints.Positive(message = "Amount must be greater than zero")
+        public java.math.BigDecimal amount;
+        public String paymentMethod = "CASH";
+        public String reference = "";
+        public String actorUsername = "system";
+        public Long paymentBranchId;
+        public java.time.LocalDate paymentDate;
+    }
+
     @PostMapping("/{id}/repay")
     public ResponseEntity<?> repayInstallment(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> body) {
+            @jakarta.validation.Valid @RequestBody RepayRequest body) {
         try {
-            BigDecimal amount = new BigDecimal(body.get("amount").toString());
-            String paymentMethod = body.getOrDefault("paymentMethod", "CASH").toString();
-            String reference = body.getOrDefault("reference", "").toString();
-            String actorUsername = body.getOrDefault("actorUsername", "system").toString();
-            Long paymentBranchId = null;
-            if (body.containsKey("paymentBranchId") && body.get("paymentBranchId") != null) {
-                paymentBranchId = Long.valueOf(body.get("paymentBranchId").toString());
-            }
-            java.time.LocalDate paymentDate = null;
-            if (body.containsKey("paymentDate") && body.get("paymentDate") != null) {
-                paymentDate = java.time.LocalDate.parse(body.get("paymentDate").toString());
-            }
+            BigDecimal amount = body.amount;
+            String paymentMethod = body.paymentMethod;
+            String reference = body.reference;
+            String actorUsername = body.actorUsername;
+            Long paymentBranchId = body.paymentBranchId;
+            java.time.LocalDate paymentDate = body.paymentDate;
 
             LoanRepayment repayment = loanService.payInstallment(id, amount, paymentMethod, reference, actorUsername, paymentBranchId, paymentDate);
             return ResponseEntity.ok(repayment);

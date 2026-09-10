@@ -57,7 +57,7 @@ export const login = async (username: string, password: string) => {
       ...response.data,
       tenantId: response.data.tenantId
     };
-    localStorage.setItem('user', JSON.stringify(userObj));
+    delete userObj.token; localStorage.setItem('user', JSON.stringify(userObj));
   }
   return response.data;
 };
@@ -72,7 +72,7 @@ export const verifyOtp = async (tempToken: string, otp: string) => {
       ...response.data,
       tenantId: response.data.tenantId
     };
-    localStorage.setItem('user', JSON.stringify(userObj));
+    delete userObj.token; localStorage.setItem('user', JSON.stringify(userObj));
   }
   return response.data;
 };
