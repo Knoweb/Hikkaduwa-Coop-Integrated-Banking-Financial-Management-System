@@ -231,7 +231,7 @@ public class AuthController {
                     .description("User logged in successfully")
                     .build());
 
-            ResponseCookie cookie = ResponseCookie.from("jwt_token", token)
+            ResponseCookie cookie = ResponseCookie.from("jwt", token)
                     .httpOnly(true)
                     .secure(false) // Use false for localhost
                     .path("/")
@@ -449,7 +449,7 @@ public class AuthController {
             res.setTenantId(tenantId);
             res.setOrganizationName(orgName);
 
-            org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("jwt_token", token)
+            ResponseCookie cookie = ResponseCookie.from("jwt", token)
                     .httpOnly(true)
                     .secure(false) // Use false for localhost
                     .path("/")
@@ -533,7 +533,7 @@ public class AuthController {
         String token = null;
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie c : request.getCookies()) {
-                if ("jwt_token".equals(c.getName())) {
+                if ("jwt".equals(c.getName())) {
                     token = c.getValue();
                 }
             }
@@ -565,7 +565,7 @@ public class AuthController {
             }
         }
 
-        ResponseCookie cookie = ResponseCookie.from("jwt_token", "")
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")

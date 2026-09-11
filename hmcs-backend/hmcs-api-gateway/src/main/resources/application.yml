@@ -1,4 +1,4 @@
-﻿spring:
+spring:
   codec:
     max-in-memory-size: 50MB
   application:
@@ -10,7 +10,7 @@
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "http://localhost:5173"
+            allowedOriginPatterns: "*"
             allowCredentials: true
             allowedMethods:
               - GET
