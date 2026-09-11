@@ -30,8 +30,8 @@ jobs:
 
       - name: Deploy to Primary Server (Singapore)
         run: |
-          ssh root@143.198.211.244 "cd /root/hmcs && git reset --hard && git pull origin main && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build"
+          ssh root@143.198.211.244 "cd /root/hmcs && git fetch origin && git reset --hard origin/main && git clean -fd && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build"
 
       - name: Deploy to DR Server (Bangalore)
         run: |
-          ssh root@168.144.216.11 "cd /root/hmcs && git reset --hard && git pull origin main && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build" || true
+          ssh root@168.144.216.11 "cd /root/hmcs && git fetch origin && git reset --hard origin/main && git clean -fd && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build" || true
