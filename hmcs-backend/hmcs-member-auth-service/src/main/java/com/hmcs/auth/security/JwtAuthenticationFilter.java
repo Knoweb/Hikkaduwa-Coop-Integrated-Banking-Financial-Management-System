@@ -20,12 +20,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final com.hmcs.auth.repository.UserRepository userRepository;
-    private final jakarta.persistence.EntityManager entityManager;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, @org.springframework.context.annotation.Lazy com.hmcs.auth.repository.UserRepository userRepository, jakarta.persistence.EntityManager entityManager) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, @org.springframework.context.annotation.Lazy com.hmcs.auth.repository.UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -47,11 +45,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Verify that this token is the currently active token using native query to bypass @TenantId filter
                     String activeToken = null;
                     try {
-                        activeToken = (String) this.entityManager.createNativeQuery("SELECT active_token FROM auth_service.users WHERE username = :uname")
-                                .setParameter("uname", username)
-                                .getSingleResult();
-                    } catch (jakarta.persistence.NoResultException e) {
-                        // User not found
+                        activeToken = userRepository.findActiveTokenByUsernameBypassingTenant(username);
+                    } catch (Exception e) {
+                        // User not found or DB error
                     }
 
                     if (activeToken != null && token.equals(activeToken)) {
