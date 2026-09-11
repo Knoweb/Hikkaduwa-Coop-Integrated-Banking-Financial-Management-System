@@ -29,13 +29,9 @@ jobs:
           cp hmcs-backend/.env .env
 
       - name: Deploy to Primary Server (Singapore)
-        env:
-          DOCKER_HOST: ssh://root@143.198.211.244
         run: |
-          docker compose --project-name hmcs-bank up -d --build
+          ssh root@143.198.211.244 "cd /root/hmcs && git reset --hard && git pull origin main && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build"
 
       - name: Deploy to DR Server (Bangalore)
-        env:
-          DOCKER_HOST: ssh://root@168.144.216.11
         run: |
-          docker compose --project-name hmcs-bank up -d --build
+          ssh root@168.144.216.11 "cd /root/hmcs && git reset --hard && git pull origin main && cp /root/hmcs/hmcs-backend/.env /root/hmcs/.env && docker compose --project-name hmcs-bank up -d --build" || true
