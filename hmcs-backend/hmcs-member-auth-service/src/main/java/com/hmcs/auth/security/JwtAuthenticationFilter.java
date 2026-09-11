@@ -20,10 +20,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final com.hmcs.auth.repository.UserRepository userRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, @org.springframework.context.annotation.Lazy com.hmcs.auth.repository.UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, @org.springframework.context.annotation.Lazy com.hmcs.auth.repository.UserRepository userRepository, jakarta.persistence.EntityManager entityManager) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -42,27 +44,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         com.hmcs.auth.multitenancy.TenantContext.setTenantId(tokenTenantId);
                     }
 
-                    // Verify that this token is the currently active token
-                    java.util.Optional<com.hmcs.auth.entity.User> optUser = userRepository.findByUsername(username);
-                            
-                    if (optUser.isPresent()) {
-                        String activeToken = optUser.get().getActiveToken();
-                        if (activeToken != null && token.equals(activeToken)) {
-                            String authName = (role != null && role.startsWith("ROLE_")) ? role : "ROLE_" + (role != null ? role : "");
-                            String rawRole = authName.replace("ROLE_", "");
-                            List<GrantedAuthority> authorities = Arrays.asList(
-                                new SimpleGrantedAuthority(authName),
-                                new SimpleGrantedAuthority(rawRole)
-                            );
-                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                    username, null, authorities
-                            );
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
-                        } else {
-                            System.out.println("Concurrent session detected or activeToken is null. DB Token: " + activeToken + ", Received: " + token);
-                        }
+                    // Verify that this token is the currently active token using native query to bypass @TenantId filter
+                    String activeToken = null;
+                    try {
+                        activeToken = (String) this.entityManager.createNativeQuery("SELECT active_token FROM auth_service.users WHERE username = :uname")
+                                .setParameter("uname", username)
+                                .getSingleResult();
+                    } catch (jakarta.persistence.NoResultException e) {
+                        // User not found
+                    }
+
+                    if (activeToken != null && token.equals(activeToken)) {
+                        String authName = (role != null && role.startsWith("ROLE_")) ? role : "ROLE_" + (role != null ? role : "");
+                        String rawRole = authName.replace("ROLE_", "");
+                        List<GrantedAuthority> authorities = Arrays.asList(
+                            new SimpleGrantedAuthority(authName),
+                            new SimpleGrantedAuthority(rawRole)
+                        );
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                username, null, authorities
+                        );
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
                     } else {
-                        System.out.println("User not found in DB for username: " + username + " with tenantId: " + com.hmcs.auth.multitenancy.TenantContext.getTenantId());
+                        System.out.println("Concurrent session detected or activeToken is null. DB Token: " + activeToken + ", Received: " + token);
                     }
                 }
             } catch (Exception e) {
