@@ -16,7 +16,7 @@ jobs:
       - name: Setup SSH for Remote Deployment
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
@@ -26,6 +26,7 @@ jobs:
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > hmcs-backend/.env
           echo "JWT_SECRET=hmcs_secret_key_for_jwt_token_2026_hikkaduwa_bank_management_system" >> hmcs-backend/.env
           echo "MAIL_PASSWORD=dyrffvgggzqopagy" >> hmcs-backend/.env
+          cp hmcs-backend/.env .env
 
       - name: Deploy to Primary Server (Singapore)
         env:
