@@ -143,11 +143,6 @@ services:
     - 80:5173
     depends_on:
     - hmcs-api-gateway
-    volumes:
-    - ./hmcs-frontend/src:/app/src
-    - ./hmcs-frontend/public:/app/public
-    - ./hmcs-frontend/index.html:/app/index.html
-    - ./hmcs-frontend/vite.config.ts:/app/vite.config.ts
     environment:
     - VITE_PROXY_TARGET=http://hmcs-api-gateway:8080
     restart: unless-stopped
