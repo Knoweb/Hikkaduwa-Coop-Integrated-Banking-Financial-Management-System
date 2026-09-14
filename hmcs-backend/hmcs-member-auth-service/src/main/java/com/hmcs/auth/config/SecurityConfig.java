@@ -28,7 +28,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        org.springframework.security.web.csrf.CookieCsrfTokenRepository tokenRepository = org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse();
+        tokenRepository.setCookiePath("/");
+        
+        org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler requestHandler = new org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName(null);
+
+        http.csrf(csrf -> csrf.csrfTokenRepository(tokenRepository)
+                              .csrfTokenRequestHandler(requestHandler)
+                              .ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/auth/seed", "/api/v1/auth/seed-admin", "/api/v1/auth/setup-mfa", "/api/v1/auth/verify-otp"))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/seed", "/api/v1/auth/seed-admin", "/api/v1/auth/setup-mfa", "/api/v1/auth/verify-otp").permitAll()
@@ -41,6 +49,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/branches", "/api/v1/auth/branches/**").hasAnyAuthority("ROLE_ORGANIZATION_ADMIN", "ROLE_PLATFORM_ADMIN")
                 .anyRequest().authenticated()
             )
+            .addFilterAfter(new org.springframework.web.filter.OncePerRequestFilter() {
+                @Override
+                protected void doFilterInternal(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response, jakarta.servlet.FilterChain filterChain) throws jakarta.servlet.ServletException, java.io.IOException {
+                    org.springframework.security.web.csrf.CsrfToken csrfToken = (org.springframework.security.web.csrf.CsrfToken) request.getAttribute(org.springframework.security.web.csrf.CsrfToken.class.getName());
+                    if (csrfToken != null) {
+                        csrfToken.getToken(); // forces the token to be rendered in the cookie
+                    }
+                    filterChain.doFilter(request, response);
+                }
+            }, org.springframework.security.web.csrf.CsrfFilter.class)
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             

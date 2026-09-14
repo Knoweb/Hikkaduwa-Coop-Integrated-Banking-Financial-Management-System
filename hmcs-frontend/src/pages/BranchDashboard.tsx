@@ -768,6 +768,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
   const [loanQueue, setLoanQueue] = useState<LoanService.Loan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [search, setSearch] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
   const { language } = useLanguage();
   const [viewMode, setViewMode] = useState<'pending' | 'history'>('pending');
 
@@ -775,13 +776,18 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
   useEffect(() => { setViewMode('pending'); }, [activeTab]);
 
   const loadData = () => {
-    AccountService.getBranchMembers().then(setMembers).catch(() => {});
+    setInitialLoading(true);
+    Promise.all([
+      AccountService.getBranchMembers().then(setMembers).catch(() => {});
     AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
     AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {});
-    LoanService.getLoans().then(setLoanQueue).catch(() => {});
+    LoanService.getLoans().then(setLoanQueue).catch(() => {})
+    ]).finally(() => setInitialLoading(false));
   };
 
   useEffect(() => { loadData(); }, []);
+
+  if (initialLoading) return <LoadingOverlay />;
 
   const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
   const filteredMembers = members.filter(m =>
@@ -796,6 +802,8 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
 
   const loans = loanQueue;
   const managerPendingLoans = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
+
+  if (initialLoading) return <LoadingOverlay />;
 
   if (activeTab === 'pawning_approvals') {
     return <PawningApprovalsView />;
@@ -1102,10 +1110,14 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const [members, setMembers] = useState<any[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanService.Loan | null>(null);
   const [activeListTab, setActiveListTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadData = () => {
-    LoanService.getLoans().then(setLoans).catch(() => {});
-    AccountService.getMembers().then(setMembers).catch(() => {});
+    setInitialLoading(true);
+    Promise.all([
+      LoanService.getLoans().then(setLoans).catch(() => {});
+    AccountService.getMembers().then(setMembers).catch(() => {})
+    ]).finally(() => setInitialLoading(false));
   };
 
   useEffect(() => { loadData(); }, []);
