@@ -792,7 +792,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
     AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
     AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}),
     LoanService.getLoans().then(setLoanQueue).catch(() => {})
-    ]).finally(() => setInitialLoading(false));
+    ]).finally(() => { console.log("finally executed!"); setInitialLoading(false); });
   };
 
   useEffect(() => { loadData(); }, []);
@@ -1127,7 +1127,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
     Promise.all([
       LoanService.getLoans().then(setLoans).catch(() => {}),
     AccountService.getMembers().then(setMembers).catch(() => {})
-    ]).finally(() => setInitialLoading(false));
+    ]).finally(() => { console.log("finally executed!"); setInitialLoading(false); });
   };
 
   useEffect(() => { loadData(); }, []);
@@ -1565,6 +1565,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   const [interestModalMonth, setInterestModalMonth] = useState<string>('');
   const user = AuthService.getCurrentUser();
   const navigate = useNavigate();
+  const [initialLoading, setInitialLoading] = useState(true);
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
 
   const getMemberName = (memberId: string, accNo?: string) => {
@@ -1767,15 +1768,19 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   }, []);
 
   const fetchData = () => {
-    AccountService.getBranchMembers().then(setMembers).catch(() => {}),
-    AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
-    LoanService.getLoans().then(setLoans).catch(() => {});
-    const bId = AuthService.getCurrentUser()?.branchId || 1;
-    LoanService.getBranchLedger(bId).then(setLoanLedgers).catch(() => {}),
-    AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {}),
-    AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
-    setFdLoading(true);
-    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}).finally(() => setFdLoading(false));
+    setInitialLoading(true);
+    Promise.all([
+      AccountService.getBranchMembers().then(setMembers).catch(() => {}),
+      AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
+      LoanService.getLoans().then(setLoans).catch(() => {}),
+      LoanService.getBranchLedger(AuthService.getCurrentUser()?.branchId || 1).then(setLoanLedgers).catch(() => {}),
+      AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {}),
+      AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {}),
+      AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {})
+    ]).finally(() => {
+      setInitialLoading(false);
+      setFdLoading(false);
+    });
   };
   useEffect(() => { fetchData(); }, []);
 
@@ -2001,6 +2006,8 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     const matchesTab = savingsTab === 'SOCIETY' ? isSociety : !isSociety;
     return matchesSearch && matchesTab;
   });
+
+  if (initialLoading) return <LoadingOverlay />;
 
   if (activeTab === 'handovers') {
     return <FieldHandoversView members={members} loans={loans} />;
