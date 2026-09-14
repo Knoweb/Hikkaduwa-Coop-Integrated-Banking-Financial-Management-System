@@ -778,9 +778,9 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
   const loadData = () => {
     setInitialLoading(true);
     Promise.all([
-      AccountService.getBranchMembers().then(setMembers).catch(() => {});
-    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
-    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {});
+      AccountService.getBranchMembers().then(setMembers).catch(() => {}),
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
+    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}),
     LoanService.getLoans().then(setLoanQueue).catch(() => {})
     ]).finally(() => setInitialLoading(false));
   };
@@ -1115,7 +1115,7 @@ function LoanCommitteeView({ activeTab }: { activeTab: string }) {
   const loadData = () => {
     setInitialLoading(true);
     Promise.all([
-      LoanService.getLoans().then(setLoans).catch(() => {});
+      LoanService.getLoans().then(setLoans).catch(() => {}),
     AccountService.getMembers().then(setMembers).catch(() => {})
     ]).finally(() => setInitialLoading(false));
   };
@@ -1757,12 +1757,12 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   }, []);
 
   const fetchData = () => {
-    AccountService.getBranchMembers().then(setMembers).catch(() => {});
-    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
+    AccountService.getBranchMembers().then(setMembers).catch(() => {}),
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
     LoanService.getLoans().then(setLoans).catch(() => {});
     const bId = AuthService.getCurrentUser()?.branchId || 1;
-    LoanService.getBranchLedger(bId).then(setLoanLedgers).catch(() => {});
-    AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
+    LoanService.getBranchLedger(bId).then(setLoanLedgers).catch(() => {}),
+    AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {}),
     AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
     setFdLoading(true);
     AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}).finally(() => setFdLoading(false));
