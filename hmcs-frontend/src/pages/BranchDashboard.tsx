@@ -760,6 +760,16 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   );
 }
 
+function LoadingOverlay() {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-slate-500 w-full h-full">
+      <Loader2 size={40} className="animate-spin mb-4 text-blue-600" />
+      <p className="font-medium text-lg">{t('Loading data, please wait...') || 'දත්ත ලබාගනිමින් පවතී, කරුණාකර රැඳී සිටින්න...'}</p>
+    </div>
+  );
+}
+
 function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string; setTab: (tab: string) => void; readOnly?: boolean }) {
   const { t } = useLanguage();
   const [members, setMembers] = useState<AccountService.MemberData[]>([]);
