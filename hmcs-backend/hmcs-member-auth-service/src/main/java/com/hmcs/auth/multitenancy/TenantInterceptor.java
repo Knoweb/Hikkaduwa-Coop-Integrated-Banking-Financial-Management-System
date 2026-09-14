@@ -11,11 +11,11 @@ public class TenantInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String authHeader = request.getHeader("Authorization");
+        String token = null; if (request.getCookies() != null) { for (jakarta.servlet.http.Cookie cookie : request.getCookies()) { if ("jwt".equals(cookie.getName())) { token = cookie.getValue(); break; } } } if (token == null) { String authHeader = request.getHeader("Authorization"); if (authHeader != null && authHeader.startsWith("Bearer ")) { token = authHeader.substring(7); } }
         Integer tenantId = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (token != null) {
+            
             try {
                 String[] parts = token.split("\\.");
                 if (parts.length == 3) {
@@ -70,3 +70,5 @@ public class TenantInterceptor implements HandlerInterceptor {
         TenantContext.clear();
     }
 }
+
+
