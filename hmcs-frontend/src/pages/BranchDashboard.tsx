@@ -760,12 +760,13 @@ function LoanReviewModal({ loan, onClose, onAction }: { loan: LoanService.Loan; 
   );
 }
 
-function LoadingOverlay() {
+function LoadingOverlay({ debugText }: { debugText?: string } = {}) {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center py-24 text-slate-500 w-full h-full">
       <Loader2 size={40} className="animate-spin mb-4 text-blue-600" />
       <p className="font-medium text-lg">{t('Loading data, please wait...') || 'දත්ත ලබාගනිමින් පවතී, කරුණාකර රැඳී සිටින්න...'}</p>
+      {debugText && <p className="text-xs text-red-500 mt-4 whitespace-pre-wrap font-mono">{debugText}</p>}
     </div>
   );
 }
@@ -785,19 +786,29 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
   // Reset viewMode when switching tabs to ensure sensible defaults
   useEffect(() => { setViewMode('pending'); }, [activeTab]);
 
-  const loadData = () => {
+  const [debugText, setDebugText] = useState('Starting BM...');
+  const loadData = async () => {
     setInitialLoading(true);
-    Promise.all([
-      AccountService.getBranchMembers().then(setMembers).catch(() => {}),
-    AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
-    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {}),
-    LoanService.getLoans().then(setLoanQueue).catch(() => {})
-    ]).finally(() => { console.log("finally executed!"); setInitialLoading(false); });
+    setDebugText('Fetching data BM...');
+    try {
+      await AccountService.getBranchMembers().then(setMembers).catch(e => setDebugText(d => d + '\nMembers err'));
+      setDebugText('Members done');
+      await AccountService.getBranchAccounts().then(setAccounts).catch(e => setDebugText(d => d + '\nAccounts err'));
+      setDebugText('Accounts done');
+      await AccountService.getFixedDeposits().then(setFixedDeposits).catch(e => setDebugText(d => d + '\nFDs err'));
+      setDebugText('FDs done');
+      await LoanService.getLoans().then(setLoanQueue).catch(e => setDebugText(d => d + '\nLoans err'));
+      setDebugText('All done');
+    } catch (e: any) {
+      setDebugText('Exception: ' + e.message);
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useEffect(() => { loadData(); }, []);
 
-  if (initialLoading) return <LoadingOverlay />;
+  if (initialLoading) return <LoadingOverlay debugText={debugText} />;
 
   const totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
   const filteredMembers = members.filter(m =>
@@ -813,7 +824,7 @@ function BranchManagerView({ activeTab, setTab, readOnly }: { activeTab: string;
   const loans = loanQueue;
   const managerPendingLoans = loanQueue.filter(l => l.currentStage === 'STAGE_1_MANAGER_APPROVAL' && l.status === 'PENDING');
 
-  if (initialLoading) return <LoadingOverlay />;
+  if (initialLoading) return <LoadingOverlay debugText={debugText} />;
 
   if (activeTab === 'pawning_approvals') {
     return <PawningApprovalsView />;
@@ -1767,20 +1778,32 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     AccountService.getBranchMembers().then(setMembers).catch(() => {});
   }, []);
 
-  const fetchData = () => {
+  const [debugText, setDebugText] = useState('Starting...');
+
+  const fetchData = async () => {
     setInitialLoading(true);
-    Promise.all([
-      AccountService.getBranchMembers().then(setMembers).catch(() => {}),
-      AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
-      LoanService.getLoans().then(setLoans).catch(() => {}),
-      LoanService.getBranchLedger(AuthService.getCurrentUser()?.branchId || 1).then(setLoanLedgers).catch(() => {}),
-      AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {}),
-      AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {}),
-      AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {})
-    ]).finally(() => {
+    setDebugText('Fetching data...');
+    try {
+      await AccountService.getBranchMembers().then(setMembers).catch(e => setDebugText(d => d + '\nMembers err'));
+      setDebugText('Members done');
+      await AccountService.getBranchAccounts().then(setAccounts).catch(e => setDebugText(d => d + '\nAccounts err'));
+      setDebugText('Accounts done');
+      await LoanService.getLoans().then(setLoans).catch(e => setDebugText(d => d + '\nLoans err'));
+      setDebugText('Loans done');
+      await LoanService.getBranchLedger(AuthService.getCurrentUser()?.branchId || 1).then(setLoanLedgers).catch(e => setDebugText(d => d + '\nLedger err'));
+      setDebugText('Ledger done');
+      await AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(e => setDebugText(d => d + '\nSavTypes err'));
+      setDebugText('SavTypes done');
+      await AccountService.getFixedDepositTypes().then(setFdTypes).catch(e => setDebugText(d => d + '\nFdTypes err'));
+      setDebugText('FdTypes done');
+      await AccountService.getFixedDeposits().then(setFixedDeposits).catch(e => setDebugText(d => d + '\nFDs err'));
+      setDebugText('All done');
+    } catch (e: any) {
+      setDebugText('Exception: ' + e.message);
+    } finally {
       setInitialLoading(false);
       setFdLoading(false);
-    });
+    }
   };
   useEffect(() => { fetchData(); }, []);
 
@@ -2007,7 +2030,7 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
     return matchesSearch && matchesTab;
   });
 
-  if (initialLoading) return <LoadingOverlay />;
+  if (initialLoading) return <LoadingOverlay debugText={debugText} />;
 
   if (activeTab === 'handovers') {
     return <FieldHandoversView members={members} loans={loans} />;
