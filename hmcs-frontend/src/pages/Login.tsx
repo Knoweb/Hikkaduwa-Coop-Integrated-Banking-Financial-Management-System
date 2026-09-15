@@ -194,14 +194,14 @@ export default function Login() {
       style={{ backgroundImage: "url('/images/banking_bg.png?v=3')" }}
     >
       {/* Dynamic Overlay */}
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[4px]"></div>
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[4px] transform-gpu"></div>
       
       {/* Decorative Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"></div>
 
       <div className="relative z-10 w-full max-w-[440px]">
         {/* Glassmorphism Card */}
-        <div className="backdrop-blur-xl bg-white/[0.03] border border-white/10 p-10 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex flex-col items-center">
+        <div className="backdrop-blur-xl transform-gpu bg-white/[0.03] border border-white/10 p-10 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex flex-col items-center">
           
           {/* Logo Section */}
           <div className="relative mb-8 group">
