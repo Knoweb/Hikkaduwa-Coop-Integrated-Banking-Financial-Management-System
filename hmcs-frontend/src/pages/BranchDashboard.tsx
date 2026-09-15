@@ -1768,19 +1768,15 @@ function CustomerServiceView({ activeTab, onTabChange, readOnly, confirmDialog, 
   }, []);
 
   const fetchData = () => {
-    setInitialLoading(true);
-    Promise.all([
-      AccountService.getBranchMembers().then(setMembers).catch(() => {}),
-      AccountService.getBranchAccounts().then(setAccounts).catch(() => {}),
-      LoanService.getLoans().then(setLoans).catch(() => {}),
-      LoanService.getBranchLedger(AuthService.getCurrentUser()?.branchId || 1).then(setLoanLedgers).catch(() => {}),
-      AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {}),
-      AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {}),
-      AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {})
-    ]).finally(() => {
-      setInitialLoading(false);
-      setFdLoading(false);
-    });
+    AccountService.getBranchMembers().then(setMembers).catch(() => {});
+    AccountService.getBranchAccounts().then(setAccounts).catch(() => {});
+    LoanService.getLoans().then(setLoans).catch(() => {});
+    LoanService.getBranchLedger(AuthService.getCurrentUser()?.branchId || 1).then(setLoanLedgers).catch(() => {});
+    AccountService.getSavingsAccountTypes().then(setSavingsTypes).catch(() => {});
+    AccountService.getFixedDepositTypes().then(setFdTypes).catch(() => {});
+    AccountService.getFixedDeposits().then(setFixedDeposits).catch(() => {});
+    setInitialLoading(false);
+    setFdLoading(false);
   };
   useEffect(() => { fetchData(); }, []);
 
