@@ -27,7 +27,7 @@ public class JwtCookieToHeaderFilter implements GlobalFilter, Ordered {
         
         // Check if there is already an Authorization header
         if (!request.getHeaders().containsKey("Authorization")) {
-            HttpCookie jwtCookie = request.getCookies().getFirst("jwt_token");
+            HttpCookie jwtCookie = request.getCookies().getFirst("jwt");
             if (jwtCookie != null && jwtCookie.getValue() != null && !jwtCookie.getValue().isEmpty()) {
                 String token = jwtCookie.getValue();
                 
