@@ -194,7 +194,7 @@ export default function Login() {
       style={{ backgroundImage: "url('/images/banking_bg.png?v=3')" }}
     >
       {/* Dynamic Overlay */}
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[4px] transform-gpu"></div>
+      <div className="absolute inset-0 bg-slate-950/70"></div>
       
       {/* Decorative Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"></div>
