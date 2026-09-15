@@ -191,7 +191,7 @@ export default function Login() {
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat relative overflow-hidden"
-      style={{ backgroundImage: "url('/images/banking_bg.png?v=3')" }}
+      style={{ backgroundImage: "url('/images/banking_bg.png?v=4')" }}
     >
       {/* Dynamic Overlay */}
       <div className="absolute inset-0 bg-slate-950/70"></div>
