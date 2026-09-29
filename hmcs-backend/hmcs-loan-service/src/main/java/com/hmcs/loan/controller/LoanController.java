@@ -38,7 +38,7 @@ public class LoanController {
 
     // ── Queries ──────────────────────────────────────────────────────────────
     @GetMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'FIELD_OFFICER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'FIELD_OFFICER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     public List<Loan> getAllLoans(@RequestParam(required = false) Integer branchId, HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -157,7 +157,7 @@ public class LoanController {
      * Advance loan to the next workflow stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "..." }
      */
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     @PostMapping("/{id}/advance")
     public ResponseEntity<Loan> advanceLoanStage(
             @PathVariable UUID id,
@@ -179,7 +179,7 @@ public class LoanController {
      * Reject a loan at the current stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "Reason..." }
      */
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<Loan> rejectLoan(
             @PathVariable UUID id,

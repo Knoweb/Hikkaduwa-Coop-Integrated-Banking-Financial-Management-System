@@ -236,7 +236,6 @@ public class AuthController {
                     .secure(false) // Use false for localhost
                     .path("/")
                     .maxAge(24 * 60 * 60)
-                    .sameSite("Strict")
                     .build();
 
             entityManager.createNativeQuery("UPDATE auth_service.users SET active_token = :token WHERE username = :uname")
@@ -454,7 +453,6 @@ public class AuthController {
                     .secure(false) // Use false for localhost
                     .path("/")
                     .maxAge(24 * 60 * 60)
-                    .sameSite("Strict")
                     .build();
 
             return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString()).body(res);
