@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, UserPlus, FileDown, MoreVertical } from 'lucide-react';
+import { Search, UserPlus, FileDown, MoreVertical, Loader2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import * as AccountService from '../services/account.service';
 import { useLanguage } from '../context/LanguageContext';
@@ -135,8 +135,11 @@ export default function Members() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                      Loading members...
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-slate-500 gap-3">
+                        <Loader2 className="animate-spin text-red-600" size={32} />
+                        <span className="font-medium animate-pulse">Loading members...</span>
+                      </div>
                     </td>
                   </tr>
                 ) : filteredMembers.length === 0 ? (
