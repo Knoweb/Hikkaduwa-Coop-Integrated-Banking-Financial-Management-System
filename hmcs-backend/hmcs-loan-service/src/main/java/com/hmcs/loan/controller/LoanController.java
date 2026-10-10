@@ -38,7 +38,7 @@ public class LoanController {
 
     // ── Queries ──────────────────────────────────────────────────────────────
     @GetMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'FIELD_OFFICER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'FIELD_OFFICER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     public List<Loan> getAllLoans(@RequestParam(required = false) Integer branchId, HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -58,7 +58,7 @@ public class LoanController {
     }
 
     @GetMapping("/reports/insurance")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
     public List<Loan> getInsuranceReportLoans(@RequestParam String month, @RequestParam(required = false) Integer branchId, HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -157,7 +157,7 @@ public class LoanController {
      * Advance loan to the next workflow stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "..." }
      */
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     @PostMapping("/{id}/advance")
     public ResponseEntity<Loan> advanceLoanStage(
             @PathVariable UUID id,
@@ -179,7 +179,7 @@ public class LoanController {
      * Reject a loan at the current stage.
      * Body: { "actorUsername": "mgr_hkw", "actorRole": "BRANCH_MANAGER", "comments": "Reason..." }
      */
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE', 'LOAN_COMMITTEE')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<Loan> rejectLoan(
             @PathVariable UUID id,
@@ -201,7 +201,7 @@ public class LoanController {
      * Disburse an approved loan.
      * Body: { "amount": 100000, "actorUsername": "mgr_hkw" }
      */
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'TELLER', 'SENIOR_OFFICER', 'CUSTOMER_SERVICE')")
     @PostMapping("/{id}/disburse")
     public ResponseEntity<?> disburseLoan(
             @PathVariable UUID id,
@@ -320,7 +320,7 @@ public class LoanController {
 
     // ── Edit Transaction ─────────────────────────────────────────────────────
     @PostMapping("/transactions/{id}/edit")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'SENIOR_OFFICER', 'ADMIN', 'SYSTEM_ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'SENIOR_OFFICER', 'ADMIN', 'SYSTEM_ADMIN')")
     public ResponseEntity<?> editTransaction(
             @PathVariable UUID id,
             @RequestBody EditRepaymentRequest body,

@@ -83,7 +83,7 @@ public class PawnController {
         return ResponseEntity.ok(pawnService.makePayment(ticketId, amount, date));
     }
 
-    @PreAuthorize("hasAnyRole('ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER')")
+    @PreAuthorize("hasAnyRole('AUDITOR', 'ORGANIZATION_ADMIN', 'PLATFORM_ADMIN', 'MANAGER', 'BRANCH_MANAGER', 'ADMIN', 'SYSTEM_ADMIN', 'SENIOR_OFFICER')")
     @PostMapping("/transactions/{id}/edit")
     public ResponseEntity<?> editTransaction(
             @PathVariable UUID id,
