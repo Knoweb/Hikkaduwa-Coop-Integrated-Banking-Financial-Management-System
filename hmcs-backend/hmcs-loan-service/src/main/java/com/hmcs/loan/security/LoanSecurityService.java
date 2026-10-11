@@ -21,7 +21,7 @@ public class LoanSecurityService {
         if (auth == null || !auth.isAuthenticated()) return false;
         String role = auth.getAuthorities().stream().findFirst().map(a -> a.getAuthority()).orElse("");
 
-        if (role.contains("ORGANIZATION_ADMIN") || role.contains("PLATFORM_ADMIN")) {
+        if (role.contains("ORGANIZATION_ADMIN") || role.contains("PLATFORM_ADMIN") || role.contains("AUDITOR")) {
             return true;
         }
 
@@ -36,7 +36,7 @@ public class LoanSecurityService {
         if (auth == null || !auth.isAuthenticated()) return false;
         String role = auth.getAuthorities().stream().findFirst().map(a -> a.getAuthority()).orElse("");
 
-        if (role.contains("ORGANIZATION_ADMIN") || role.contains("PLATFORM_ADMIN")) {
+        if (role.contains("ORGANIZATION_ADMIN") || role.contains("PLATFORM_ADMIN") || role.contains("AUDITOR")) {
             return true;
         }
 
@@ -50,3 +50,4 @@ public class LoanSecurityService {
         return userBranchId != null && userBranchId.equals(loanBranchId);
     }
 }
+

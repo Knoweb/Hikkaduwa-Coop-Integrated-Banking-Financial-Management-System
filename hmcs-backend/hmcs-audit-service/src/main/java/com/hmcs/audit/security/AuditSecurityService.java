@@ -35,7 +35,7 @@ public class AuditSecurityService {
         String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
 
         // Admins can access all comments
-        if ("ORGANIZATION_ADMIN".equalsIgnoreCase(roleName) || "PLATFORM_ADMIN".equalsIgnoreCase(roleName)) {
+        if ("ORGANIZATION_ADMIN".equalsIgnoreCase(roleName) || "PLATFORM_ADMIN".equalsIgnoreCase(roleName) || "AUDITOR".equalsIgnoreCase(roleName)) {
             return true;
         }
 
@@ -55,3 +55,4 @@ public class AuditSecurityService {
         return false;
     }
 }
+
